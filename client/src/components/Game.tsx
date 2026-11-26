@@ -37,7 +37,6 @@ export default function Game({ playId, onHome, onFinish }: Props) {
   const suspects = state.characters.filter((c) => c.character_type !== "피해자");
   const victim = state.characters.find((c) => c.character_type === "피해자");
   const current = suspects.find((c) => c.character_id === selected) ?? null;
-  const left = state.scenes.filter((s) => !s.investigated).length;
 
   function showNewClues(names: string[]) {
     if (names.length === 0) return;
@@ -136,13 +135,6 @@ export default function Game({ playId, onHome, onFinish }: Props) {
               </button>
             );
           })}
-          <div className="card investigate">
-            <b>현장 조사</b>
-            <p>{left > 0 ? `장소를 골라 단서를 찾아요. 아직 안 간 곳 ${left}곳` : "모든 현장을 조사했어요."}</p>
-            <button className="pill white" onClick={() => setTab("scene")}>
-              조사하기 →
-            </button>
-          </div>
         </aside>
 
         {current ? (

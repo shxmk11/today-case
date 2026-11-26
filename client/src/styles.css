@@ -128,9 +128,6 @@ button.case-row:not(.on):hover { background: rgb(255 255 255 / 0.06); }
 .suspect .q { font-size: 13px; color: var(--muted); padding-top: 8px; }
 .suspect.on b, .suspect.on .no { color: var(--red); }
 .suspect:not(.on):hover b { opacity: 0.8; }
-.investigate { margin-top: auto; padding: 18px; }
-.investigate b { font-size: 17px; font-weight: 800; }
-.investigate p { font-size: 13px; color: var(--muted); margin: 4px 0 12px; }
 
 /* 아이메시지 심문 */
 .chat { display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
