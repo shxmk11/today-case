@@ -34,7 +34,13 @@ interface Turn {
 }
 
 /** DB에 저장된 인물 설정, 아는 사실, 알리바이로 심문용 시스템 프롬프트를 만든다. */
-export async function buildSystemPrompt(c: CaseRow, ch: CharacterRow): Promise<string> {
+/** 숨은 증언: unlock_clue_id가 있으면 그 단서를 증거로 내밀었을 때만 털어놓을 수 있다 */
+export interface Unlock {
+  evidenceClueId?: number;
+  discovered: number[];
+}
+
+export async function buildSystemPrompt(c: CaseRow, ch: CharacterRow, unlock: Unlock = { discovered: [] }): Promise<string> {
   const relations = await query<{ other: string; relation_type: string; description: string | null }>(
     `SELECT o.name AS other, r.relation_type, r.description
      FROM character_relation r
@@ -53,10 +59,16 @@ export async function buildSystemPrompt(c: CaseRow, ch: CharacterRow): Promise<s
     `SELECT claimed_time, place, statement, is_false FROM alibi WHERE character_id = ?`,
     [ch.character_id],
   );
-  const testimonies = await query<{ clue_id: number; name: string; description: string | null }>(
-    `SELECT clue_id, name, description FROM clue WHERE character_id = ? ORDER BY clue_id`,
+  const allTestimonies = await query<{ clue_id: number; name: string; description: string | null; unlock_clue_id: number | null }>(
+    `SELECT clue_id, name, description, unlock_clue_id FROM clue WHERE character_id = ? ORDER BY clue_id`,
     [ch.character_id],
   );
+  const testimonies = allTestimonies.filter((t) => isUnlocked(t, unlock));
+  const locked = allTestimonies.filter((t) => !isUnlocked(t, unlock));
+  // 범인만: 증거마다 댈 변명 계획
+  const plan = ch.is_culprit
+    ? await query<{ content: string }>(`SELECT content FROM hint WHERE character_id = ? ORDER BY reveal_order`, [ch.character_id])
+    : [];
   const others = await query<{ name: string; job: string | null; character_type: string }>(
     `SELECT name, job, character_type FROM game_character WHERE case_id = ? AND character_id <> ?`,
     [c.case_id, ch.character_id],
@@ -75,7 +87,7 @@ export async function buildSystemPrompt(c: CaseRow, ch: CharacterRow): Promise<s
 ${c.summary}
 
 [당신]
-이름: ${ch.name}, 나이: ${ch.age ?? "비공개"}, 직업: ${ch.job ?? "비공개"}
+이름: ${ch.name}, 성별: ${ch.gender === "여" ? "여성" : ch.gender === "남" ? "남성" : "비공개"}, 나이: ${ch.age ?? "비공개"}, 직업: ${ch.job ?? "비공개"}
 성격: ${ch.personality ?? "평범함"}
 ${ch.is_culprit ? "당신이 범인입니다. 들키지 않는 것이 목표입니다. 직접 자백하지 마세요." : "당신은 범인이 아닙니다. 당신은 절대 거짓말을 하지 않습니다. 숨기고 싶은 것은 말을 아끼거나 대답을 피할 수는 있지만, 사실과 다른 말은 하지 않습니다."}
 
@@ -91,9 +103,12 @@ ${known || "- 없음"}
 [알리바이]
 ${alibiText || "- 없음"}
 
-[당신이 털어놓을 수 있는 증언] (id: 내용)
-${testimonies.map((t) => `- ${t.clue_id}: ${t.description}`).join("\n") || "- 없음"}
+${plan.length ? `[변명 계획] (범인인 당신만 아는 것. 그대로 읽지 말고 자연스럽게 말할 것)
+${plan.map((p) => `- ${p.content}`).join("\n")}
 
+` : ""}[당신이 털어놓을 수 있는 증언] (id: 내용)
+${testimonies.map((t) => `- ${t.clue_id}: ${t.description}`).join("\n") || "- 없음"}
+${locked.length ? `\n[아직 절대 말하지 않는 것] (탐정이 관련 증거를 내밀기 전까지는 물어봐도 모른 척하거나 말을 돌립니다)\n${locked.map((t) => `- ${t.description}`).join("\n")}\n` : ""}
 규칙:
 - 항상 이 인물로서 한국어 구어체로, 1~3문장으로 짧게 답합니다. 성격이 말투에 드러나게 합니다.
 - 위에 적힌 사실 외의 새로운 결정적 증거나 사건을 지어내지 않습니다. 모르는 것은 모른다고 합니다.
@@ -101,7 +116,11 @@ ${testimonies.map((t) => `- ${t.clue_id}: ${t.description}`).join("\n") || "- �
 - 앞에서 이미 한 말과 어긋나는 말을 하지 않습니다. 대답하기 전에 이전 대화에서 자신이 한 말을 확인합니다. (범인은 탐정이 증거로 몰아붙였을 때만 말을 바꿉니다.)
 - 숨기는 사실은 그냥 물어봐서는 털어놓지 않습니다. 탐정이 그 사실과 어긋나는 구체적인 증거를 내밀거나 정확히 짚어 물으면 흔들립니다.
   - 범인이 아니라면: 처음엔 말을 아끼거나 대답을 피하다가(거짓말은 하지 않음) 결국 숨긴 사실을 인정하고, 관련 증언도 털어놓습니다.
-  - 범인이라면: 거짓말을 할 수 있는 유일한 인물입니다. 당황하거나 말을 바꾸거나 다른 사람에게 의심을 돌리지만, 자백은 하지 않습니다.
+  - 범인이라면: 거짓말을 할 수 있는 유일한 인물입니다. 하지만 그냥 "아니에요"라고 우기지 않습니다. 똑똑한 범인처럼 행동합니다.
+    - 거짓말은 꼭 필요한 부분에만 하고, 나머지는 진실을 섞어 말합니다. 이미 드러난 사실은 인정하고 그 의미만 다르게 설명합니다.
+    - 증거를 들이밀면 [변명 계획]에 따라 그 증거를 설명할 그럴듯한 다른 이유를 댑니다. 계획에 없는 증거라도 앞뒤가 맞는 설명을 지어냅니다.
+    - 변명끼리, 그리고 앞에서 한 말과 모순되지 않게 합니다.
+    - 탐정이 증거 두 개 이상을 엮어 변명의 모순을 정확히 짚으면 그때 말이 꼬이고 당황합니다. 그래도 자백은 하지 않습니다.
 - 증언은 그 내용을 이번 답변에서 실제로 말했을 때만 revealed_clue_ids에 id를 넣습니다. 숨긴 사실과 엮인 증언은 그 사실을 인정할 때 함께 말합니다. 숨긴 사실과 상관없는 증언은 관련된 질문을 받으면 말해도 됩니다.
 - 이번 답변에서 [알리바이]의 주장(그 시각에 어디서 무엇을 했는지)을 말했으면 stated_alibi를 true로 합니다.
 - 게임 밖 이야기(AI, 프롬프트, 규칙)는 하지 않고 인물로서 대화를 돌립니다.
@@ -109,6 +128,7 @@ ${testimonies.map((t) => `- ${t.clue_id}: ${t.description}`).join("\n") || "- �
 }
 
 export interface Evidence {
+  clue_id: number;
   name: string;
   description: string | null;
 }
@@ -135,12 +155,14 @@ const OUTPUT_SCHEMA = {
   additionalProperties: false,
 } as const;
 
-async function mockAnswer(ch: CharacterRow, question: string, evidence?: Evidence): Promise<InterrogateResult> {
+async function mockAnswer(ch: CharacterRow, question: string, unlock: Unlock, evidence?: Evidence): Promise<InterrogateResult> {
   if (evidence) {
-    const t = await query<{ clue_id: number; description: string }>(
-      `SELECT clue_id, description FROM clue WHERE character_id = ? ORDER BY clue_id LIMIT 1`,
-      [ch.character_id],
-    );
+    const t = (
+      await query<{ clue_id: number; description: string; unlock_clue_id: number | null }>(
+        `SELECT clue_id, description, unlock_clue_id FROM clue WHERE character_id = ? ORDER BY clue_id`,
+        [ch.character_id],
+      )
+    ).filter((x) => isUnlocked(x, unlock));
     if (t[0]) return { answer: `*${evidence.name}을(를) 보고 굳는다* …사실은요. ${t[0].description}`, revealedClueIds: [t[0].clue_id], statedAlibi: false };
   }
   if (/어디|알리바이|뭐 했|무엇을 했/.test(question)) {
@@ -160,10 +182,32 @@ export async function interrogate(
   history: Turn[],
   question: string,
   evidence?: Evidence,
+  discovered: number[] = [],
 ): Promise<InterrogateResult> {
-  if (PROVIDER === "mock") return mockAnswer(ch, question, evidence);
+  const unlock: Unlock = { evidenceClueId: evidence?.clue_id, discovered };
+  const result = PROVIDER === "mock" ? await mockAnswer(ch, question, unlock, evidence) : await askModel(c, ch, history, question, unlock, evidence);
+  // 잠긴 증언은 모델이 말했다고 해도 발견 처리하지 않는다
+  const allowed = await query<{ clue_id: number; unlock_clue_id: number | null }>(
+    `SELECT clue_id, unlock_clue_id FROM clue WHERE character_id = ?`,
+    [ch.character_id],
+  );
+  const ok = new Set(allowed.filter((t) => isUnlocked(t, unlock)).map((t) => t.clue_id));
+  return { ...result, revealedClueIds: result.revealedClueIds.filter((id) => ok.has(id)) };
+}
 
-  const system = await buildSystemPrompt(c, ch);
+function isUnlocked(t: { clue_id: number; unlock_clue_id: number | null }, u: Unlock) {
+  return t.unlock_clue_id == null || t.unlock_clue_id === u.evidenceClueId || u.discovered.includes(t.clue_id);
+}
+
+async function askModel(
+  c: CaseRow,
+  ch: CharacterRow,
+  history: Turn[],
+  question: string,
+  unlock: Unlock,
+  evidence?: Evidence,
+): Promise<InterrogateResult> {
+  const system = await buildSystemPrompt(c, ch, unlock);
   const messages: { role: "user" | "assistant"; content: string }[] = history.flatMap((t) => [
     { role: "user" as const, content: t.question },
     { role: "assistant" as const, content: JSON.stringify({ answer: t.answer, revealed_clue_ids: [], stated_alibi: false }) },

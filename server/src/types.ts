@@ -12,6 +12,7 @@ export interface CharacterRow {
   case_id: number;
   name: string;
   age: number | null;
+  gender: "남" | "여" | null;
   job: string | null;
   personality: string | null;
   character_type: "피해자" | "용의자" | "목격자";

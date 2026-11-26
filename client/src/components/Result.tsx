@@ -36,13 +36,23 @@ export default function Result({ result, title, onHome, onRetry }: Props) {
           <p className="verdict-line">
             당신은 <b>{result.accused}</b>을(를) 지목했습니다.{" "}
             {win ? (
-              "정답입니다."
+              "범인도, 근거도 정확합니다."
+            ) : result.culpritCorrect ? (
+              <>범인은 맞혔지만 근거가 부족해 혐의를 입증하지 못했습니다.</>
             ) : (
               <>
                 진범은 <b className="red">{result.culprit.name}</b>이었습니다.
               </>
             )}
           </p>
+          <div className="verdict-ev">
+            {result.evidence.map((e) => (
+              <span key={e.name} className={e.isKey ? "hit" : "miss"}>
+                {e.isKey ? "● " : "○ "}
+                {e.name}
+              </span>
+            ))}
+          </div>
           <div className="stats">
             <div className="card"><span className="lbl">걸린 시간</span><b className="display">{result.stats.minutes}분</b></div>
             <div className="card"><span className="lbl">질문 수</span><b className="display">{result.stats.questions}</b></div>

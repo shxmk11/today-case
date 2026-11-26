@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import type { Character, Chat, Clue } from "../types";
-import { Face, Line, splitEvidence } from "./Common";
+import { Face, Line, bio, splitEvidence } from "./Common";
 
 interface Props {
   character: Character;
@@ -9,7 +9,7 @@ interface Props {
   onAsk: (question: string, evidence?: Clue) => Promise<void>;
 }
 
-const SUGGESTIONS = ["21시 40분쯤 어디 계셨어요?", "피해자와는 어떤 사이였죠?", "오늘 밤 이상한 걸 보거나 듣지 못했나요?"];
+const SUGGESTIONS = ["사건이 일어났을 때 어디 계셨어요?", "피해자와는 어떤 사이였죠?", "오늘 밤 이상한 걸 보거나 듣지 못했나요?"];
 
 /* 증거를 내밀면 사진처럼 카드로 보낸다 */
 function EvidenceCard({ name, clue }: { name: string; clue?: Clue }) {
@@ -74,7 +74,7 @@ export default function ChatPanel({ character, chats, clues, onAsk }: Props) {
         <div className="grow">
           <b>{character.name}</b>
           <small>
-            {character.age}세 · {character.job} · {character.personality}
+            {bio(character)} · {character.job} · {character.personality}
           </small>
         </div>
       </div>

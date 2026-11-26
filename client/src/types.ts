@@ -10,13 +10,14 @@ export interface CaseSummary {
   scene_count?: number;
   clue_count?: number;
   solve_rate?: number | null;
-  suspects?: { name: string; job: string | null }[];
+  suspects?: { name: string; job: string | null; gender: "남" | "여" | null }[];
 }
 
 export interface Character {
   character_id: number;
   name: string;
   age: number | null;
+  gender: "남" | "여" | null;
   job: string | null;
   personality: string | null;
   character_type: "피해자" | "용의자" | "목격자";
@@ -79,6 +80,9 @@ export interface PlayState {
 
 export interface AccuseResult {
   result: "성공" | "실패";
+  /** 범인은 맞혔는지 (근거가 부족하면 범인을 맞혀도 실패) */
+  culpritCorrect: boolean;
+  evidence: { name: string; isKey: boolean }[];
   accused: string;
   culprit: { character_id: number; name: string };
   truth: string;

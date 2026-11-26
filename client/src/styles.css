@@ -215,6 +215,16 @@ button.case-row:not(.on):hover { background: rgb(255 255 255 / 0.06); }
 .accuse-pick small { font-size: 11px; color: rgb(0 0 0 / 0.5); }
 .accuse-pick.on { background: var(--red); border-color: var(--red); color: var(--white); }
 .accuse-pick.on small { color: rgb(255 255 255 / 0.8); }
+.evidence-pick { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; max-height: 300px; overflow-y: auto; }
+.ev-chip { border: var(--ink-line); border-radius: 16px; padding: 10px 14px; text-align: left; display: flex; flex-direction: column; gap: 2px; }
+.ev-chip b { font-size: 14px; }
+.ev-chip small { font-size: 11px; color: rgb(0 0 0 / 0.5); }
+.ev-chip.on { background: var(--red); border-color: var(--red); color: var(--white); }
+.ev-chip.on small { color: rgb(255 255 255 / 0.8); }
+.verdict-ev { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.verdict-ev span { border: var(--ol); border-radius: 999px; padding: 4px 12px; font-size: 12.5px; }
+.verdict-ev span.hit { border-color: var(--white); font-weight: 700; }
+.verdict-ev span.miss { border-style: dashed; color: var(--muted); }
 .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 6px; }
 .modal-actions .pill { padding: 12px 20px; font-size: 14px; }
 

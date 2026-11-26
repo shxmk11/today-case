@@ -118,7 +118,7 @@ export default function CaseSelect({ onStart, onHome }: { onStart: (playId: numb
                       <div key={s.name}>
                         <Face name={s.name} size={44} />
                         {s.name}
-                        <small>{s.job?.split(",").at(-1)?.trim()}</small>
+                        <small>{s.gender ? `${s.gender} · ` : ""}{s.job?.split(",").at(-1)?.trim()}</small>
                       </div>
                     ))}
                   </div>
