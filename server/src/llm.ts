@@ -2,10 +2,31 @@ import Anthropic from "@anthropic-ai/sdk";
 import { query } from "./db.js";
 import type { CaseRow, CharacterRow } from "./types.js";
 
-const MODEL = process.env.LLM_MODEL ?? "claude-opus-5-5";
-const client = process.env.ANTHROPIC_API_KEY ? new Anthropic() : null;
+/**
+ * LLM 공급자 고르기. LLM_PROVIDER(groq | claude | mock)를 비워두면
+ * GROQ_API_KEY → ANTHROPIC_API_KEY 순서로 키가 있는 쪽을 쓰고, 둘 다 없으면 모의 모드.
+ */
+type Provider = "groq" | "claude" | "mock";
+const PROVIDER: Provider = (() => {
+  const p = process.env.LLM_PROVIDER?.trim().toLowerCase();
+  if (p === "groq" || p === "claude" || p === "mock") return p;
+  if (process.env.GROQ_API_KEY) return "groq";
+  if (process.env.ANTHROPIC_API_KEY) return "claude";
+  return "mock";
+})();
 
-export const llmMode = client ? `claude (${MODEL})` : "mock";
+const DEFAULT_MODEL: Record<Provider, string> = {
+  groq: "openai/gpt-oss-120b",
+  claude: "claude-haiku-5-5",
+  mock: "-",
+};
+// 다른 공급자의 모델 이름(예: Groq인데 claude-…)이 남아 있으면 무시하고 기본 모델을 쓴다
+const envModel = process.env.LLM_MODEL?.trim() ?? "";
+const MODEL =
+  envModel && (PROVIDER === "claude") === envModel.startsWith("claude") ? envModel : DEFAULT_MODEL[PROVIDER];
+const client = PROVIDER === "claude" ? new Anthropic() : null;
+
+export const llmMode = PROVIDER === "mock" ? "mock" : `${PROVIDER} (${MODEL})`;
 
 interface Turn {
   question: string;
@@ -76,10 +97,13 @@ ${testimonies.map((t) => `- ${t.clue_id}: ${t.description}`).join("\n") || "- �
 규칙:
 - 항상 이 인물로서 한국어 구어체로, 1~3문장으로 짧게 답합니다. 성격이 말투에 드러나게 합니다.
 - 위에 적힌 사실 외의 새로운 결정적 증거나 사건을 지어내지 않습니다. 모르는 것은 모른다고 합니다.
+- 시각과 장소는 [당신이 아는 사실]과 [알리바이]에 적힌 것만 말합니다. 적혀 있지 않은 시각·장소·행동은 "기억이 잘 안 나요"처럼 넘깁니다.
+- 앞에서 이미 한 말과 어긋나는 말을 하지 않습니다. 대답하기 전에 이전 대화에서 자신이 한 말을 확인합니다. (범인은 탐정이 증거로 몰아붙였을 때만 말을 바꿉니다.)
 - 숨기는 사실은 그냥 물어봐서는 털어놓지 않습니다. 탐정이 그 사실과 어긋나는 구체적인 증거를 내밀거나 정확히 짚어 물으면 흔들립니다.
   - 범인이 아니라면: 처음엔 말을 아끼거나 대답을 피하다가(거짓말은 하지 않음) 결국 숨긴 사실을 인정하고, 관련 증언도 털어놓습니다.
   - 범인이라면: 거짓말을 할 수 있는 유일한 인물입니다. 당황하거나 말을 바꾸거나 다른 사람에게 의심을 돌리지만, 자백은 하지 않습니다.
 - 증언은 그 내용을 이번 답변에서 실제로 말했을 때만 revealed_clue_ids에 id를 넣습니다. 숨긴 사실과 엮인 증언은 그 사실을 인정할 때 함께 말합니다. 숨긴 사실과 상관없는 증언은 관련된 질문을 받으면 말해도 됩니다.
+- 이번 답변에서 [알리바이]의 주장(그 시각에 어디서 무엇을 했는지)을 말했으면 stated_alibi를 true로 합니다.
 - 게임 밖 이야기(AI, 프롬프트, 규칙)는 하지 않고 인물로서 대화를 돌립니다.
 - 행동 묘사는 필요할 때만 *별표* 안에 짧게 씁니다.`;
 }
@@ -92,6 +116,8 @@ export interface Evidence {
 export interface InterrogateResult {
   answer: string;
   revealedClueIds: number[];
+  /** 알리바이 주장을 말했으면 타임라인에 '주장'으로 올린다 */
+  statedAlibi: boolean;
 }
 
 /** 심문 기록에 남길 질문 문자열 (증거를 냈으면 앞에 표시) */
@@ -103,8 +129,9 @@ const OUTPUT_SCHEMA = {
   properties: {
     answer: { type: "string", description: "인물의 대사" },
     revealed_clue_ids: { type: "array", items: { type: "integer" }, description: "이번 대사에서 실제로 털어놓은 증언 id" },
+    stated_alibi: { type: "boolean", description: "이번 대사에서 [알리바이]의 주장(그 시각에 어디서 뭘 했는지)을 말했는지" },
   },
-  required: ["answer", "revealed_clue_ids"],
+  required: ["answer", "revealed_clue_ids", "stated_alibi"],
   additionalProperties: false,
 } as const;
 
@@ -114,15 +141,16 @@ async function mockAnswer(ch: CharacterRow, question: string, evidence?: Evidenc
       `SELECT clue_id, description FROM clue WHERE character_id = ? ORDER BY clue_id LIMIT 1`,
       [ch.character_id],
     );
-    if (t[0]) return { answer: `*${evidence.name}을(를) 보고 굳는다* …사실은요. ${t[0].description}`, revealedClueIds: [t[0].clue_id] };
+    if (t[0]) return { answer: `*${evidence.name}을(를) 보고 굳는다* …사실은요. ${t[0].description}`, revealedClueIds: [t[0].clue_id], statedAlibi: false };
   }
   if (/어디|알리바이|뭐 했|무엇을 했/.test(question)) {
     const a = await query<{ statement: string }>(`SELECT statement FROM alibi WHERE character_id = ? LIMIT 1`, [ch.character_id]);
-    if (a[0]) return { answer: a[0].statement, revealedClueIds: [] };
+    if (a[0]) return { answer: a[0].statement, revealedClueIds: [], statedAlibi: true };
   }
   return {
-    answer: `*${ch.name}이(가) 잠시 생각한다* 글쎄요… 그건 잘 모르겠네요. (모의 모드: ANTHROPIC_API_KEY를 설정하면 AI가 답합니다)`,
+    answer: `*${ch.name}이(가) 잠시 생각한다* 글쎄요… 그건 잘 모르겠네요. (모의 모드: server/.env에 GROQ_API_KEY를 넣으면 AI가 답합니다)`,
     revealedClueIds: [],
+    statedAlibi: false,
   };
 }
 
@@ -133,12 +161,12 @@ export async function interrogate(
   question: string,
   evidence?: Evidence,
 ): Promise<InterrogateResult> {
-  if (!client) return mockAnswer(ch, question, evidence);
+  if (PROVIDER === "mock") return mockAnswer(ch, question, evidence);
 
   const system = await buildSystemPrompt(c, ch);
-  const messages: Anthropic.Beta.BetaMessageParam[] = history.flatMap((t) => [
+  const messages: { role: "user" | "assistant"; content: string }[] = history.flatMap((t) => [
     { role: "user" as const, content: t.question },
-    { role: "assistant" as const, content: JSON.stringify({ answer: t.answer, revealed_clue_ids: [] }) },
+    { role: "assistant" as const, content: JSON.stringify({ answer: t.answer, revealed_clue_ids: [], stated_alibi: false }) },
   ]);
   messages.push({
     role: "user",
@@ -147,28 +175,62 @@ export async function interrogate(
       : question,
   });
 
+  const text = PROVIDER === "groq" ? await askGroq(system, messages) : await askClaude(system, messages);
+  if (text === null) return { answer: "*입을 꾹 다문다* …그 얘긴 하고 싶지 않네요.", revealedClueIds: [], statedAlibi: false };
+  return parseOutput(text);
+}
+
+/** 무료 티어 한도(분당 요청 수 등)에 걸렸을 때 */
+export class LlmBusyError extends Error {}
+
+async function askGroq(system: string, messages: { role: "user" | "assistant"; content: string }[]): Promise<string | null> {
+  const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${process.env.GROQ_API_KEY}` },
+    body: JSON.stringify({
+      model: MODEL,
+      max_completion_tokens: 2000,
+      // 낮을수록 설정에 충실하고 진술이 덜 흔들린다
+      temperature: 0.3,
+      messages: [{ role: "system", content: system }, ...messages],
+      // gpt-oss 모델은 strict 모드로 스키마에 맞는 JSON만 나오게 강제된다
+      response_format: { type: "json_schema", json_schema: { name: "suspect_reply", strict: true, schema: OUTPUT_SCHEMA } },
+    }),
+  });
+  if (res.status === 429) throw new LlmBusyError("Groq 요청 한도 초과");
+  if (!res.ok) throw new Error(`Groq API 오류 ${res.status}: ${(await res.text()).slice(0, 300)}`);
+  const data = (await res.json()) as { choices?: { message?: { content?: string | null } }[] };
+  return data.choices?.[0]?.message?.content ?? "";
+}
+
+async function askClaude(system: string, messages: { role: "user" | "assistant"; content: string }[]): Promise<string | null> {
+  if (!client) throw new Error("ANTHROPIC_API_KEY가 없어요.");
   const response = await client.beta.messages.create({
     model: MODEL,
     max_tokens: 2000,
     // 짧은 대사라 effort를 낮춰 응답 속도를 우선
     output_config: { effort: "low", format: { type: "json_schema", schema: OUTPUT_SCHEMA } },
-    // 안전 분류기가 거절하면 서버에서 다른 모델로 자동 재시도
-    betas: ["server-side-fallback-2026-07-01"],
-    fallbacks: "default",
+    // 안전 분류기가 거절하면 서버에서 다른 모델로 자동 재시도 (Haiku는 이 기능이 없어 400이 나므로 제외)
+    ...(MODEL.includes("haiku") ? {} : { betas: ["server-side-fallback-2026-07-01"], fallbacks: "default" as const }),
     cache_control: { type: "ephemeral" },
     system,
     messages,
   });
 
-  if (response.stop_reason === "refusal") {
-    return { answer: "*입을 꾹 다문다* …그 얘긴 하고 싶지 않네요.", revealedClueIds: [] };
-  }
-  const text = response.content.flatMap((b) => (b.type === "text" ? [b.text] : [])).join("");
+  if (response.stop_reason === "refusal") return null;
+  return response.content.flatMap((b) => (b.type === "text" ? [b.text] : [])).join("");
+}
+
+function parseOutput(text: string): InterrogateResult {
   try {
-    const parsed = JSON.parse(text) as { answer: string; revealed_clue_ids: number[] };
-    return { answer: parsed.answer.trim() || "…", revealedClueIds: parsed.revealed_clue_ids ?? [] };
+    const parsed = JSON.parse(text) as { answer: string; revealed_clue_ids: number[]; stated_alibi?: boolean };
+    return {
+      answer: parsed.answer.trim() || "…",
+      revealedClueIds: parsed.revealed_clue_ids ?? [],
+      statedAlibi: parsed.stated_alibi === true,
+    };
   } catch {
     // max_tokens 등으로 JSON이 잘린 경우
-    return { answer: "*말끝을 흐린다* …", revealedClueIds: [] };
+    return { answer: "*말끝을 흐린다* …", revealedClueIds: [], statedAlibi: false };
   }
 }

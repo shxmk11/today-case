@@ -194,6 +194,12 @@ button.case-row:not(.on):hover { background: rgb(255 255 255 / 0.06); }
 .dots-timeline li:not(:last-child)::after { content: ""; position: absolute; left: 67.5px; top: 25px; bottom: -14px; width: 2px; background: var(--gray); }
 .dots-timeline small { display: block; font-size: 11px; color: var(--muted); font-weight: 600; }
 .panel .dots-timeline { padding: 4px 6px; }
+.tl-note { font-size: 12px; padding-bottom: 0; }
+.player-tl b { display: block; font-weight: 800; }
+.player-tl li.k-물증 i, .player-tl li.k-기록 i, .player-tl li.k-증언 i { background: var(--white); }
+.player-tl li.k-주장 i { background: transparent; border: 2px solid var(--white); }
+.player-tl li.k-주장 span { color: rgb(255 255 255 / 0.8); }
+.player-tl li.hot i { background: var(--red); border-color: var(--red); }
 
 .toast { position: absolute; right: 0; top: 46px; background: var(--red); border-radius: 999px; padding: 10px 20px; font-weight: 700; z-index: 20; }
 

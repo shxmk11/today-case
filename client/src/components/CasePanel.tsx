@@ -1,19 +1,20 @@
 import { useState } from "react";
 import { hhmm } from "../api";
-import type { Clue, Fact, Scene } from "../types";
+import type { Clue, Scene, TimelineItem } from "../types";
 
-export type Tab = "clue" | "scene" | "fact";
+export type Tab = "clue" | "scene" | "timeline";
 
 interface Props {
   tab: Tab;
   onTab: (t: Tab) => void;
   scenes: Scene[];
   clues: Clue[];
-  facts: Fact[];
+  timeline: TimelineItem[];
+  freshKeys: Set<string>;
   onInvestigate: (sceneId: number) => Promise<void>;
 }
 
-export default function CasePanel({ tab, onTab, scenes, clues, facts, onInvestigate }: Props) {
+export default function CasePanel({ tab, onTab, scenes, clues, timeline, freshKeys, onInvestigate }: Props) {
   const [busy, setBusy] = useState<number | null>(null);
   const [open, setOpen] = useState<number | null>(null);
   const [detail, setDetail] = useState<number | null>(null);
@@ -41,8 +42,8 @@ export default function CasePanel({ tab, onTab, scenes, clues, facts, onInvestig
         <button className={`pill ${tab === "scene" ? "white" : "outline"}`} onClick={() => onTab("scene")}>
           현장
         </button>
-        <button className={`pill ${tab === "fact" ? "white" : "outline"}`} onClick={() => onTab("fact")}>
-          알려진 사실
+        <button className={`pill ${tab === "timeline" ? "white" : "outline"}`} onClick={() => onTab("timeline")}>
+          타임라인 {timeline.length}
         </button>
       </nav>
 
@@ -112,19 +113,29 @@ export default function CasePanel({ tab, onTab, scenes, clues, facts, onInvestig
             </div>
           ))}
 
-        {tab === "fact" && (
-          <ol className="dots-timeline">
-            {facts.map((f) => (
-              <li key={f.fact_id}>
-                <time>{hhmm(f.occurred_at)}</time>
-                <i />
-                <span>
-                  {f.place && <small>{f.place}</small>}
-                  {f.content}
-                </span>
-              </li>
-            ))}
-          </ol>
+        {tab === "timeline" && (
+          <>
+            <p className="muted pad tl-note">단서와 알리바이 주장이 시각순으로 자동 정리돼요.</p>
+            <ol className="dots-timeline player-tl">
+              {timeline.map((t) => {
+                const [title, ...rest] = t.kind === "사실" ? ["", t.text] : t.text.split(" · ");
+                return (
+                  <li key={t.key} className={`k-${t.kind} ${freshKeys.has(t.key) ? "hot" : ""}`}>
+                    <time>{hhmm(t.time)}</time>
+                    <i />
+                    <span>
+                      <small>
+                        {t.place ? `${t.place} · ` : ""}
+                        {t.kind}
+                      </small>
+                      {title && <b>{title}</b>}
+                      {rest.join(" · ")}
+                    </span>
+                  </li>
+                );
+              })}
+            </ol>
+          </>
         )}
       </div>
     </aside>
