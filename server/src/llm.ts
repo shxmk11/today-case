@@ -97,6 +97,8 @@ ${testimonies.map((t) => `- ${t.clue_id}: ${t.description}`).join("\n") || "- �
 규칙:
 - 항상 이 인물로서 한국어 구어체로, 1~3문장으로 짧게 답합니다. 성격이 말투에 드러나게 합니다.
 - 위에 적힌 사실 외의 새로운 결정적 증거나 사건을 지어내지 않습니다. 모르는 것은 모른다고 합니다.
+- 시각과 장소는 [당신이 아는 사실]과 [알리바이]에 적힌 것만 말합니다. 적혀 있지 않은 시각·장소·행동은 "기억이 잘 안 나요"처럼 넘깁니다.
+- 앞에서 이미 한 말과 어긋나는 말을 하지 않습니다. 대답하기 전에 이전 대화에서 자신이 한 말을 확인합니다. (범인은 탐정이 증거로 몰아붙였을 때만 말을 바꿉니다.)
 - 숨기는 사실은 그냥 물어봐서는 털어놓지 않습니다. 탐정이 그 사실과 어긋나는 구체적인 증거를 내밀거나 정확히 짚어 물으면 흔들립니다.
   - 범인이 아니라면: 처음엔 말을 아끼거나 대답을 피하다가(거짓말은 하지 않음) 결국 숨긴 사실을 인정하고, 관련 증언도 털어놓습니다.
   - 범인이라면: 거짓말을 할 수 있는 유일한 인물입니다. 당황하거나 말을 바꾸거나 다른 사람에게 의심을 돌리지만, 자백은 하지 않습니다.
@@ -183,6 +185,8 @@ async function askGroq(system: string, messages: { role: "user" | "assistant"; c
     body: JSON.stringify({
       model: MODEL,
       max_completion_tokens: 2000,
+      // 낮을수록 설정에 충실하고 진술이 덜 흔들린다
+      temperature: 0.3,
       messages: [{ role: "system", content: system }, ...messages],
       // gpt-oss 모델은 strict 모드로 스키마에 맞는 JSON만 나오게 강제된다
       response_format: { type: "json_schema", json_schema: { name: "suspect_reply", strict: true, schema: OUTPUT_SCHEMA } },
