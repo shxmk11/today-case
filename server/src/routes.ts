@@ -1,6 +1,6 @@
 import { Router, type Request, type Response, type NextFunction } from "express";
 import { query, one, insert } from "./db.js";
-import { interrogate } from "./llm.js";
+import { interrogate, formatQuestion, type Evidence } from "./llm.js";
 import type { CaseRow, CharacterRow, ClueRow, FactRow } from "./types.js";
 
 export const router = Router();
@@ -61,13 +61,26 @@ async function discoveredClues(participantId: number) {
 router.get(
   "/cases",
   wrap(async (_req, res) => {
-    const cases = await query<Omit<CaseRow, "truth"> & { suspect_count: number }>(
+    const cases = await query<Omit<CaseRow, "truth"> & { suspect_count: number; scene_count: number; clue_count: number; solve_rate: string | null }>(
       `SELECT c.case_id, c.title, c.genre, c.difficulty, c.summary,
               (SELECT COUNT(*) FROM game_character g
-               WHERE g.case_id = c.case_id AND g.character_type = '용의자') AS suspect_count
+               WHERE g.case_id = c.case_id AND g.character_type = '용의자') AS suspect_count,
+              (SELECT COUNT(*) FROM scene s WHERE s.case_id = c.case_id) AS scene_count,
+              (SELECT COUNT(*) FROM clue k JOIN scene s ON s.scene_id = k.scene_id WHERE s.case_id = c.case_id) AS clue_count,
+              (SELECT ROUND(100 * AVG(p.result = '성공')) FROM play p
+               WHERE p.case_id = c.case_id AND p.status = '종료') AS solve_rate
        FROM case_file c ORDER BY c.case_id`,
     );
-    res.json(cases);
+    const suspects = await query<{ case_id: number; name: string; job: string | null }>(
+      `SELECT case_id, name, job FROM game_character WHERE character_type = '용의자' ORDER BY character_id`,
+    );
+    res.json(
+      cases.map((c) => ({
+        ...c,
+        solve_rate: c.solve_rate == null ? null : Number(c.solve_rate),
+        suspects: suspects.filter((s) => s.case_id === c.case_id).map(({ name, job }) => ({ name, job })),
+      })),
+    );
   }),
 );
 
@@ -125,6 +138,10 @@ router.get(
       scenes: scenes.map((s) => ({ ...s, investigated: investigated.some((i) => i.scene_id === s.scene_id) })),
       facts,
       clues: await discoveredClues(play.participant_id),
+      clueTotal: (await one<{ n: number }>(
+        `SELECT COUNT(*) AS n FROM clue k JOIN scene s ON s.scene_id = k.scene_id WHERE s.case_id = ?`,
+        [play.case_id],
+      ))!.n,
       chats,
     });
   }),
@@ -167,19 +184,36 @@ router.post(
        WHERE participant_id = ? AND character_id = ? ORDER BY asked_at, interrogation_id`,
       [play.participant_id, ch.character_id],
     );
-    const answer = await interrogate(c, ch, history.slice(-20), question);
+    // 증거 제시: 이미 발견한 단서만 낼 수 있다
+    let evidence: Evidence | undefined;
+    if (req.body?.clueId != null) {
+      evidence = await one<Evidence>(
+        `SELECT c.name, c.description FROM clue_discovery cd JOIN clue c ON c.clue_id = cd.clue_id
+         WHERE cd.participant_id = ? AND cd.clue_id = ?`,
+        [play.participant_id, Number(req.body.clueId)],
+      );
+      if (!evidence) throw new HttpError(400, "아직 찾지 못한 단서예요.");
+    }
+
+    const { answer, revealedClueIds } = await interrogate(c, ch, history.slice(-20), question, evidence);
+    const storedQuestion = formatQuestion(question, evidence);
     await insert(
       `INSERT INTO interrogation (participant_id, character_id, question, answer) VALUES (?, ?, ?, ?)`,
-      [play.participant_id, ch.character_id, question, answer],
+      [play.participant_id, ch.character_id, storedQuestion, answer],
     );
 
-    // 이 인물에게서만 얻을 수 있는 증언 단서는 심문하면 발견된다
-    await query(
-      `INSERT IGNORE INTO clue_discovery (participant_id, clue_id)
-       SELECT ?, clue_id FROM clue WHERE character_id = ?`,
-      [play.participant_id, ch.character_id],
-    );
-    res.json({ answer, clues: await discoveredClues(play.participant_id) });
+    // 인물이 실제로 털어놓은 증언 단서만 발견 처리 (그 인물의 증언인지 확인)
+    const before = new Set((await discoveredClues(play.participant_id)).map((x) => x.clue_id));
+    if (revealedClueIds.length > 0) {
+      await query(
+        `INSERT IGNORE INTO clue_discovery (participant_id, clue_id)
+         SELECT ?, clue_id FROM clue WHERE character_id = ? AND clue_id IN (?)`,
+        [play.participant_id, ch.character_id, revealedClueIds],
+      );
+    }
+    const clues = await discoveredClues(play.participant_id);
+    const newClues = clues.filter((x) => !before.has(x.clue_id)).map((x) => x.clue_id);
+    res.json({ answer, question: storedQuestion, clues, newClues });
   }),
 );
 
@@ -205,14 +239,41 @@ router.post(
       `SELECT fact_id, occurred_at, place, content, is_initial FROM fact WHERE case_id = ? ORDER BY occurred_at`,
       [play.case_id],
     );
-    const stats = await one<{ minutes: number; questions: number; clues: number }>(
+    const stats = await one<{ minutes: number; questions: number; clues: number; clueTotal: number }>(
       `SELECT TIMESTAMPDIFF(MINUTE, pl.started_at, pl.ended_at) AS minutes,
               (SELECT COUNT(*) FROM interrogation i WHERE i.participant_id = ?) AS questions,
-              (SELECT COUNT(*) FROM clue_discovery d WHERE d.participant_id = ?) AS clues
+              (SELECT COUNT(*) FROM clue_discovery d WHERE d.participant_id = ?) AS clues,
+              (SELECT COUNT(*) FROM clue k JOIN scene s ON s.scene_id = k.scene_id WHERE s.case_id = pl.case_id) AS clueTotal
        FROM play pl WHERE pl.play_id = ?`,
       [play.participant_id, play.participant_id, play.play_id],
     );
-    res.json({ result, accused: accused.name, culprit, truth: c.truth, timeline, stats });
+    // 결정적 증거/증언: 찾았는지 여부와, 증언이면 그걸 털어놓은 실제 대화
+    const keyClues = await query<ClueRow & { scene_name: string; found_at: string | null; char_name: string | null }>(
+      `SELECT k.clue_id, k.scene_id, k.character_id, k.name, k.description, k.clue_type,
+              s.name AS scene_name, cd.found_at, g.name AS char_name
+       FROM clue k JOIN scene s ON s.scene_id = k.scene_id
+       LEFT JOIN clue_discovery cd ON cd.clue_id = k.clue_id AND cd.participant_id = ?
+       LEFT JOIN game_character g ON g.character_id = k.character_id
+       WHERE s.case_id = ? AND k.is_key = TRUE ORDER BY k.clue_id`,
+      [play.participant_id, play.case_id],
+    );
+    const keyEvidence = keyClues
+      .filter((k) => k.clue_type !== "증언")
+      .map((k) => ({ name: k.name, description: k.description, clue_type: k.clue_type, scene_name: k.scene_name, found: k.found_at != null }));
+    const t = keyClues.find((k) => k.clue_type === "증언");
+    let keyTestimony = null;
+    if (t) {
+      const chat = t.found_at
+        ? await one<{ question: string; answer: string }>(
+            `SELECT question, answer FROM interrogation
+             WHERE participant_id = ? AND character_id = ? AND asked_at <= ?
+             ORDER BY asked_at DESC, interrogation_id DESC LIMIT 1`,
+            [play.participant_id, t.character_id, t.found_at],
+          )
+        : null;
+      keyTestimony = { name: t.name, description: t.description, character: t.char_name, found: t.found_at != null, chat };
+    }
+    res.json({ result, accused: accused.name, culprit, truth: c.truth, timeline, stats, keyEvidence, keyTestimony, caseId: play.case_id });
   }),
 );
 
