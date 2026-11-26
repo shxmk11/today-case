@@ -125,6 +125,8 @@ CREATE TABLE clue (
     is_key BOOLEAN NOT NULL DEFAULT FALSE,   -- 결과 화면의 '결정적 증거/증언'
     event_time TIME NULL,                    -- 단서가 가리키는 시각 (발견하면 타임라인에 올라감)
     unlock_clue_id INT NULL,                 -- 숨은 증언: 이 단서를 증거로 내밀어야만 털어놓음
+    proof_role ENUM('알리바이', '연결') NULL,  -- 범인 지목 근거: 알리바이를 깨는 증거 / 범인과 범행을 잇는 증거
+    proof_note VARCHAR(255) NULL,            -- 결과 화면에서 이 단서가 근거로 왜 맞는지·부족한지 설명
     PRIMARY KEY (clue_id),
     CONSTRAINT fk_clue_scene FOREIGN KEY (scene_id)
         REFERENCES scene (scene_id) ON DELETE CASCADE,
@@ -253,7 +255,8 @@ CREATE TABLE accusation (
 CREATE TABLE accusation_evidence (
     accusation_id INT NOT NULL,
     clue_id INT NOT NULL,
-    PRIMARY KEY (accusation_id, clue_id),
+    slot ENUM('알리바이', '연결') NOT NULL,   -- 플레이어가 어떤 근거로 냈는지
+    PRIMARY KEY (accusation_id, slot),
     CONSTRAINT fk_accev_accusation FOREIGN KEY (accusation_id)
         REFERENCES accusation (accusation_id) ON DELETE CASCADE,
     CONSTRAINT fk_accev_clue FOREIGN KEY (clue_id)
@@ -479,6 +482,43 @@ UPDATE clue SET unlock_clue_id = 5 WHERE clue_id = 15;   -- 서재의 언쟁 ←
 UPDATE clue SET unlock_clue_id = 27 WHERE clue_id = 32;  -- 수영장의 여자 목소리 ← 작가실 창문
 UPDATE clue SET unlock_clue_id = 31 WHERE clue_id = 34;  -- 거실 몸싸움 ← 깨진 액자
 UPDATE character_fact SET is_hidden = TRUE WHERE character_id = 9 AND fact_id = 25;
+
+-- 지목 근거 판정: 알리바이를 깨는 증거 1개 + 범인과 범행을 잇는 증거 1개를 맞게 골라야 해결
+UPDATE clue SET proof_role = '알리바이', proof_note = '"계속 논문을 썼다"던 서진의 말과 달리, 범행 직전인 21시 31분에 작업이 멈췄어요.' WHERE clue_id = 9;
+UPDATE clue SET proof_role = '연결', proof_note = '창고까지 난 납작한 발자국과 같은 실내화예요. 서진이 그날 밤 눈길을 오갔다는 뜻이에요.' WHERE clue_id = 11;
+UPDATE clue SET proof_role = '연결', proof_note = '범행 5분 전 서재에서 "유언장"으로 다툰 사람이 있었어요. 유언장이 바뀌면 손해 보는 건 서진뿐이에요.' WHERE clue_id = 15;
+UPDATE clue SET proof_role = '연결', proof_note = '상속인이 서진에서 재단으로 바뀔 참이었어요. 서진의 동기를 보여줘요.' WHERE clue_id = 17;
+UPDATE clue SET proof_note = '누군가 현장을 꾸몄다는 증거지만, 누가 꾸몄는지는 가리키지 않아요.' WHERE clue_id = 1;
+UPDATE clue SET proof_note = '범행 시각(21시 40분)을 알려주지만, 그것만으로는 누가 했는지 몰라요.' WHERE clue_id = 2;
+UPDATE clue SET proof_note = '흉기는 알려주지만 누가 썼는지는 몰라요.' WHERE clue_id = 3;
+UPDATE clue SET proof_note = '수정안이 사라졌다는 건 알지만, 누가 봤는지는 몰라요.' WHERE clue_id = 4;
+UPDATE clue SET proof_note = '유나가 자리를 비운 시각을 보여주지만, 범행과는 이어지지 않아요.' WHERE clue_id IN (5, 37);
+UPDATE clue SET proof_note = '정원사가 술을 마셨다는 것뿐, 범행과는 상관없어요.' WHERE clue_id IN (6, 14);
+UPDATE clue SET proof_note = '발자국 주인이 누구인지는 이것만으론 알 수 없어요.' WHERE clue_id = 7;
+UPDATE clue SET proof_note = '장갑이 어디서 왔는지는 알려주지만, 누가 가져갔는지는 몰라요.' WHERE clue_id = 8;
+UPDATE clue SET proof_note = '22시 2분은 범행 뒤라서, 오히려 서진이 만든 가짜 알리바이예요.' WHERE clue_id = 10;
+UPDATE clue SET proof_note = '변호사의 비밀이지만, 살인과는 관계없어요.' WHERE clue_id IN (12, 13, 36);
+UPDATE clue SET proof_note = '정원사의 동기처럼 보이지만, 범행과 이어지는 흔적은 없어요.' WHERE clue_id = 16;
+
+UPDATE clue SET proof_role = '알리바이', proof_note = '"계속 방에서 찍었다"던 지아의 말과 달리, 범행 시각인 21시 58분~22시 27분에 촬영이 비어 있어요.' WHERE clue_id = 24;
+UPDATE clue SET proof_role = '알리바이', proof_note = '방에서 촬영 중이어야 할 22시 25분에 지아가 젖은 머리로 복도에 있었어요.' WHERE clue_id = 33;
+UPDATE clue SET proof_role = '연결', proof_note = '수영장 필터에서 나온 귀걸이예요. 그날 밤 그 귀걸이를 하고 있던 건 지아예요.' WHERE clue_id = 18;
+UPDATE clue SET proof_role = '연결', proof_note = '다시 찍은 영상에서 왼쪽 귀걸이가 사라졌어요. 수영장에서 나온 귀걸이와 이어져요.' WHERE clue_id = 25;
+UPDATE clue SET proof_role = '연결', proof_note = '한지영은 지아의 언니예요. 시우 때문에 1억 2천을 날린 게 지아의 동기예요.' WHERE clue_id = 23;
+UPDATE clue SET proof_role = '연결', proof_note = '밤에 수영장 물에 젖은 원피스예요. 지아가 그 시각 수영장에 있었다는 흔적이에요.' WHERE clue_id = 26;
+UPDATE clue SET proof_role = '연결', proof_note = '수영장에서 "돈" 얘기로 다툰 사람이 있었어요. 시우와 돈 문제가 얽힌 건 지아예요.' WHERE clue_id = 32;
+UPDATE clue SET proof_note = '발이 작은 사람이란 것만 알려줘요.' WHERE clue_id IN (19, 35);
+UPDATE clue SET proof_note = '어떻게 죽었는지는 알려주지만, 누가 밀었는지는 몰라요.' WHERE clue_id = 20;
+UPDATE clue SET proof_note = '사망 시각(22시 11분)을 알려줘요. 누군가의 알리바이와 엮어야 의미가 있어요.' WHERE clue_id = 21;
+UPDATE clue SET proof_note = '채원이 감추려던 비밀과 관련 있지만, 범행과는 관계없어요.' WHERE clue_id IN (22, 28);
+UPDATE clue SET proof_note = '창문에서 수영장이 보인다는 것뿐이에요.' WHERE clue_id = 27;
+UPDATE clue SET proof_note = '카메라는 배터리 때문에 꺼졌어요. 누가 노린 건 아니에요.' WHERE clue_id IN (29, 40);
+UPDATE clue SET proof_note = '촬영감독이 술을 마셨다는 것뿐이에요.' WHERE clue_id = 30;
+UPDATE clue SET proof_note = '도현과 시우가 싸운 흔적이지만, 범행보다 40분 전 일이에요.' WHERE clue_id IN (31, 34, 39);
+UPDATE clue SET proof_note = '도현이 몰래 담배를 피운 흔적이에요. 22시 20분은 범행 뒤예요.' WHERE clue_id = 38;
+
+-- 결과 화면의 '결정적 증거' 표시
+UPDATE clue SET is_key = (clue_id IN (2, 9, 11, 15, 18, 24, 25, 32)) WHERE clue_id > 0;
 
 
 /* 3. 뷰 */

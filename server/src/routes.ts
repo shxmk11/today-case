@@ -291,24 +291,34 @@ router.post(
     const accused = await getCharacterInCase(play.case_id, Number(req.body?.characterId));
     if (accused.character_type !== "용의자") throw new HttpError(400, "용의자 중에서 골라주세요.");
 
-    // 근거 2개: 플레이어가 실제로 찾은 단서 중에서
-    const clueIds = [...new Set((Array.isArray(req.body?.clueIds) ? req.body.clueIds : []).map(Number))];
-    if (clueIds.length !== 2) throw new HttpError(400, "근거가 될 단서를 2개 골라주세요.");
-    const picked = await query<{ clue_id: number; name: string; is_key: boolean }>(
-      `SELECT c.clue_id, c.name, c.is_key FROM clue_discovery cd JOIN clue c ON c.clue_id = cd.clue_id
+    // 근거 2개: 알리바이를 깨는 증거 1개 + 범인과 범행을 잇는 증거 1개 (플레이어가 찾은 단서 중에서)
+    const slots = [
+      { slot: "알리바이" as const, clueId: Number(req.body?.alibiClueId) },
+      { slot: "연결" as const, clueId: Number(req.body?.linkClueId) },
+    ];
+    if (slots.some((s) => !s.clueId) || slots[0].clueId === slots[1].clueId) {
+      throw new HttpError(400, "근거가 될 단서를 칸마다 하나씩 골라주세요.");
+    }
+    const found = await query<{ clue_id: number; name: string; proof_role: string | null; proof_note: string | null }>(
+      `SELECT c.clue_id, c.name, c.proof_role, c.proof_note FROM clue_discovery cd JOIN clue c ON c.clue_id = cd.clue_id
        WHERE cd.participant_id = ? AND c.clue_id IN (?)`,
-      [play.participant_id, clueIds],
+      [play.participant_id, slots.map((s) => s.clueId)],
     );
-    if (picked.length !== 2) throw new HttpError(400, "찾은 단서 중에서 골라주세요.");
+    if (found.length !== 2) throw new HttpError(400, "찾은 단서 중에서 골라주세요.");
+    const picked = slots.map((s) => {
+      const c = found.find((f) => f.clue_id === s.clueId)!;
+      return { ...s, name: c.name, ok: !!accused.is_culprit && c.proof_role === s.slot, note: c.proof_note, role: c.proof_role };
+    });
 
     const accusationId = await insert(
       `INSERT INTO accusation (participant_id, character_id) VALUES (?, ?)`,
       [play.participant_id, accused.character_id],
     );
-    await query(`INSERT INTO accusation_evidence (accusation_id, clue_id) VALUES ?`, [picked.map((p) => [accusationId, p.clue_id])]);
-    // 범인을 맞히고, 근거 2개가 모두 결정적 증거여야 해결
-    const keyHits = picked.filter((p) => p.is_key).length;
-    const result = accused.is_culprit && keyHits === 2 ? "성공" : "실패";
+    await query(`INSERT INTO accusation_evidence (accusation_id, clue_id, slot) VALUES ?`, [
+      picked.map((p) => [accusationId, p.clueId, p.slot]),
+    ]);
+    // 범인을 맞히고, 두 근거가 각각 맞는 역할이어야 해결
+    const result = picked.every((p) => p.ok) ? "성공" : "실패";
     await query(`UPDATE play SET status = '종료', result = ?, ended_at = NOW() WHERE play_id = ?`, [result, play.play_id]);
 
     const c = (await one<CaseRow>(`SELECT * FROM case_file WHERE case_id = ?`, [play.case_id]))!;
@@ -357,7 +367,8 @@ router.post(
     res.json({
       result,
       culpritCorrect: !!accused.is_culprit,
-      evidence: picked.map((p) => ({ name: p.name, isKey: !!p.is_key })),
+      // 범인을 틀렸으면 근거 설명은 진범 기준이라 의미가 없으므로 이름만
+      evidence: picked.map((p) => ({ slot: p.slot, name: p.name, ok: p.ok, note: accused.is_culprit ? p.note : null })),
       accused: accused.name,
       culprit, truth: c.truth, timeline, stats, keyEvidence, keyTestimony, caseId: play.case_id });
   }),
