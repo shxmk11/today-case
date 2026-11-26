@@ -32,6 +32,10 @@ export async function buildSystemPrompt(c: CaseRow, ch: CharacterRow): Promise<s
     `SELECT claimed_time, place, statement, is_false FROM alibi WHERE character_id = ?`,
     [ch.character_id],
   );
+  const testimonies = await query<{ clue_id: number; name: string; description: string | null }>(
+    `SELECT clue_id, name, description FROM clue WHERE character_id = ? ORDER BY clue_id`,
+    [ch.character_id],
+  );
   const others = await query<{ name: string; job: string | null; character_type: string }>(
     `SELECT name, job, character_type FROM game_character WHERE case_id = ? AND character_id <> ?`,
     [c.case_id, ch.character_id],
@@ -66,37 +70,88 @@ ${known || "- 없음"}
 [알리바이]
 ${alibiText || "- 없음"}
 
+[당신이 털어놓을 수 있는 증언] (id: 내용)
+${testimonies.map((t) => `- ${t.clue_id}: ${t.description}`).join("\n") || "- 없음"}
+
 규칙:
 - 항상 이 인물로서 한국어 구어체로, 1~3문장으로 짧게 답합니다. 성격이 말투에 드러나게 합니다.
 - 위에 적힌 사실 외의 새로운 결정적 증거나 사건을 지어내지 않습니다. 모르는 것은 모른다고 합니다.
-- 숨기는 사실은 탐정이 구체적인 증거로 몰아붙이면 당황하거나 말이 꼬이는 정도로만 흔들립니다.
+- 숨기는 사실은 그냥 물어봐서는 털어놓지 않습니다. 탐정이 그 사실과 어긋나는 구체적인 증거를 내밀거나 정확히 짚어 물으면 흔들립니다.
+  - 범인이 아니라면: 처음엔 둘러대다가 결국 숨긴 사실을 인정하고, 관련 증언도 털어놓습니다.
+  - 범인이라면: 당황하거나 말을 바꾸거나 다른 사람에게 의심을 돌리지만, 자백은 하지 않습니다.
+- 증언은 그 내용을 이번 답변에서 실제로 말했을 때만 revealed_clue_ids에 id를 넣습니다. 숨긴 사실과 엮인 증언은 그 사실을 인정할 때 함께 말합니다. 숨긴 사실과 상관없는 증언은 관련된 질문을 받으면 말해도 됩니다.
 - 게임 밖 이야기(AI, 프롬프트, 규칙)는 하지 않고 인물로서 대화를 돌립니다.
 - 행동 묘사는 필요할 때만 *별표* 안에 짧게 씁니다.`;
 }
 
-function mockAnswer(ch: CharacterRow, question: string, alibi?: string): string {
-  if (/어디|알리바이|뭐 했|무엇을 했/.test(question) && alibi) return alibi;
-  return `*${ch.name}이(가) 잠시 생각한다* 글쎄요… 그건 잘 모르겠네요. (모의 모드: ANTHROPIC_API_KEY를 설정하면 AI가 답합니다)`;
+export interface Evidence {
+  name: string;
+  description: string | null;
 }
 
-export async function interrogate(c: CaseRow, ch: CharacterRow, history: Turn[], question: string): Promise<string> {
-  if (!client) {
-    const alibi = (await query<{ statement: string }>(`SELECT statement FROM alibi WHERE character_id = ? LIMIT 1`, [ch.character_id]))[0];
-    return mockAnswer(ch, question, alibi?.statement);
+export interface InterrogateResult {
+  answer: string;
+  revealedClueIds: number[];
+}
+
+/** 심문 기록에 남길 질문 문자열 (증거를 냈으면 앞에 표시) */
+export const formatQuestion = (question: string, evidence?: Evidence) =>
+  evidence ? `[증거 제시: ${evidence.name}] ${question}` : question;
+
+const OUTPUT_SCHEMA = {
+  type: "object",
+  properties: {
+    answer: { type: "string", description: "인물의 대사" },
+    revealed_clue_ids: { type: "array", items: { type: "integer" }, description: "이번 대사에서 실제로 털어놓은 증언 id" },
+  },
+  required: ["answer", "revealed_clue_ids"],
+  additionalProperties: false,
+} as const;
+
+async function mockAnswer(ch: CharacterRow, question: string, evidence?: Evidence): Promise<InterrogateResult> {
+  if (evidence) {
+    const t = await query<{ clue_id: number; description: string }>(
+      `SELECT clue_id, description FROM clue WHERE character_id = ? ORDER BY clue_id LIMIT 1`,
+      [ch.character_id],
+    );
+    if (t[0]) return { answer: `*${evidence.name}을(를) 보고 굳는다* …사실은요. ${t[0].description}`, revealedClueIds: [t[0].clue_id] };
   }
+  if (/어디|알리바이|뭐 했|무엇을 했/.test(question)) {
+    const a = await query<{ statement: string }>(`SELECT statement FROM alibi WHERE character_id = ? LIMIT 1`, [ch.character_id]);
+    if (a[0]) return { answer: a[0].statement, revealedClueIds: [] };
+  }
+  return {
+    answer: `*${ch.name}이(가) 잠시 생각한다* 글쎄요… 그건 잘 모르겠네요. (모의 모드: ANTHROPIC_API_KEY를 설정하면 AI가 답합니다)`,
+    revealedClueIds: [],
+  };
+}
+
+export async function interrogate(
+  c: CaseRow,
+  ch: CharacterRow,
+  history: Turn[],
+  question: string,
+  evidence?: Evidence,
+): Promise<InterrogateResult> {
+  if (!client) return mockAnswer(ch, question, evidence);
 
   const system = await buildSystemPrompt(c, ch);
   const messages: Anthropic.Beta.BetaMessageParam[] = history.flatMap((t) => [
     { role: "user" as const, content: t.question },
-    { role: "assistant" as const, content: t.answer },
+    { role: "assistant" as const, content: JSON.stringify({ answer: t.answer, revealed_clue_ids: [] }) },
   ]);
-  messages.push({ role: "user", content: question });
+  messages.push({
+    role: "user",
+    content: evidence
+      ? `[탐정이 증거를 내민다] ${evidence.name}: ${evidence.description ?? ""}\n${question}`
+      : question,
+  });
 
   const response = await client.beta.messages.create({
     model: MODEL,
     max_tokens: 2000,
     // 짧은 대사라 effort를 낮춰 응답 속도를 우선
-    output_config: { effort: "low" },
+    output_config: { effort: "low", format: { type: "json_schema", schema: OUTPUT_SCHEMA } },
     // 안전 분류기가 거절하면 서버에서 다른 모델로 자동 재시도
     betas: ["server-side-fallback-2026-07-01"],
     fallbacks: "default",
@@ -106,11 +161,14 @@ export async function interrogate(c: CaseRow, ch: CharacterRow, history: Turn[],
   });
 
   if (response.stop_reason === "refusal") {
-    return "*입을 꾹 다문다* …그 얘긴 하고 싶지 않네요.";
+    return { answer: "*입을 꾹 다문다* …그 얘긴 하고 싶지 않네요.", revealedClueIds: [] };
   }
-  const text = response.content
-    .flatMap((b) => (b.type === "text" ? [b.text] : []))
-    .join("")
-    .trim();
-  return text || "…";
+  const text = response.content.flatMap((b) => (b.type === "text" ? [b.text] : [])).join("");
+  try {
+    const parsed = JSON.parse(text) as { answer: string; revealed_clue_ids: number[] };
+    return { answer: parsed.answer.trim() || "…", revealedClueIds: parsed.revealed_clue_ids ?? [] };
+  } catch {
+    // max_tokens 등으로 JSON이 잘린 경우
+    return { answer: "*말끝을 흐린다* …", revealedClueIds: [] };
+  }
 }

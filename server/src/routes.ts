@@ -1,6 +1,6 @@
 import { Router, type Request, type Response, type NextFunction } from "express";
 import { query, one, insert } from "./db.js";
-import { interrogate } from "./llm.js";
+import { interrogate, formatQuestion, type Evidence } from "./llm.js";
 import type { CaseRow, CharacterRow, ClueRow, FactRow } from "./types.js";
 
 export const router = Router();
@@ -167,19 +167,36 @@ router.post(
        WHERE participant_id = ? AND character_id = ? ORDER BY asked_at, interrogation_id`,
       [play.participant_id, ch.character_id],
     );
-    const answer = await interrogate(c, ch, history.slice(-20), question);
+    // 증거 제시: 이미 발견한 단서만 낼 수 있다
+    let evidence: Evidence | undefined;
+    if (req.body?.clueId != null) {
+      evidence = await one<Evidence>(
+        `SELECT c.name, c.description FROM clue_discovery cd JOIN clue c ON c.clue_id = cd.clue_id
+         WHERE cd.participant_id = ? AND cd.clue_id = ?`,
+        [play.participant_id, Number(req.body.clueId)],
+      );
+      if (!evidence) throw new HttpError(400, "아직 찾지 못한 단서예요.");
+    }
+
+    const { answer, revealedClueIds } = await interrogate(c, ch, history.slice(-20), question, evidence);
+    const storedQuestion = formatQuestion(question, evidence);
     await insert(
       `INSERT INTO interrogation (participant_id, character_id, question, answer) VALUES (?, ?, ?, ?)`,
-      [play.participant_id, ch.character_id, question, answer],
+      [play.participant_id, ch.character_id, storedQuestion, answer],
     );
 
-    // 이 인물에게서만 얻을 수 있는 증언 단서는 심문하면 발견된다
-    await query(
-      `INSERT IGNORE INTO clue_discovery (participant_id, clue_id)
-       SELECT ?, clue_id FROM clue WHERE character_id = ?`,
-      [play.participant_id, ch.character_id],
-    );
-    res.json({ answer, clues: await discoveredClues(play.participant_id) });
+    // 인물이 실제로 털어놓은 증언 단서만 발견 처리 (그 인물의 증언인지 확인)
+    const before = new Set((await discoveredClues(play.participant_id)).map((x) => x.clue_id));
+    if (revealedClueIds.length > 0) {
+      await query(
+        `INSERT IGNORE INTO clue_discovery (participant_id, clue_id)
+         SELECT ?, clue_id FROM clue WHERE character_id = ? AND clue_id IN (?)`,
+        [play.participant_id, ch.character_id, revealedClueIds],
+      );
+    }
+    const clues = await discoveredClues(play.participant_id);
+    const newClues = clues.filter((x) => !before.has(x.clue_id)).map((x) => x.clue_id);
+    res.json({ answer, question: storedQuestion, clues, newClues });
   }),
 );
 

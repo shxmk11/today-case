@@ -6,7 +6,11 @@ async function request<T>(path: string, body?: unknown): Promise<T> {
     headers: body === undefined ? undefined : { "Content-Type": "application/json" },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
-  const data = await res.json().catch(() => ({}));
+  // 서버가 꺼져 있으면 개발 서버가 HTML을 돌려주므로 JSON인지 먼저 확인
+  if (!res.headers.get("content-type")?.includes("application/json")) {
+    throw new Error("게임 서버에 연결할 수 없어요. server가 켜져 있는지 확인해주세요.");
+  }
+  const data = await res.json();
   if (!res.ok) throw new Error(data.error ?? `요청 실패 (${res.status})`);
   return data as T;
 }
@@ -17,8 +21,12 @@ export const api = {
   play: (playId: number) => request<PlayState>(`/plays/${playId}`),
   investigate: (playId: number, sceneId: number) =>
     request<{ clues: Clue[] }>(`/plays/${playId}/investigate`, { sceneId }),
-  interrogate: (playId: number, characterId: number, question: string) =>
-    request<{ answer: string; clues: Clue[] }>(`/plays/${playId}/interrogate`, { characterId, question }),
+  interrogate: (playId: number, characterId: number, question: string, clueId?: number) =>
+    request<{ answer: string; question: string; clues: Clue[]; newClues: number[] }>(`/plays/${playId}/interrogate`, {
+      characterId,
+      question,
+      clueId,
+    }),
   accuse: (playId: number, characterId: number) =>
     request<AccuseResult>(`/plays/${playId}/accuse`, { characterId }),
 };
