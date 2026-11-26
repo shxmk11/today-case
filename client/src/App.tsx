@@ -15,6 +15,9 @@ export default function App() {
         <button className="logo" onClick={() => setScreen({ name: "select" })}>
           오늘의 사건<span className="logo-dot">.</span>
         </button>
+        <span>AI 머더미스터리</span>
+        <span>심문하고, 조사하고, 지목하라</span>
+        <span>{new Date().toLocaleDateString("ko-KR")}</span>
       </header>
       {screen.name === "select" && <CaseSelect onStart={(playId) => setScreen({ name: "game", playId })} />}
       {screen.name === "game" && (

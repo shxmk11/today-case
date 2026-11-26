@@ -29,9 +29,9 @@ export default function AccuseModal({ suspects, onClose, onAccuse }: Props) {
         <h2>범인은 누구인가요?</h2>
         <p className="muted">지목은 한 번뿐이에요. 지목하면 사건이 종료되고 진상이 공개됩니다.</p>
         <div className="accuse-list">
-          {suspects.map((s) => (
+          {suspects.map((s, i) => (
             <button key={s.character_id} className={`suspect ${pick === s.character_id ? "active" : ""}`} onClick={() => setPick(s.character_id)}>
-              <span className="avatar">{s.name.slice(-2)}</span>
+              <span className="num">{String(i + 1).padStart(2, "0")}</span>
               <span className="suspect-info">
                 <strong>{s.name}</strong>
                 <small>{s.job}</small>

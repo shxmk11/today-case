@@ -70,13 +70,12 @@ export default function ChatPanel({ character, chats, clues, onAsk }: Props) {
   return (
     <section className="chat">
       <div className="chat-head">
-        <span className="avatar big">{character.name.slice(-2)}</span>
-        <div>
-          <h2>{character.name}</h2>
-          <p className="muted">
-            {character.age}세 · {character.job} · {character.personality}
-          </p>
-        </div>
+        <h2>{character.name}</h2>
+        <p className="label">
+          {character.age}세, {character.job}
+          <br />
+          {character.personality}
+        </p>
       </div>
 
       <div className="chat-log">

@@ -79,25 +79,34 @@ export default function Game({ playId, onFinish }: Props) {
   return (
     <main className="game">
       <section className="case-header">
-        <div>
-          <p className="eyebrow">{state.case.genre} · 난이도 {state.case.difficulty}</p>
-          <h1>{state.case.title}</h1>
-          <p className="muted">{state.case.summary}</p>
-          {victim && (
-            <p className="victim">
-              피해자 <strong>{victim.name}</strong> ({victim.age}세, {victim.job})
-            </p>
-          )}
+        <h1 className="display">{state.case.title}</h1>
+        <div className="actions">
+          <button className="btn danger" onClick={() => setAccusing(true)}>
+            범인 지목하기
+          </button>
         </div>
-        <button className="btn danger" onClick={() => setAccusing(true)}>
-          범인 지목하기
-        </button>
+        <p className="summary">{state.case.summary}</p>
+        {victim && (
+          <p className="victim">
+            <span className="label">피해자</span>
+            <br />
+            <strong>{victim.name}</strong> {victim.age}세, {victim.job}
+          </p>
+        )}
+        <p className="label">
+          {state.case.genre}
+          <br />
+          난이도 {state.case.difficulty}
+        </p>
       </section>
 
       <div className="game-grid">
         <aside className="suspects">
-          <h3>심문할 인물</h3>
-          {suspects.map((c) => {
+          <div className="col-head">
+            <span>심문할 인물</span>
+            <span>{suspects.length}명</span>
+          </div>
+          {suspects.map((c, i) => {
             const count = state.chats.filter((m) => m.character_id === c.character_id).length;
             return (
               <button
@@ -105,14 +114,14 @@ export default function Game({ playId, onFinish }: Props) {
                 className={`suspect ${c.character_id === selected ? "active" : ""}`}
                 onClick={() => setSelected(c.character_id)}
               >
-                <span className="avatar">{c.name.slice(-2)}</span>
+                <span className="num">{String(i + 1).padStart(2, "0")}</span>
                 <span className="suspect-info">
                   <strong>{c.name}</strong>
                   <small>
-                    {c.age}세 · {c.job}
+                    {c.age}세, {c.job}
                   </small>
                 </span>
-                {count > 0 && <span className="badge">{count}</span>}
+                {count > 0 && <span className="badge">질문 {count}</span>}
               </button>
             );
           })}
