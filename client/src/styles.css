@@ -64,11 +64,12 @@ b { font-weight: 700; }
 
 /* ───────── 사건 선택 ───────── */
 .select { min-height: 100vh; display: flex; flex-direction: column; }
-.select-main { flex: 1; display: grid; grid-template-columns: 1fr 430px; gap: 28px; align-items: center; padding-bottom: 8px; }
+.select-main { flex: 1; display: grid; grid-template-columns: 1fr 430px; gap: 28px; align-items: start; padding-bottom: 8px; }
 .select-left { align-self: stretch; display: flex; flex-direction: column; padding-top: 12px; }
 .hero-title { font-size: clamp(96px, 14.5vw, 210px); margin: 26px 0 30px; }
 .lead { font-size: clamp(18px, 1.7vw, 24px); font-weight: 800; letter-spacing: -0.02em; line-height: 1.4; }
 .lead .red { font: inherit; }
+.lead { margin-bottom: 56px; }
 .case-list { margin-top: auto; padding: 18px 16px; display: flex; flex-direction: column; gap: 8px; }
 .case-list > .lbl { padding: 0 10px 6px; }
 .case-row { display: flex; align-items: center; gap: 16px; border: var(--ol); border-radius: 22px; padding: 16px 20px; width: 100%; }
@@ -82,7 +83,7 @@ b { font-weight: 700; }
 button.case-row:not(.on):hover { background: rgb(255 255 255 / 0.06); }
 
 /* 아이폰 프레임 */
-.phone { width: 430px; height: min(930px, calc(100vh - 90px)); min-height: 760px; border-radius: 68px; background: #1c1c1e; padding: 10px; box-shadow: 0 0 0 2px var(--gray), 0 40px 80px rgb(0 0 0 / 0.8); }
+.phone { align-self: start; margin-top: 55px; width: 430px; height: min(930px, calc(100vh - 90px)); min-height: 760px; border-radius: 68px; background: #1c1c1e; padding: 10px; box-shadow: 0 0 0 2px var(--gray), 0 40px 80px rgb(0 0 0 / 0.8); }
 .screen { background: var(--white); color: var(--black); border-radius: 58px; height: 100%; position: relative; overflow: hidden; display: flex; flex-direction: column; }
 .island { position: absolute; left: 50%; top: 12px; transform: translateX(-50%); width: 120px; height: 34px; border-radius: 20px; background: var(--black); }
 .status { height: 56px; flex: none; display: flex; justify-content: space-between; align-items: center; padding: 6px 34px 0 44px; font-size: 16px; }
