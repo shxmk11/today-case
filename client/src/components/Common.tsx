@@ -39,3 +39,7 @@ export function splitEvidence(text: string): { evidence: string | null; question
   const m = text.match(/^\[증거 제시: (.+?)\] ?(.*)$/s);
   return m ? { evidence: m[1], question: m[2] } : { evidence: null, question: text };
 }
+
+/** "여 · 29세" 처럼 성별과 나이를 한 줄로 */
+export const bio = (c: { gender?: string | null; age?: number | null }) =>
+  [c.gender, c.age != null ? `${c.age}세` : null].filter(Boolean).join(" · ");

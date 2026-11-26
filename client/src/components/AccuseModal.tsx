@@ -35,7 +35,7 @@ export default function AccuseModal({ suspects, onClose, onAccuse }: Props) {
             <button key={s.character_id} className={`accuse-pick ${pick === s.character_id ? "on" : ""}`} onClick={() => setPick(s.character_id)}>
               <Face name={s.name} size={48} />
               <b>{s.name}</b>
-              <small>{s.job?.split(",").at(-1)?.trim()}</small>
+              <small>{s.gender ? `${s.gender} · ` : ""}{s.job?.split(",").at(-1)?.trim()}</small>
             </button>
           ))}
         </div>

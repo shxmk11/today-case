@@ -75,7 +75,7 @@ export async function buildSystemPrompt(c: CaseRow, ch: CharacterRow): Promise<s
 ${c.summary}
 
 [당신]
-이름: ${ch.name}, 나이: ${ch.age ?? "비공개"}, 직업: ${ch.job ?? "비공개"}
+이름: ${ch.name}, 성별: ${ch.gender === "여" ? "여성" : ch.gender === "남" ? "남성" : "비공개"}, 나이: ${ch.age ?? "비공개"}, 직업: ${ch.job ?? "비공개"}
 성격: ${ch.personality ?? "평범함"}
 ${ch.is_culprit ? "당신이 범인입니다. 들키지 않는 것이 목표입니다. 직접 자백하지 마세요." : "당신은 범인이 아닙니다. 당신은 절대 거짓말을 하지 않습니다. 숨기고 싶은 것은 말을 아끼거나 대답을 피할 수는 있지만, 사실과 다른 말은 하지 않습니다."}
 

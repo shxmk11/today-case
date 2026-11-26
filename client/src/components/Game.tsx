@@ -4,7 +4,7 @@ import type { AccuseResult, Character, Clue, PlayState, TimelineItem } from "../
 import ChatPanel from "./ChatPanel";
 import CasePanel, { type Tab } from "./CasePanel";
 import AccuseModal from "./AccuseModal";
-import { Topline } from "./Common";
+import { Topline, bio } from "./Common";
 
 interface Props {
   playId: number;
@@ -115,7 +115,7 @@ export default function Game({ playId, onHome, onFinish }: Props) {
             피해자
             <br />
             <b>
-              <span className="red">{victim.name}</span> {victim.age}세, {victim.job}
+              <span className="red">{victim.name}</span> {bio(victim)}, {victim.job}
             </b>
           </span>
         )}
@@ -144,7 +144,7 @@ export default function Game({ playId, onHome, onFinish }: Props) {
                 <span className="grow">
                   <b>{c.name}</b>
                   <small>
-                    {c.age}세, {c.job}
+                    {bio(c)}, {c.job}
                   </small>
                 </span>
                 {count > 0 && <span className="q">질문 {count}</span>}

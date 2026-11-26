@@ -127,14 +127,14 @@ router.get(
                WHERE p.case_id = c.case_id AND p.status = '종료') AS solve_rate
        FROM case_file c ORDER BY c.case_id`,
     );
-    const suspects = await query<{ case_id: number; name: string; job: string | null }>(
-      `SELECT case_id, name, job FROM game_character WHERE character_type = '용의자' ORDER BY character_id`,
+    const suspects = await query<{ case_id: number; name: string; job: string | null; gender: string | null }>(
+      `SELECT case_id, name, job, gender FROM game_character WHERE character_type = '용의자' ORDER BY character_id`,
     );
     res.json(
       cases.map((c) => ({
         ...c,
         solve_rate: c.solve_rate == null ? null : Number(c.solve_rate),
-        suspects: suspects.filter((s) => s.case_id === c.case_id).map(({ name, job }) => ({ name, job })),
+        suspects: suspects.filter((s) => s.case_id === c.case_id).map(({ name, job, gender }) => ({ name, job, gender })),
       })),
     );
   }),
