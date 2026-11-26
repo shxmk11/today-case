@@ -93,8 +93,8 @@ export default function Game({ playId, onHome, onFinish }: Props) {
     });
   }
 
-  async function accuse(characterId: number) {
-    const result = await api.accuse(playId, characterId);
+  async function accuse(characterId: number, clueIds: number[]) {
+    const result = await api.accuse(playId, characterId, clueIds);
     onFinish(result, state!.case.title);
   }
 
@@ -185,6 +185,7 @@ export default function Game({ playId, onHome, onFinish }: Props) {
         <AccuseModal
           suspects={state.characters.filter((c) => c.character_type === "용의자")}
           onClose={() => setAccusing(false)}
+          clues={state.clues}
           onAccuse={accuse}
         />
       )}

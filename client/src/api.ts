@@ -27,8 +27,8 @@ export const api = {
       question,
       clueId,
     }),
-  accuse: (playId: number, characterId: number) =>
-    request<AccuseResult>(`/plays/${playId}/accuse`, { characterId }),
+  accuse: (playId: number, characterId: number, clueIds: number[]) =>
+    request<AccuseResult>(`/plays/${playId}/accuse`, { characterId, clueIds }),
 };
 
 export const hhmm = (t: string) => t.slice(0, 5);

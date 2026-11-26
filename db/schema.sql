@@ -124,14 +124,17 @@ CREATE TABLE clue (
     clue_type ENUM('물증', '증언', '기록') NOT NULL,
     is_key BOOLEAN NOT NULL DEFAULT FALSE,   -- 결과 화면의 '결정적 증거/증언'
     event_time TIME NULL,                    -- 단서가 가리키는 시각 (발견하면 타임라인에 올라감)
+    unlock_clue_id INT NULL,                 -- 숨은 증언: 이 단서를 증거로 내밀어야만 털어놓음
     PRIMARY KEY (clue_id),
     CONSTRAINT fk_clue_scene FOREIGN KEY (scene_id)
         REFERENCES scene (scene_id) ON DELETE CASCADE,
     CONSTRAINT fk_clue_character FOREIGN KEY (character_id)
-        REFERENCES game_character (character_id) ON DELETE SET NULL
+        REFERENCES game_character (character_id) ON DELETE SET NULL,
+    CONSTRAINT fk_clue_unlock FOREIGN KEY (unlock_clue_id)
+        REFERENCES clue (clue_id) ON DELETE SET NULL
 );
 
--- 힌트 (범인 역할 플레이어용)
+-- 힌트 (범인 역할 플레이어용 / AI 범인의 변명 계획)
 CREATE TABLE hint (
     hint_id INT NOT NULL AUTO_INCREMENT,
     character_id INT NOT NULL,
@@ -246,6 +249,17 @@ CREATE TABLE accusation (
         REFERENCES game_character (character_id)
 );
 
+-- 지목 근거 (지목할 때 고른 증거 2개, N:M)
+CREATE TABLE accusation_evidence (
+    accusation_id INT NOT NULL,
+    clue_id INT NOT NULL,
+    PRIMARY KEY (accusation_id, clue_id),
+    CONSTRAINT fk_accev_accusation FOREIGN KEY (accusation_id)
+        REFERENCES accusation (accusation_id) ON DELETE CASCADE,
+    CONSTRAINT fk_accev_clue FOREIGN KEY (clue_id)
+        REFERENCES clue (clue_id)
+);
+
 
 /* 2. 사건 데이터 (예시 사건: 별장의 마지막 밤) */
 
@@ -315,15 +329,15 @@ INSERT INTO clue (scene_id, character_id, name, description, clue_type) VALUES
 (1, NULL, '빈 유언장 봉투', '책상 서랍 속 빈 봉투. 겉면에 "수정안 - 윤 변호사 지참"이라고 적혀 있다.', '기록'),
 (2, NULL, '반쯤 한 설거지', '개수대 물이 완전히 식어 있다. 21시 20분쯤 설거지가 멈춘 것으로 보인다.', '기록'),
 (3, NULL, '숨겨진 술병', '작업대 아래 숨겨진 빈 소주병 두 개. 아직 술 냄새가 난다.', '물증'),
-(3, NULL, '눈 위의 발자국', '본관 뒷문에서 창고까지 이어진 작은 발자국. 장화가 아니라 실내화 밑창 무늬다.', '물증'),
+(3, NULL, '눈 위의 발자국', '본관 뒷문에서 창고까지 이어진 작은 발자국. 밑창 무늬가 거의 없이 납작하다.', '물증'),
 (3, NULL, '한 짝 남은 장갑', '장갑 걸이에 왼쪽 장갑만 걸려 있다.', '물증'),
 (4, NULL, '노트북 저장 기록', '논문 파일의 마지막 저장 시각은 21시 31분이다.', '기록'),
 (4, NULL, '프린터 출력 기록', '22시 2분에 논문 12쪽이 출력되었다.', '기록'),
-(4, NULL, '젖은 실내화', '침대 밑에 밀어 넣은 실내화. 밑창이 눈 녹은 물에 젖어 있다.', '물증'),
+(4, NULL, '젖은 실내화', '침대 밑에 밀어 넣은 납작한 실내화. 밑창이 축축하다.', '물증'),
 (5, NULL, '신탁 계좌 메모', '한도윤 필체의 메모. "윤 변호사, 신탁 계좌 전부 확인할 것."', '기록'),
 (5, NULL, '화상회의 접속 기록', '노트북에 21시 30분부터 22시 5분까지 회의에 접속한 기록이 있다.', '기록'),
 (3, 3, '창고 문 소리', '정원사 박정호의 증언. 21시 50분쯤 창고 문이 열렸다 닫히는 소리를 들었지만, 술에 취해 누군지는 못 봤다.', '증언'),
-(1, 4, '서재의 언쟁', '가정부 최유나의 증언. 21시 35분쯤 2층 복도에서 서재 안 언쟁을 들었다. "유언장"이라는 말과 젊은 여자 목소리였다.', '증언'),
+(1, 4, '서재의 언쟁', '가정부 최유나의 증언. 21시 35분쯤 2층 복도에서 서재 안 언쟁을 들었다. 말소리가 섞여 누군지는 모르겠지만 "유언장"이라는 말은 똑똑히 들었다.', '증언'),
 (2, 4, '정원사 해고 소문', '가정부 최유나의 증언. 저녁 무렵 주인이 정원사에게 해고를 통보하는 걸 봤다.', '증언'),
 (5, 5, '유언장 수정 계획', '변호사 윤재혁의 증언. 피해자는 내일 유언장을 고쳐 상속인을 조카에서 재단으로 바꾸려 했다.', '증언');
 
@@ -417,16 +431,16 @@ INSERT INTO clue (scene_id, character_id, name, description, clue_type, is_key, 
 (6, NULL, '데크 모서리 혈흔', '수영장 쪽 대리석 모서리의 핏자국. 시우의 머리 상처 높이와 맞는다.', '물증', FALSE, NULL),
 (7, NULL, '스마트워치 기록', '시우의 스마트워치. 심박 신호가 22시 11분에 끊겼다.', '기록', TRUE, '22:11:00'),
 (7, NULL, '비워진 대화방', '시우 휴대폰의 대화방 하나가 22시에 통째로 삭제되었다.', '기록', FALSE, '22:00:00'),
-(7, NULL, '환불 요청자 명단', '시우 노트북의 엑셀 파일 "환불 요청자". 맨 위에 "한지영 - 1억 2천"이 적혀 있다.', '기록', FALSE, NULL),
-(8, NULL, '브이로그 촬영 기록', '지아 휴대폰의 촬영 기록. 21시 58분에 촬영이 끝나고, 22시 27분에 다시 시작된다.', '기록', FALSE, '21:58:00'),
-(8, NULL, '다시 찍은 영상', '22시 27분 영상 속 지아는 머리가 덜 말라 있고 왼쪽 귀걸이가 없다. 21시 58분 영상에는 양쪽 다 있었다.', '기록', TRUE, '22:27:00'),
+(7, NULL, '환불 요청자 명단', '시우 노트북의 엑셀 파일 "환불 요청자". 투자자 이름과 금액이 수십 줄 적혀 있고, 맨 위는 "한지영 - 1억 2천"이다.', '기록', FALSE, NULL),
+(8, NULL, '브이로그 촬영 기록', '지아 휴대폰의 촬영 기록. 21시 58분에 촬영이 끝나고, 22시 27분에 다시 시작된다. 앞 영상 속 지아는 꽃 모양 귀걸이를 하고 있다.', '기록', FALSE, '21:58:00'),
+(8, NULL, '다시 찍은 영상', '22시 27분부터 찍은 영상. 지아는 머리를 하나로 묶었고, 귀걸이는 오른쪽에만 하고 있다.', '기록', TRUE, '22:27:00'),
 (8, NULL, '젖은 원피스', '욕실 바구니 속 젖은 원피스. 수영장 소독약 냄새가 난다.', '물증', FALSE, NULL),
 (9, NULL, '작가실 창문', '작가실 창문을 열면 수영장 데크가 바로 내려다보인다.', '물증', FALSE, NULL),
 (9, NULL, '연애 금지 서약서', '제작진과 출연자의 연애를 금지하는 서약서. 이채원의 서명이 있다.', '기록', FALSE, NULL),
 (10, NULL, '수영장 카메라 기록', '수영장 카메라 녹화가 22시 5분에 배터리 방전으로 끊겼다.', '기록', FALSE, '22:05:00'),
 (10, NULL, '빈 맥주캔', '장비실 구석에 빈 맥주캔 다섯 개가 쌓여 있다.', '물증', FALSE, NULL),
 (11, NULL, '깨진 액자', '거실 바닥에 떨어져 깨진 출연자 단체 사진 액자. 누군가 세게 부딪힌 흔적이다.', '물증', FALSE, NULL),
-(9, 9, '수영장의 여자 목소리', '작가 이채원의 증언. 22시 12분쯤 작가실 창문 너머 수영장 쪽에서 "우리 언니 돈 돌려내"라는 여자 목소리와 물 튀는 소리를 들었다.', '증언', TRUE, '22:12:00'),
+(9, 9, '수영장의 여자 목소리', '작가 이채원의 증언. 22시 12분쯤 작가실 창문 너머 수영장 쪽에서 언성이 높아진 목소리와 물 튀는 소리를 들었다. "돈"이라는 말이 들린 것 같다.', '증언', TRUE, '22:12:00'),
 (8, 9, '복도의 젖은 머리', '작가 이채원의 증언. 22시 25분쯤 2층 복도에서 머리가 젖은 한지아와 마주쳤다. 지아는 샤워했다고 했다.', '증언', FALSE, '22:25:00'),
 (11, 8, '거실 몸싸움', '출연자 백도현의 증언. 21시 30분 거실에서 시우와 몸싸움을 했다. 시우는 일어나며 "나한테 원한 있는 사람이 여기 또 있다"고 비웃었다.', '증언', FALSE, '21:30:00'),
 (10, 10, '맨발의 그림자', '촬영감독 주경민의 증언. 22시 15분쯤 장비실 창밖으로 맨발로 본관 쪽에 뛰어가는 작은 그림자를 봤다. 술에 취해 누군지는 모른다.', '증언', FALSE, '22:15:00');
@@ -439,6 +453,32 @@ INSERT INTO hint (character_id, content, reveal_order) VALUES
 (7, '환불 요청자 명단의 한지영 얘기가 나오면: 언니인 건 인정한다. 방송 끝나고 따로 얘기하려 했을 뿐 그날 밤 시우를 만나진 않았다고 한다.', 5),
 (7, '맨발 자국이나 여자 목소리 얘기가 나오면: 여자는 자기만 있는 게 아니라며, 이채원 작가와 시우가 몰래 가까웠다는 걸 흘려 의심을 돌린다.', 6),
 (7, '몸싸움 얘기가 나오면: 도현이 시우를 많이 미워했다는 걸 흘린다.', 7);
+
+
+-- 난이도 보강: 범인이 아닌 사람들의 수상한 정황 (사실 31~33, 단서 36~40)
+INSERT INTO fact (case_id, occurred_at, place, content, is_initial) VALUES
+(1, '21:38:00', '변호사의 방', '윤재혁이 화상회의 카메라와 마이크를 끄고, 신탁 계좌 장부의 숫자를 몰래 고쳤다.', FALSE),
+(1, '21:46:00', '2층 복도', '최유나가 26분 동안의 통화를 마치고 부엌으로 내려왔다. 통화 상대는 연예 잡지 기자였다.', FALSE),
+(2, '22:20:00', '수영장 데크', '백도현이 헬스장에서 나와 수영장 옆 흡연 구역에서 몰래 담배를 피웠다. 어두워서 수영장 안은 보지 못했다.', FALSE);
+
+INSERT INTO character_fact (character_id, fact_id, is_hidden) VALUES
+(5, 31, TRUE), (4, 32, TRUE), (8, 33, TRUE);
+
+INSERT INTO clue (scene_id, character_id, name, description, clue_type, is_key, event_time) VALUES
+(5, NULL, '고쳐 쓴 장부', '변호사 가방 속 신탁 계좌 장부. 몇 군데 숫자가 새로 덧쓰여 있고, 잉크가 아직 번진다.', '물증', FALSE, NULL),
+(2, NULL, '가정부 휴대폰 통화 기록', '부엌 충전기에 꽂힌 최유나의 휴대폰. 21시 20분부터 26분 동안 통화한 기록이 있다. 상대는 저장되지 않은 번호다.', '기록', FALSE, '21:20:00'),
+(6, NULL, '데크 옆 담배꽁초', '흡연 구역 재떨이의 갓 피운 꽁초 하나. 옆에 소방서 로고가 찍힌 라이터가 떨어져 있다.', '물증', FALSE, NULL),
+(11, NULL, '피 묻은 휴지', '거실 쓰레기통 속 피 묻은 휴지 뭉치.', '물증', FALSE, NULL),
+(10, NULL, '꺼진 카메라 메모', '장비실 화이트보드에 "수영장 캠 배터리 → 내일 아침 교체" 메모. 오늘 날짜다.', '기록', FALSE, NULL);
+
+-- 화상회의 기록에 꺼진 구간 추가
+UPDATE clue SET description = '노트북에 21시 30분부터 22시 5분까지 회의에 접속한 기록이 있다. 21시 38분부터는 카메라와 마이크가 꺼져 있다.' WHERE clue_id = 13;
+
+-- 숨은 증언: 관련 증거를 내밀어야만 털어놓는다
+UPDATE clue SET unlock_clue_id = 5 WHERE clue_id = 15;   -- 서재의 언쟁 ← 반쯤 한 설거지
+UPDATE clue SET unlock_clue_id = 27 WHERE clue_id = 32;  -- 수영장의 여자 목소리 ← 작가실 창문
+UPDATE clue SET unlock_clue_id = 31 WHERE clue_id = 34;  -- 거실 몸싸움 ← 깨진 액자
+UPDATE character_fact SET is_hidden = TRUE WHERE character_id = 9 AND fact_id = 25;
 
 
 /* 3. 뷰 */

@@ -80,6 +80,9 @@ export interface PlayState {
 
 export interface AccuseResult {
   result: "성공" | "실패";
+  /** 범인은 맞혔는지 (근거가 부족하면 범인을 맞혀도 실패) */
+  culpritCorrect: boolean;
+  evidence: { name: string; isKey: boolean }[];
   accused: string;
   culprit: { character_id: number; name: string };
   truth: string;

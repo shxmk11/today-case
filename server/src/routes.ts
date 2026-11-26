@@ -249,14 +249,15 @@ router.post(
     let evidence: Evidence | undefined;
     if (req.body?.clueId != null) {
       evidence = await one<Evidence>(
-        `SELECT c.name, c.description FROM clue_discovery cd JOIN clue c ON c.clue_id = cd.clue_id
+        `SELECT c.clue_id, c.name, c.description FROM clue_discovery cd JOIN clue c ON c.clue_id = cd.clue_id
          WHERE cd.participant_id = ? AND cd.clue_id = ?`,
         [play.participant_id, Number(req.body.clueId)],
       );
       if (!evidence) throw new HttpError(400, "아직 찾지 못한 단서예요.");
     }
 
-    const { answer, revealedClueIds, statedAlibi } = await interrogate(c, ch, history.slice(-20), question, evidence);
+    const discoveredIds = (await discoveredClues(play.participant_id)).map((x) => x.clue_id);
+    const { answer, revealedClueIds, statedAlibi } = await interrogate(c, ch, history.slice(-20), question, evidence, discoveredIds);
     const storedQuestion = formatQuestion(question, evidence);
     const interrogationId = await insert(
       `INSERT INTO interrogation (participant_id, character_id, question, answer) VALUES (?, ?, ?, ?)`,
@@ -290,8 +291,24 @@ router.post(
     const accused = await getCharacterInCase(play.case_id, Number(req.body?.characterId));
     if (accused.character_type !== "용의자") throw new HttpError(400, "용의자 중에서 골라주세요.");
 
-    await insert(`INSERT INTO accusation (participant_id, character_id) VALUES (?, ?)`, [play.participant_id, accused.character_id]);
-    const result = accused.is_culprit ? "성공" : "실패";
+    // 근거 2개: 플레이어가 실제로 찾은 단서 중에서
+    const clueIds = [...new Set((Array.isArray(req.body?.clueIds) ? req.body.clueIds : []).map(Number))];
+    if (clueIds.length !== 2) throw new HttpError(400, "근거가 될 단서를 2개 골라주세요.");
+    const picked = await query<{ clue_id: number; name: string; is_key: boolean }>(
+      `SELECT c.clue_id, c.name, c.is_key FROM clue_discovery cd JOIN clue c ON c.clue_id = cd.clue_id
+       WHERE cd.participant_id = ? AND c.clue_id IN (?)`,
+      [play.participant_id, clueIds],
+    );
+    if (picked.length !== 2) throw new HttpError(400, "찾은 단서 중에서 골라주세요.");
+
+    const accusationId = await insert(
+      `INSERT INTO accusation (participant_id, character_id) VALUES (?, ?)`,
+      [play.participant_id, accused.character_id],
+    );
+    await query(`INSERT INTO accusation_evidence (accusation_id, clue_id) VALUES ?`, [picked.map((p) => [accusationId, p.clue_id])]);
+    // 범인을 맞히고, 근거 2개가 모두 결정적 증거여야 해결
+    const keyHits = picked.filter((p) => p.is_key).length;
+    const result = accused.is_culprit && keyHits === 2 ? "성공" : "실패";
     await query(`UPDATE play SET status = '종료', result = ?, ended_at = NOW() WHERE play_id = ?`, [result, play.play_id]);
 
     const c = (await one<CaseRow>(`SELECT * FROM case_file WHERE case_id = ?`, [play.case_id]))!;
@@ -337,7 +354,12 @@ router.post(
         : null;
       keyTestimony = { name: t.name, description: t.description, character: t.char_name, found: t.found_at != null, chat };
     }
-    res.json({ result, accused: accused.name, culprit, truth: c.truth, timeline, stats, keyEvidence, keyTestimony, caseId: play.case_id });
+    res.json({
+      result,
+      culpritCorrect: !!accused.is_culprit,
+      evidence: picked.map((p) => ({ name: p.name, isKey: !!p.is_key })),
+      accused: accused.name,
+      culprit, truth: c.truth, timeline, stats, keyEvidence, keyTestimony, caseId: play.case_id });
   }),
 );
 
