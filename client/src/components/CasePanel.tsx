@@ -54,14 +54,26 @@ export default function CasePanel({ scenes, clues, facts, onInvestigate }: Props
           <p className="muted">현장을 조사하거나 인물을 심문하면 단서가 모여요.</p>
         ) : (
           <div className="clue-board">
-            {clues.map((c) => (
-              <div key={c.clue_id} className={`clue type-${c.clue_type}`}>
-                <span className="clue-type">{c.clue_type}</span>
-                <h4>{c.name}</h4>
-                <p>{c.description}</p>
-                <small className="muted">{c.scene_name}</small>
-              </div>
-            ))}
+            {scenes
+              .map((sc) => ({ scene: sc, items: clues.filter((c) => c.scene_id === sc.scene_id) }))
+              .filter((g) => g.items.length > 0)
+              .map(({ scene, items }) => (
+                <section key={scene.scene_id} className="clue-group">
+                  <div className="clue-group-head">
+                    <span>{scene.name}</span>
+                    <small>{items.length}개</small>
+                  </div>
+                  {items.map((c) => (
+                    <div key={c.clue_id} className={`clue type-${c.clue_type}`}>
+                      <h4>
+                        {c.name}
+                        <span className="clue-type">{c.clue_type}</span>
+                      </h4>
+                      <p>{c.description}</p>
+                    </div>
+                  ))}
+                </section>
+              ))}
           </div>
         ))}
 
