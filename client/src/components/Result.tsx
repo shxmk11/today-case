@@ -45,14 +45,18 @@ export default function Result({ result, title, onHome, onRetry }: Props) {
               </>
             )}
           </p>
-          <div className="verdict-ev">
+          <ul className="verdict-ev">
             {result.evidence.map((e) => (
-              <span key={e.name} className={e.isKey ? "hit" : "miss"}>
-                {e.isKey ? "● " : "○ "}
-                {e.name}
-              </span>
+              <li key={e.slot} className={e.ok ? "hit" : "miss"}>
+                <small>{e.slot === "알리바이" ? "알리바이를 깨는 증거" : "범인과 범행을 잇는 증거"}</small>
+                <b>
+                  {e.ok ? "● " : "○ "}
+                  {e.name}
+                </b>
+                {e.note && <p>{e.ok ? e.note : `근거 부족 · ${e.note}`}</p>}
+              </li>
             ))}
-          </div>
+          </ul>
           <div className="stats">
             <div className="card"><span className="lbl">걸린 시간</span><b className="display">{result.stats.minutes}분</b></div>
             <div className="card"><span className="lbl">질문 수</span><b className="display">{result.stats.questions}</b></div>

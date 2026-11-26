@@ -93,8 +93,8 @@ export default function Game({ playId, onHome, onFinish }: Props) {
     });
   }
 
-  async function accuse(characterId: number, clueIds: number[]) {
-    const result = await api.accuse(playId, characterId, clueIds);
+  async function accuse(characterId: number, alibiClueId: number, linkClueId: number) {
+    const result = await api.accuse(playId, characterId, alibiClueId, linkClueId);
     onFinish(result, state!.case.title);
   }
 
