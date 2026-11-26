@@ -297,10 +297,11 @@ INSERT INTO character_fact (character_id, fact_id, is_hidden) VALUES
 (4, 2, FALSE), (4, 8, TRUE), (4, 9, TRUE),
 (5, 4, FALSE), (5, 5, TRUE);
 
+-- 거짓 알리바이(is_false = TRUE)는 범인만 가진다. 범인이 아닌 인물은 말을 아낄 수는 있어도 거짓말은 하지 않는다.
 INSERT INTO alibi (character_id, claimed_time, place, statement, is_false) VALUES
 (2, '21:40:00', '서진의 방', '방에서 계속 논문을 쓰고 있었어요. 10시쯤엔 출력도 했고요.', TRUE),
 (3, '21:40:00', '정원 창고', '창고에서 공구를 정리하고 있었소.', FALSE),
-(4, '21:40:00', '부엌', '계속 부엌에서 설거지하고 있었어요.', TRUE),
+(4, '21:40:00', '2층 복도', '설거지하다가 21시 20분쯤 2층에 잠깐 올라갔어요. 개인적인 일이라 더는 말하기 곤란해요.', FALSE),
 (5, '21:40:00', '변호사의 방', '방에서 화상회의 중이었습니다. 접속 기록이 남아 있을 겁니다.', FALSE);
 
 -- character_id가 있는 단서는 그 인물의 증언 (심문 중 실제로 털어놓아야 발견)

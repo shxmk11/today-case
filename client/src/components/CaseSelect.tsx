@@ -26,7 +26,7 @@ export default function CaseSelect({ onStart }: { onStart: (playId: number) => v
     <main className="select">
       <section className="hero">
         <h1 className="display">오늘은 어떤<br />사건을 맡을까요?</h1>
-        <p className="label">용의자를 심문하세요. 그들은 거짓말을 할 수도 있습니다.</p>
+        <p className="label">용의자를 심문하세요. 거짓말을 하는 사람은 범인뿐입니다.</p>
         <p className="label">현장을 조사해 단서를 모으고, 증거를 들이미세요.</p>
         <p className="label">범인 지목은 한 번뿐입니다.</p>
       </section>

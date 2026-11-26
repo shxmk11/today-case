@@ -32,7 +32,7 @@ DB 설계 과제에서 만든 MySQL 스키마(`db/schema.sql`)를 그대로 사�
 |---|---|
 | 수사 시작 | `member`(게스트), `play`, `participant`(탐정) |
 | 현장 조사 | `clue` → `clue_discovery` (그 현장의 물증·기록) |
-| 심문 | `interrogation` 저장. 프롬프트는 `game_character`, `character_relation`, `character_fact`(숨긴 사실), `alibi`(거짓 여부)로 구성 |
+| 심문 | `interrogation` 저장. 프롬프트는 `game_character`, `character_relation`, `character_fact`(숨긴 사실), `alibi`(거짓 여부, 거짓은 범인만)로 구성 |
 | 증거 제시 | 찾은 단서를 골라 질문과 함께 내밀면, 숨긴 사실과 어긋나는 증거에 인물이 흔들림. 질문은 `[증거 제시: 단서명] ...` 형태로 저장 |
 | 증언 단서 | `clue.character_id`가 있는 단서. AI가 답변에서 실제로 털어놓았을 때만(`revealed_clue_ids`) `clue_discovery`에 추가 |
 | 범인 지목 | `accusation`, `play.result`, 진상(`case_file.truth`)과 전체 `fact` 타임라인 공개 |
