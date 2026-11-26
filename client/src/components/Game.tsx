@@ -2,19 +2,22 @@ import { useEffect, useRef, useState } from "react";
 import { api } from "../api";
 import type { AccuseResult, Character, Clue, PlayState } from "../types";
 import ChatPanel from "./ChatPanel";
-import CasePanel from "./CasePanel";
+import CasePanel, { type Tab } from "./CasePanel";
 import AccuseModal from "./AccuseModal";
+import { Topline } from "./Common";
 
 interface Props {
   playId: number;
+  onHome: () => void;
   onFinish: (result: AccuseResult, title: string) => void;
 }
 
-export default function Game({ playId, onFinish }: Props) {
+export default function Game({ playId, onHome, onFinish }: Props) {
   const [state, setState] = useState<PlayState | null>(null);
   const [error, setError] = useState("");
   const [selected, setSelected] = useState<number | null>(null);
   const [accusing, setAccusing] = useState(false);
+  const [tab, setTab] = useState<Tab>("clue");
   const [toast, setToast] = useState<string[]>([]);
   const toastTimer = useRef<number>(undefined);
 
@@ -34,6 +37,7 @@ export default function Game({ playId, onFinish }: Props) {
   const suspects = state.characters.filter((c) => c.character_type !== "피해자");
   const victim = state.characters.find((c) => c.character_type === "피해자");
   const current = suspects.find((c) => c.character_id === selected) ?? null;
+  const left = state.scenes.filter((s) => !s.investigated).length;
 
   function showNewClues(names: string[]) {
     if (names.length === 0) return;
@@ -48,12 +52,15 @@ export default function Game({ playId, onFinish }: Props) {
     setState((s) => s && { ...s, chats: [...s.chats, pending] });
     try {
       const res = await api.interrogate(playId, ch.character_id, question, evidence?.clue_id);
+      const fresh = res.clues.filter((c) => res.newClues.includes(c.clue_id)).map((c) => c.name);
       setState((s) => s && {
         ...s,
         clues: res.clues,
-        chats: s.chats.map((c) => (c === pending ? { ...c, question: res.question, answer: res.answer, pending: false } : c)),
+        chats: s.chats.map((c) =>
+          c === pending ? { ...c, question: res.question, answer: res.answer, pending: false, newClues: fresh } : c,
+        ),
       });
-      showNewClues(res.clues.filter((c) => res.newClues.includes(c.clue_id)).map((c) => c.name));
+      showNewClues(fresh);
     } catch (e) {
       setState((s) => s && { ...s, chats: s.chats.filter((c) => c !== pending) });
       throw e;
@@ -78,31 +85,35 @@ export default function Game({ playId, onFinish }: Props) {
 
   return (
     <main className="game">
-      <section className="case-header">
+      <Topline onHome={onHome} right={`질문 ${state.chats.length} · 단서 ${state.clues.length} / ${state.clueTotal}`} />
+
+      <section className="game-head">
         <h1 className="display">{state.case.title}</h1>
-        <div className="actions">
-          <button className="btn danger" onClick={() => setAccusing(true)}>
-            범인 지목하기
-          </button>
-        </div>
-        <p className="summary">{state.case.summary}</p>
+        <button className="pill red accuse" onClick={() => setAccusing(true)}>
+          범인 지목하기
+        </button>
+      </section>
+      <section className="game-meta">
+        <span>{state.case.summary}</span>
         {victim && (
-          <p className="victim">
-            <span className="label">피해자</span>
+          <span>
+            피해자
             <br />
-            <strong>{victim.name}</strong> {victim.age}세, {victim.job}
-          </p>
+            <b>
+              <span className="red">{victim.name}</span> {victim.age}세, {victim.job}
+            </b>
+          </span>
         )}
-        <p className="label">
-          {state.case.genre}
+        <span>
+          규칙
           <br />
-          난이도 {state.case.difficulty}
-        </p>
+          <b>거짓말은 범인만 한다</b>
+        </span>
       </section>
 
       <div className="game-grid">
         <aside className="suspects">
-          <div className="col-head">
+          <div className="lbl row-between head">
             <span>심문할 인물</span>
             <span>{suspects.length}명</span>
           </div>
@@ -111,20 +122,27 @@ export default function Game({ playId, onFinish }: Props) {
             return (
               <button
                 key={c.character_id}
-                className={`suspect ${c.character_id === selected ? "active" : ""}`}
+                className={`suspect ${c.character_id === selected ? "on" : ""}`}
                 onClick={() => setSelected(c.character_id)}
               >
-                <span className="num">{String(i + 1).padStart(2, "0")}</span>
-                <span className="suspect-info">
-                  <strong>{c.name}</strong>
+                <span className="no">{String(i + 1).padStart(2, "0")}</span>
+                <span className="grow">
+                  <b>{c.name}</b>
                   <small>
                     {c.age}세, {c.job}
                   </small>
                 </span>
-                {count > 0 && <span className="badge">질문 {count}</span>}
+                {count > 0 && <span className="q">질문 {count}</span>}
               </button>
             );
           })}
+          <div className="card investigate">
+            <b>현장 조사</b>
+            <p>{left > 0 ? `장소를 골라 단서를 찾아요. 아직 안 간 곳 ${left}곳` : "모든 현장을 조사했어요."}</p>
+            <button className="pill white" onClick={() => setTab("scene")}>
+              조사하기 →
+            </button>
+          </div>
         </aside>
 
         {current ? (
@@ -135,15 +153,22 @@ export default function Game({ playId, onFinish }: Props) {
             onAsk={(q, ev) => ask(current, q, ev)}
           />
         ) : (
-          <section className="chat empty">심문할 인물을 골라주세요.</section>
+          <section className="card chat empty">심문할 인물을 골라주세요.</section>
         )}
 
-        <CasePanel scenes={state.scenes} clues={state.clues} facts={state.facts} onInvestigate={investigate} />
+        <CasePanel
+          tab={tab}
+          onTab={setTab}
+          scenes={state.scenes}
+          clues={state.clues}
+          facts={state.facts}
+          onInvestigate={investigate}
+        />
       </div>
 
       {toast.length > 0 && (
         <div className="toast" role="status">
-          <strong>새 단서</strong> {toast.join(", ")}
+          ＋ 새 단서 · {toast.join(", ")}
         </div>
       )}
 

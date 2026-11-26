@@ -121,6 +121,7 @@ CREATE TABLE clue (
     description TEXT,
     image_url VARCHAR(255),
     clue_type ENUM('물증', '증언', '기록') NOT NULL,
+    is_key BOOLEAN NOT NULL DEFAULT FALSE,   -- 결과 화면의 '결정적 증거/증언'
     PRIMARY KEY (clue_id),
     CONSTRAINT fk_clue_scene FOREIGN KEY (scene_id)
         REFERENCES scene (scene_id) ON DELETE CASCADE,
@@ -323,6 +324,9 @@ INSERT INTO clue (scene_id, character_id, name, description, clue_type) VALUES
 (1, 4, '서재의 언쟁', '가정부 최유나의 증언. 21시 35분쯤 2층 복도에서 서재 안 언쟁을 들었다. "유언장"이라는 말과 젊은 여자 목소리였다.', '증언'),
 (2, 4, '정원사 해고 소문', '가정부 최유나의 증언. 저녁 무렵 주인이 정원사에게 해고를 통보하는 걸 봤다.', '증언'),
 (5, 5, '유언장 수정 계획', '변호사 윤재혁의 증언. 피해자는 내일 유언장을 고쳐 상속인을 조카에서 재단으로 바꾸려 했다.', '증언');
+
+-- 결정적 증거 3개 + 결정적 증언 1개
+UPDATE clue SET is_key = TRUE WHERE name IN ('닦인 청동 문진', '멈춘 탁상시계', '흙 묻은 장갑', '서재의 언쟁');
 
 INSERT INTO hint (character_id, content, reveal_order) VALUES
 (2, '22시 2분 프린터 출력 기록을 들어 계속 방에 있었다고 주장하라.', 1),

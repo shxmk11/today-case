@@ -7,6 +7,10 @@ export interface CaseSummary {
   difficulty: Difficulty;
   summary: string;
   suspect_count?: number;
+  scene_count?: number;
+  clue_count?: number;
+  solve_rate?: number | null;
+  suspects?: { name: string; job: string | null }[];
 }
 
 export interface Character {
@@ -48,6 +52,7 @@ export interface Chat {
   question: string;
   answer: string;
   pending?: boolean;
+  newClues?: string[];
 }
 
 export interface PlayState {
@@ -58,6 +63,7 @@ export interface PlayState {
   scenes: Scene[];
   facts: Fact[];
   clues: Clue[];
+  clueTotal: number;
   chats: Chat[];
 }
 
@@ -67,5 +73,14 @@ export interface AccuseResult {
   culprit: { character_id: number; name: string };
   truth: string;
   timeline: Fact[];
-  stats: { minutes: number; questions: number; clues: number };
+  stats: { minutes: number; questions: number; clues: number; clueTotal: number };
+  keyEvidence: { name: string; description: string | null; clue_type: Clue["clue_type"]; scene_name: string; found: boolean }[];
+  keyTestimony: {
+    name: string;
+    description: string | null;
+    character: string | null;
+    found: boolean;
+    chat: { question: string; answer: string } | null;
+  } | null;
+  caseId: number;
 }
