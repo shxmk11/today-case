@@ -1,0 +1,27 @@
+# Render 블루프린트: 저장소를 연결하면 이 설정으로 웹 서비스 하나를 만든다
+services:
+  - type: web
+    name: today-case
+    runtime: node
+    plan: free
+    buildCommand: npm ci --include=dev && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: DB_SSL
+        value: "true"
+      # 아래 값은 Render 대시보드에서 직접 입력 (저장소에 남기지 않음)
+      - key: DB_HOST
+        sync: false
+      - key: DB_PORT
+        sync: false
+      - key: DB_USER
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: DB_NAME
+        value: today_case
+      - key: GROQ_API_KEY
+        sync: false

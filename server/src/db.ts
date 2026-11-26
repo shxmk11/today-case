@@ -7,6 +7,8 @@ export const pool = mysql.createPool({
   password: process.env.DB_PASSWORD ?? "",
   database: process.env.DB_NAME ?? "today_case",
   charset: "utf8mb4",
+  // 클라우드 DB(TiDB Cloud 등)는 TLS 연결을 요구한다: DB_SSL=true
+  ssl: process.env.DB_SSL === "true" ? { minVersion: "TLSv1.2", rejectUnauthorized: true } : undefined,
   // TINYINT(1) 컬럼(BOOLEAN)을 true/false로 받기
   typeCast(field, next) {
     if (field.type === "TINY" && field.length === 1) {
