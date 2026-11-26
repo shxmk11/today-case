@@ -198,9 +198,8 @@ async function askClaude(system: string, messages: { role: "user" | "assistant";
     max_tokens: 2000,
     // 짧은 대사라 effort를 낮춰 응답 속도를 우선
     output_config: { effort: "low", format: { type: "json_schema", schema: OUTPUT_SCHEMA } },
-    // 안전 분류기가 거절하면 서버에서 다른 모델로 자동 재시도
-    betas: ["server-side-fallback-2026-07-01"],
-    fallbacks: "default",
+    // 안전 분류기가 거절하면 서버에서 다른 모델로 자동 재시도 (Haiku는 이 기능이 없어 400이 나므로 제외)
+    ...(MODEL.includes("haiku") ? {} : { betas: ["server-side-fallback-2026-07-01"], fallbacks: "default" as const }),
     cache_control: { type: "ephemeral" },
     system,
     messages,
