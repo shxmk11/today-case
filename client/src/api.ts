@@ -1,4 +1,4 @@
-import type { AccuseResult, CaseSummary, Clue, PlayState } from "./types";
+import type { AccuseResult, CaseSummary, Clue, PlayState, TimelineItem } from "./types";
 
 async function request<T>(path: string, body?: unknown): Promise<T> {
   const res = await fetch(`/api${path}`, {
@@ -20,9 +20,9 @@ export const api = {
   startPlay: (caseId: number) => request<{ playId: number }>("/plays", { caseId }),
   play: (playId: number) => request<PlayState>(`/plays/${playId}`),
   investigate: (playId: number, sceneId: number) =>
-    request<{ clues: Clue[] }>(`/plays/${playId}/investigate`, { sceneId }),
+    request<{ clues: Clue[]; timeline: TimelineItem[] }>(`/plays/${playId}/investigate`, { sceneId }),
   interrogate: (playId: number, characterId: number, question: string, clueId?: number) =>
-    request<{ answer: string; question: string; clues: Clue[]; newClues: number[] }>(`/plays/${playId}/interrogate`, {
+    request<{ answer: string; question: string; clues: Clue[]; newClues: number[]; timeline: TimelineItem[] }>(`/plays/${playId}/interrogate`, {
       characterId,
       question,
       clueId,

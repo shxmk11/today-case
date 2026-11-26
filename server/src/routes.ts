@@ -57,6 +57,62 @@ async function discoveredClues(participantId: number) {
   );
 }
 
+/**
+ * 플레이어 타임라인 = 처음부터 공개된 사실 + 플레이 중 자동으로 쌓인 timeline_entry.
+ * 시각순 자동 정렬 (플레이어가 직접 배치하지 않음)
+ */
+export interface TimelineItem {
+  key: string;
+  time: string;
+  place: string | null;
+  kind: "사실" | "물증" | "기록" | "증언" | "주장";
+  text: string;
+}
+
+async function playerTimeline(participantId: number, caseId: number): Promise<TimelineItem[]> {
+  return query<TimelineItem>(
+    `SELECT CONCAT('f', f.fact_id) AS \`key\`, f.occurred_at AS time, f.place, '사실' AS kind, f.content AS text
+     FROM fact f WHERE f.case_id = ? AND f.is_initial = TRUE
+     UNION ALL
+     SELECT CONCAT('t', t.entry_id), t.event_time, COALESCE(s.name, a.place),
+            IF(t.clue_id IS NULL, '주장', c.clue_type), t.content
+     FROM timeline_entry t
+     LEFT JOIN clue c ON c.clue_id = t.clue_id
+     LEFT JOIN scene s ON s.scene_id = c.scene_id
+     LEFT JOIN interrogation i ON i.interrogation_id = t.interrogation_id
+     LEFT JOIN alibi a ON a.character_id = i.character_id AND a.claimed_time = t.event_time
+     WHERE t.participant_id = ?
+     ORDER BY time, \`key\``,
+    [caseId, participantId],
+  );
+}
+
+/** 발견한 단서 중 시각이 있는 것을 타임라인에 올린다 (이미 올라간 것은 건너뜀) */
+async function addClueEntries(participantId: number) {
+  await query(
+    `INSERT INTO timeline_entry (participant_id, clue_id, event_time, content)
+     SELECT cd.participant_id, c.clue_id, c.event_time, LEFT(CONCAT(c.name, ' · ', COALESCE(c.description, '')), 255)
+     FROM clue_discovery cd JOIN clue c ON c.clue_id = cd.clue_id
+     WHERE cd.participant_id = ? AND c.event_time IS NOT NULL
+       AND NOT EXISTS (SELECT 1 FROM timeline_entry t WHERE t.participant_id = cd.participant_id AND t.clue_id = c.clue_id)`,
+    [participantId],
+  );
+}
+
+/** 인물이 알리바이를 말하면 그 주장을 타임라인에 '주장'으로 올린다 */
+async function addAlibiEntries(participantId: number, interrogationId: number, ch: CharacterRow) {
+  await query(
+    `INSERT INTO timeline_entry (participant_id, interrogation_id, event_time, content)
+     SELECT ?, ?, a.claimed_time, LEFT(CONCAT(?, ' 주장 · ', a.statement), 255)
+     FROM alibi a
+     WHERE a.character_id = ?
+       AND NOT EXISTS (
+         SELECT 1 FROM timeline_entry t JOIN interrogation i ON i.interrogation_id = t.interrogation_id
+         WHERE t.participant_id = ? AND i.character_id = a.character_id AND t.event_time = a.claimed_time)`,
+    [participantId, interrogationId, ch.name, ch.character_id, participantId],
+  );
+}
+
 /* 사건 목록 */
 router.get(
   "/cases",
@@ -137,6 +193,7 @@ router.get(
       characters: characters.map(publicCharacter),
       scenes: scenes.map((s) => ({ ...s, investigated: investigated.some((i) => i.scene_id === s.scene_id) })),
       facts,
+      timeline: await playerTimeline(play.participant_id, play.case_id),
       clues: await discoveredClues(play.participant_id),
       clueTotal: (await one<{ n: number }>(
         `SELECT COUNT(*) AS n FROM clue k JOIN scene s ON s.scene_id = k.scene_id WHERE s.case_id = ?`,
@@ -162,7 +219,11 @@ router.post(
        SELECT ?, clue_id FROM clue WHERE scene_id = ? AND character_id IS NULL`,
       [play.participant_id, sceneId],
     );
-    res.json({ clues: await discoveredClues(play.participant_id) });
+    await addClueEntries(play.participant_id);
+    res.json({
+      clues: await discoveredClues(play.participant_id),
+      timeline: await playerTimeline(play.participant_id, play.case_id),
+    });
   }),
 );
 
@@ -195,9 +256,9 @@ router.post(
       if (!evidence) throw new HttpError(400, "아직 찾지 못한 단서예요.");
     }
 
-    const { answer, revealedClueIds } = await interrogate(c, ch, history.slice(-20), question, evidence);
+    const { answer, revealedClueIds, statedAlibi } = await interrogate(c, ch, history.slice(-20), question, evidence);
     const storedQuestion = formatQuestion(question, evidence);
-    await insert(
+    const interrogationId = await insert(
       `INSERT INTO interrogation (participant_id, character_id, question, answer) VALUES (?, ?, ?, ?)`,
       [play.participant_id, ch.character_id, storedQuestion, answer],
     );
@@ -211,9 +272,12 @@ router.post(
         [play.participant_id, ch.character_id, revealedClueIds],
       );
     }
+    await addClueEntries(play.participant_id);
+    if (statedAlibi) await addAlibiEntries(play.participant_id, interrogationId, ch);
     const clues = await discoveredClues(play.participant_id);
     const newClues = clues.filter((x) => !before.has(x.clue_id)).map((x) => x.clue_id);
-    res.json({ answer, question: storedQuestion, clues, newClues });
+    const timeline = await playerTimeline(play.participant_id, play.case_id);
+    res.json({ answer, question: storedQuestion, clues, newClues, timeline });
   }),
 );
 

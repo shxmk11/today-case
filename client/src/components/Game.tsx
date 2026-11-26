@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { api } from "../api";
-import type { AccuseResult, Character, Clue, PlayState } from "../types";
+import type { AccuseResult, Character, Clue, PlayState, TimelineItem } from "../types";
 import ChatPanel from "./ChatPanel";
 import CasePanel, { type Tab } from "./CasePanel";
 import AccuseModal from "./AccuseModal";
@@ -18,7 +18,9 @@ export default function Game({ playId, onHome, onFinish }: Props) {
   const [selected, setSelected] = useState<number | null>(null);
   const [accusing, setAccusing] = useState(false);
   const [tab, setTab] = useState<Tab>("clue");
-  const [toast, setToast] = useState<string[]>([]);
+  const [toast, setToast] = useState("");
+  // 마지막 행동으로 타임라인에 새로 붙은 줄 (빨간 점으로 표시)
+  const [freshKeys, setFreshKeys] = useState<Set<string>>(new Set());
   const toastTimer = useRef<number>(undefined);
 
   useEffect(() => {
@@ -38,11 +40,23 @@ export default function Game({ playId, onHome, onFinish }: Props) {
   const victim = state.characters.find((c) => c.character_type === "피해자");
   const current = suspects.find((c) => c.character_id === selected) ?? null;
 
-  function showNewClues(names: string[]) {
-    if (names.length === 0) return;
-    setToast(names);
+  function showToast(text: string) {
+    setToast(text);
     window.clearTimeout(toastTimer.current);
-    toastTimer.current = window.setTimeout(() => setToast([]), 4000);
+    toastTimer.current = window.setTimeout(() => setToast(""), 4000);
+  }
+
+  /** 새 단서·타임라인 줄을 알림으로 띄우고, 새 줄을 표시해둔다 */
+  function announce(newClueNames: string[], timeline: TimelineItem[]) {
+    const known = new Set(state!.timeline.map((t) => t.key));
+    const added = timeline.filter((t) => !known.has(t.key));
+    if (added.length > 0) setFreshKeys(new Set(added.map((t) => t.key)));
+    const claims = added.filter((t) => t.kind === "주장").length;
+    const parts = [
+      newClueNames.length > 0 && `새 단서 · ${newClueNames.join(", ")}`,
+      added.length > 0 && `타임라인 +${added.length}${claims > 0 ? " (알리바이 주장)" : ""}`,
+    ].filter(Boolean);
+    if (parts.length > 0) showToast(`＋ ${parts.join("  ·  ")}`);
   }
 
   async function ask(ch: Character, question: string, evidence?: Clue) {
@@ -52,14 +66,15 @@ export default function Game({ playId, onHome, onFinish }: Props) {
     try {
       const res = await api.interrogate(playId, ch.character_id, question, evidence?.clue_id);
       const fresh = res.clues.filter((c) => res.newClues.includes(c.clue_id)).map((c) => c.name);
+      announce(fresh, res.timeline);
       setState((s) => s && {
         ...s,
         clues: res.clues,
+        timeline: res.timeline,
         chats: s.chats.map((c) =>
           c === pending ? { ...c, question: res.question, answer: res.answer, pending: false, newClues: fresh } : c,
         ),
       });
-      showNewClues(fresh);
     } catch (e) {
       setState((s) => s && { ...s, chats: s.chats.filter((c) => c !== pending) });
       throw e;
@@ -68,11 +83,12 @@ export default function Game({ playId, onHome, onFinish }: Props) {
 
   async function investigate(sceneId: number) {
     const before = new Set(state!.clues.map((c) => c.clue_id));
-    const { clues } = await api.investigate(playId, sceneId);
-    showNewClues(clues.filter((c) => !before.has(c.clue_id)).map((c) => c.name));
+    const { clues, timeline } = await api.investigate(playId, sceneId);
+    announce(clues.filter((c) => !before.has(c.clue_id)).map((c) => c.name), timeline);
     setState((s) => s && {
       ...s,
       clues,
+      timeline,
       scenes: s.scenes.map((sc) => (sc.scene_id === sceneId ? { ...sc, investigated: true } : sc)),
     });
   }
@@ -153,14 +169,15 @@ export default function Game({ playId, onHome, onFinish }: Props) {
           onTab={setTab}
           scenes={state.scenes}
           clues={state.clues}
-          facts={state.facts}
+          timeline={state.timeline}
+          freshKeys={freshKeys}
           onInvestigate={investigate}
         />
       </div>
 
-      {toast.length > 0 && (
+      {toast && (
         <div className="toast" role="status">
-          ＋ 새 단서 · {toast.join(", ")}
+          {toast}
         </div>
       )}
 

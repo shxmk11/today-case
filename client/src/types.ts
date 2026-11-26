@@ -37,6 +37,15 @@ export interface Fact {
   is_initial?: boolean;
 }
 
+/** 플레이어 타임라인 한 줄 (공개 사실 + 자동으로 쌓인 단서·주장, 시각순) */
+export interface TimelineItem {
+  key: string;
+  time: string;
+  place: string | null;
+  kind: "사실" | "물증" | "기록" | "증언" | "주장";
+  text: string;
+}
+
 export interface Clue {
   clue_id: number;
   scene_id: number;
@@ -62,6 +71,7 @@ export interface PlayState {
   characters: Character[];
   scenes: Scene[];
   facts: Fact[];
+  timeline: TimelineItem[];
   clues: Clue[];
   clueTotal: number;
   chats: Chat[];

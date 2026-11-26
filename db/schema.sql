@@ -122,6 +122,7 @@ CREATE TABLE clue (
     image_url VARCHAR(255),
     clue_type ENUM('물증', '증언', '기록') NOT NULL,
     is_key BOOLEAN NOT NULL DEFAULT FALSE,   -- 결과 화면의 '결정적 증거/증언'
+    event_time TIME NULL,                    -- 단서가 가리키는 시각 (발견하면 타임라인에 올라감)
     PRIMARY KEY (clue_id),
     CONSTRAINT fk_clue_scene FOREIGN KEY (scene_id)
         REFERENCES scene (scene_id) ON DELETE CASCADE,
@@ -327,6 +328,16 @@ INSERT INTO clue (scene_id, character_id, name, description, clue_type) VALUES
 
 -- 결정적 증거 3개 + 결정적 증언 1개
 UPDATE clue SET is_key = TRUE WHERE clue_id > 0 AND name IN ('닦인 청동 문진', '멈춘 탁상시계', '흙 묻은 장갑', '서재의 언쟁'); -- clue_id 조건: Workbench 안전 업데이트 모드 통과용
+
+-- 시각이 드러나는 단서 (발견하면 타임라인에 자동으로 올라감)
+UPDATE clue SET event_time = '21:40:00' WHERE clue_id = 2;
+UPDATE clue SET event_time = '21:20:00' WHERE clue_id = 5;
+UPDATE clue SET event_time = '21:31:00' WHERE clue_id = 9;
+UPDATE clue SET event_time = '22:02:00' WHERE clue_id = 10;
+UPDATE clue SET event_time = '21:30:00' WHERE clue_id = 13;
+UPDATE clue SET event_time = '21:50:00' WHERE clue_id = 14;
+UPDATE clue SET event_time = '21:35:00' WHERE clue_id = 15;
+UPDATE clue SET event_time = '18:30:00' WHERE clue_id = 16;
 
 INSERT INTO hint (character_id, content, reveal_order) VALUES
 (2, '22시 2분 프린터 출력 기록을 들어 계속 방에 있었다고 주장하라.', 1),
