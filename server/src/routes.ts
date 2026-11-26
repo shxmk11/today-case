@@ -1,6 +1,6 @@
 import { Router, type Request, type Response, type NextFunction } from "express";
 import { query, one, insert } from "./db.js";
-import { interrogate, formatQuestion, type Evidence } from "./llm.js";
+import { interrogate, formatQuestion, LlmBusyError, type Evidence } from "./llm.js";
 import type { CaseRow, CharacterRow, ClueRow, FactRow } from "./types.js";
 
 export const router = Router();
@@ -280,6 +280,10 @@ router.post(
 router.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
   if (err instanceof HttpError) {
     res.status(err.status).json({ error: err.message });
+    return;
+  }
+  if (err instanceof LlmBusyError) {
+    res.status(429).json({ error: "AI가 잠깐 숨을 고르는 중이에요. 몇 초 뒤에 다시 물어보세요." });
     return;
   }
   console.error(err);

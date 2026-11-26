@@ -8,7 +8,7 @@ DB 설계 과제에서 만든 MySQL 스키마(`db/schema.sql`)를 그대로 사�
 | 폴더 | 내용 |
 |---|---|
 | `client/` | React + TypeScript (Vite). 사건 선택, 심문 채팅, 현장 조사·단서 보드, 범인 지목, 결과 공개 |
-| `server/` | Node + Express + TypeScript. MySQL 조회, Claude API로 용의자 대사 생성 |
+| `server/` | Node + Express + TypeScript. MySQL 조회, LLM(Groq 무료 티어 또는 Claude)으로 용의자 대사 생성 |
 | `db/schema.sql` | 17개 테이블 + 예시 사건 "별장의 마지막 밤" (용의자 4명, 현장 5곳, 단서 17개) |
 
 ## 실행
@@ -17,7 +17,7 @@ DB 설계 과제에서 만든 MySQL 스키마(`db/schema.sql`)를 그대로 사�
 2. 서버 환경 변수:
    ```bash
    cp server/.env.example server/.env
-   # DB_PASSWORD, ANTHROPIC_API_KEY 채우기 (키가 없으면 모의 모드로 동작)
+   # DB_PASSWORD, GROQ_API_KEY 채우기 (무료 키는 console.groq.com/keys, 키가 없으면 모의 모드로 동작)
    ```
 3. 설치 후 실행:
    ```bash
