@@ -20,7 +20,10 @@ const DEFAULT_MODEL: Record<Provider, string> = {
   claude: "claude-haiku-5-5",
   mock: "-",
 };
-const MODEL = process.env.LLM_MODEL?.trim() || DEFAULT_MODEL[PROVIDER];
+// 다른 공급자의 모델 이름(예: Groq인데 claude-…)이 남아 있으면 무시하고 기본 모델을 쓴다
+const envModel = process.env.LLM_MODEL?.trim() ?? "";
+const MODEL =
+  envModel && (PROVIDER === "claude") === envModel.startsWith("claude") ? envModel : DEFAULT_MODEL[PROVIDER];
 const client = PROVIDER === "claude" ? new Anthropic() : null;
 
 export const llmMode = PROVIDER === "mock" ? "mock" : `${PROVIDER} (${MODEL})`;
