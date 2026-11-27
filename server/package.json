@@ -6,7 +6,8 @@
     "dev": "node --env-file-if-exists=.env --watch --import tsx src/index.ts",
     "start": "node --env-file-if-exists=.env dist/index.js",
     "build": "tsc",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "scenarios": "node --env-file-if-exists=.env --import tsx src/scenarios.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.14.0",
