@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450">
+<style>.w{fill:none;stroke:#fff;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}.t{fill:none;stroke:#fff;stroke-width:1.5;stroke-linejoin:round;stroke-linecap:round}.g{fill:none;stroke:#636366;stroke-width:1.5;stroke-linecap:round}.k{fill:#000;stroke:#fff;stroke-width:2;stroke-linejoin:round}.f{fill:#fff}.s{fill:#fff;opacity:.7}</style>
+<rect width="800" height="450" fill="#000"/>
+<!-- 판자 벽 -->
+<path class="g" d="M140 40 V300 M200 40 V300 M260 40 V300 M320 40 V300 M380 40 V300 M440 40 V300 M500 40 V300"/>
+<path class="w" d="M0 0 L80 40 H540 M80 40 V300 H540 M80 300 L0 450"/>
+<path class="g" d="M80 300 L540 300 M60 330 H540 M36 370 H540 M10 410 H540"/>
+<!-- 열린 문 너머 눈밭 -->
+<path class="w" d="M540 40 V300 M540 300 L560 450"/>
+<path class="k" d="M540 40 L470 20 V330 L540 300 Z"/>
+<circle class="f" cx="484" cy="180" r="3"/>
+<path class="w" d="M540 300 Q620 286 700 292 Q760 296 800 290"/>
+<path class="g" d="M556 360 Q650 350 800 360 M566 410 Q680 400 800 412" stroke="#AEAEB2"/>
+<g class="s"><circle cx="580" cy="70" r="1.6"/><circle cx="640" cy="110" r="1.2"/><circle cx="700" cy="60" r="1.8"/><circle cx="760" cy="130" r="1.4"/><circle cx="610" cy="190" r="1.6"/><circle cx="690" cy="220" r="1.2"/><circle cx="770" cy="240" r="1.6"/><circle cx="660" cy="160" r="1.4"/></g>
+<!-- 본관 실루엣 -->
+<path class="t" d="M640 292 V170 L710 120 L790 170 V292"/>
+<rect class="t" x="660" y="200" width="22" height="30"/><rect class="t" x="740" y="200" width="22" height="30"/>
+<rect class="k" x="704" y="244" width="22" height="48"/>
+<!-- 발자국 -->
+<g class="f"><ellipse cx="570" cy="402" rx="6" ry="3"/><ellipse cx="596" cy="388" rx="6" ry="3"/><ellipse cx="618" cy="372" rx="6" ry="3"/><ellipse cx="644" cy="356" rx="5" ry="2.6"/><ellipse cx="664" cy="340" rx="5" ry="2.6"/><ellipse cx="686" cy="326" rx="4.5" ry="2.4"/><ellipse cx="702" cy="312" rx="4" ry="2.2"/></g>
+<!-- 눈 더미 (퍼낸 자국) -->
+<path class="w" d="M556 300 Q570 262 600 266 Q616 248 640 262 Q660 270 660 300"/>
+<path class="t" d="M596 286 Q608 272 622 284"/>
+<!-- 장갑 걸이 -->
+<path class="w" d="M360 92 H510"/>
+<path class="t" d="M380 92 V104 M420 92 V104 M460 92 V104 M494 92 V104"/>
+<path class="w" d="M374 104 Q370 120 374 134 L372 150 Q380 156 392 150 L390 132 Q394 118 386 104"/>
+<path class="t" d="M372 134 L362 128"/>
+<path class="g" d="M420 104 V110 M420 120 V124 M420 132 V134" stroke="#AEAEB2"/>
+<!-- 삽, 갈퀴 -->
+<path class="w" d="M480 104 V220 M470 220 L480 250 L490 220 Z M496 104 L500 200 M490 200 H512 M494 200 V214 M502 200 V216 M510 200 V214"/>
+<!-- 작업대 -->
+<path class="k" d="M100 210 H340 L352 226 H88 Z"/>
+<path class="k" d="M88 226 H352 V246 H88 Z"/>
+<rect class="k" x="200" y="230" width="80" height="14" rx="2"/>
+<path class="t" d="M232 237 H248"/>
+<path class="w" d="M96 246 V340 M344 246 V340 M96 300 H344"/>
+<g class="t"><path d="M160 300 V260 Q160 252 166 248 V240 H174 V248 Q180 252 180 260 V300"/><path d="M190 300 V264 Q190 256 196 252 V244 H204 V252 Q210 256 210 264 V300"/></g>
+<!-- 화분, 공구 -->
+<path class="w" d="M120 210 L124 186 H156 L160 210 M140 186 Q130 164 142 156 M140 186 Q150 166 162 166"/>
+<path class="w" d="M270 206 L320 196 M312 192 L328 200"/>
+<!-- 걸상 -->
+<path class="w" d="M380 300 H440 M386 300 V340 M434 300 V340 M392 284 H428 V300"/>
+</svg>

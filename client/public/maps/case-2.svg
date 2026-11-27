@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 420">
+<style>.w{fill:none;stroke:#fff;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}.t{fill:none;stroke:#AEAEB2;stroke-width:1.5;stroke-linecap:round}.g{fill:none;stroke:#636366;stroke-width:2;stroke-linejoin:round}.room{fill:#1C1C1E}.lbl{font-family:-apple-system,'Apple SD Gothic Neo',system-ui,sans-serif;font-size:13px;font-weight:700;fill:#8E8E93}.fl{font-family:-apple-system,system-ui,sans-serif;font-size:11px;font-weight:800;fill:#8E8E93}</style>
+<rect width="800" height="420" fill="#000"/>
+<circle class="w" cx="720" cy="56" r="16"/>
+<g fill="#fff" opacity=".5"><circle cx="620" cy="40" r="1.4"/><circle cx="660" cy="110" r="1.2"/><circle cx="770" cy="130" r="1.4"/><circle cx="40" cy="30" r="1.2"/></g>
+<!-- 평지붕 -->
+<rect x="28" y="112" width="524" height="20" rx="4" fill="#3A3A3C"/>
+<path class="w" d="M28 112 H552" stroke-width="3"/>
+<!-- 2층: 다른 출연자 방 -->
+<rect class="room" x="40" y="136" width="120" height="112" rx="10"/>
+<rect class="room" x="164" y="136" width="96" height="112" rx="10"/>
+<text class="lbl" x="100" y="162" text-anchor="middle">출연자 방</text>
+<text class="lbl" x="212" y="162" text-anchor="middle">복도</text>
+<path class="g" d="M176 240 H188 V228 H200 V216 H212 V204 H224 V192 H236 V180 H248"/>
+<!-- 1층: 현관·계단 -->
+<rect class="room" x="40" y="254" width="100" height="124" rx="10"/>
+<text class="lbl" x="90" y="282" text-anchor="middle">현관</text>
+<!-- 장소 방 -->
+<g fill="#3A3A3C"><rect x="264" y="136" width="140" height="112" rx="10"/><rect x="408" y="136" width="144" height="112" rx="10"/><rect x="144" y="254" width="200" height="124" rx="10"/><rect x="348" y="254" width="100" height="124" rx="10"/><rect x="452" y="254" width="100" height="124" rx="10"/></g>
+<g class="g"><rect x="290" y="210" width="70" height="36" rx="4"/><rect x="440" y="210" width="70" height="36" rx="4"/><path d="M170 376 V340 H290 V376 M170 340 V330 H290 V340"/><rect x="370" y="330" width="56" height="20" rx="3"/><path d="M462 376 V300 H500 V376 M462 324 H500 M462 350 H500"/></g>
+<!-- 바닥판, 유리문 -->
+<rect x="36" y="378" width="528" height="10" fill="#636366"/>
+<rect x="556" y="300" width="8" height="76" fill="#000"/>
+<text class="fl" x="560" y="294" text-anchor="middle">유리문</text>
+<!-- 데크와 수영장 단면 -->
+<path class="w" d="M564 378 H800"/>
+<path d="M600 378 H770 V410 Q770 416 764 416 H606 Q600 416 600 410 Z" fill="#3A3A3C"/>
+<path class="t" d="M606 388 Q630 384 650 390 T700 388 T764 390"/>
+<path class="w" d="M770 378 V350 M790 378 V346 M770 360 H790"/>
+<path class="w" d="M590 378 V300 M578 300 H602"/>
+<path class="w" d="M590 300 L578 286 H602 Z"/>
+<!-- 시신 위치 (수영장) -->
+<path d="M640 396 L700 394 L712 386 L716 392 L706 400 L640 402 Z" fill="#C1121F"/>
+<circle cx="630" cy="398" r="6" fill="#C1121F"/>
+<text class="fl" x="18" y="200" transform="rotate(-90 18 200)">2F</text>
+<text class="fl" x="18" y="322" transform="rotate(-90 18 322)">1F</text>
+</svg>

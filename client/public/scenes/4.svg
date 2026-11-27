@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450">
+<style>.w{fill:none;stroke:#fff;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}.t{fill:none;stroke:#fff;stroke-width:1.5;stroke-linejoin:round;stroke-linecap:round}.g{fill:none;stroke:#636366;stroke-width:1.5;stroke-linecap:round}.k{fill:#000;stroke:#fff;stroke-width:2;stroke-linejoin:round}.f{fill:#fff}.s{fill:#fff;opacity:.7}</style>
+<rect width="800" height="450" fill="#000"/>
+<path class="g" d="M160 300 L100 450 M240 300 L200 450 M320 300 L300 450 M400 300 L400 450 M480 300 L500 450 M560 300 L600 450 M640 300 L700 450"/>
+<path class="w" d="M0 0 L80 30 L720 30 L800 0 M80 30 V300 H720 V30 M80 300 L0 450 M720 300 L800 450"/>
+<!-- 옷장 -->
+<rect class="k" x="370" y="60" width="130" height="240" rx="3"/>
+<path class="w" d="M435 60 V300"/>
+<path class="t" d="M426 170 V194 M444 170 V194"/>
+<!-- 창문 -->
+<rect class="w" x="540" y="70" width="110" height="110" rx="2"/>
+<path class="w" d="M595 70 V180 M532 184 H658"/>
+<g class="s"><circle cx="560" cy="92" r="1.6"/><circle cx="620" cy="100" r="1.2"/><circle cx="636" cy="150" r="1.6"/><circle cx="566" cy="150" r="1.4"/></g>
+<!-- 책상, 노트북 -->
+<path class="k" d="M110 200 H300 L318 222 H92 Z"/>
+<path class="w" d="M100 222 V320 M310 222 V320 M92 222 H318 V236 H92"/>
+<path class="w" d="M176 198 L170 160 H252 L258 198 Z"/>
+<path class="t" d="M150 198 H272"/>
+<path class="t" d="M184 170 H244 M184 180 H230"/>
+<g class="t"><rect x="270" y="186" width="22" height="12"/><rect x="274" y="178" width="20" height="8"/></g>
+<!-- 의자 -->
+<path class="w" d="M180 260 H240 M186 260 V320 M234 260 V320 M190 260 V228"/>
+<!-- 휴지통과 메모 -->
+<path class="w" d="M318 300 H354 L348 346 H324 Z"/>
+<path class="t" d="M330 300 Q334 288 342 296 Q348 290 346 300"/>
+<!-- 침대 -->
+<path class="k" d="M520 250 H760 L800 290 V360 H500 V290 Z"/>
+<path class="k" d="M500 290 H800 V330 H500 Z"/>
+<path class="w" d="M760 210 V250 M790 200 V290"/>
+<path class="k" d="M690 238 Q700 222 740 228 Q756 236 744 250 H692 Z"/>
+<path class="w" d="M506 360 V390 M796 360 V390"/>
+<!-- 침대 밑 실내화 -->
+<path class="g" d="M500 360 H800" stroke="#AEAEB2"/>
+<path class="w" d="M560 376 Q574 368 590 374 Q594 382 574 383 Q558 383 560 376 Z"/>
+<path class="t" d="M574 375 L576 378 L573 377"/>
+<!-- 가방 -->
+<path class="w" d="M120 360 H200 L206 410 H114 Z M140 360 Q160 340 180 360"/>
+</svg>

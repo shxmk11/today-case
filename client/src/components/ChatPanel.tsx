@@ -70,7 +70,7 @@ export default function ChatPanel({ character, chats, clues, onAsk }: Props) {
   return (
     <section className="card chat">
       <div className="chat-head">
-        <Face name={character.name} size={46} />
+        <Face name={character.name} src={character.image_url} size={46} />
         <div className="grow">
           <b>{character.name}</b>
           <small>

@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450">
+<style>.w{fill:none;stroke:#fff;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}.t{fill:none;stroke:#fff;stroke-width:1.5;stroke-linejoin:round;stroke-linecap:round}.g{fill:none;stroke:#636366;stroke-width:1.5;stroke-linecap:round}.k{fill:#000;stroke:#fff;stroke-width:2;stroke-linejoin:round}.f{fill:#fff}</style>
+<rect width="800" height="450" fill="#000"/>
+<path class="g" d="M160 300 L100 450 M240 300 L200 450 M320 300 L300 450 M400 300 L400 450 M480 300 L500 450 M560 300 L600 450 M640 300 L700 450"/>
+<path class="w" d="M0 0 L80 30 L720 30 L800 0 M80 30 V300 H720 V30 M80 300 L0 450 M720 300 L800 450"/>
+<!-- 큰 창, 여름 밤 -->
+<rect class="w" x="300" y="60" width="200" height="130" rx="2"/>
+<path class="w" d="M400 60 V190"/>
+<path class="t" d="M300 60 Q290 120 302 190 M500 60 Q510 120 498 190"/>
+<path class="w" d="M440 160 V120 M440 128 Q424 110 430 96 M440 120 Q456 104 452 92"/>
+<circle class="t" cx="340" cy="92" r="10"/>
+<!-- 책상, 노트북 -->
+<path class="k" d="M100 210 H270 L286 230 H84 Z"/>
+<path class="w" d="M90 230 V320 M280 230 V320 M84 230 H286 V244 H84"/>
+<path class="w" d="M150 208 L144 168 H226 L232 208 Z"/>
+<path class="t" d="M124 208 H256"/>
+<path class="t" d="M158 178 H218 M158 188 H200 M158 198 H210"/>
+<path class="w" d="M240 206 L264 200 L268 208"/>
+<!-- 협탁과 휴대폰 -->
+<rect class="k" x="530" y="230" width="60" height="60" rx="3"/>
+<path class="w" d="M530 260 H590 M560 270 V276"/>
+<rect class="k" x="548" y="216" width="26" height="12" rx="2" transform="rotate(-6 561 222)"/>
+<!-- 침대 -->
+<path class="k" d="M600 200 H720 V300 H600 Z"/>
+<path class="k" d="M600 240 H740 L800 290 V380 H560 V290 Z"/>
+<path class="k" d="M560 290 H800 V330 H560 Z"/>
+<path class="w" d="M620 236 Q630 220 680 224 Q696 232 684 244 H624 Z"/>
+<path class="t" d="M600 300 Q640 284 700 300 Q740 312 790 300"/>
+<path class="w" d="M566 380 V410 M796 380 V410"/>
+<!-- 여행 가방 -->
+<path class="k" d="M150 340 H250 L262 420 H138 Z"/>
+<path class="w" d="M180 340 V326 H220 V340 M150 370 H254"/>
+<!-- 운동화 -->
+<path class="w" d="M380 400 Q396 384 420 390 L440 396 Q446 408 420 408 H384 Z"/>
+</svg>

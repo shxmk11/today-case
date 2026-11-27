@@ -54,7 +54,7 @@ export default function AccuseModal({ suspects, deductions, onClose, onAccuse }:
             <div className="accuse-list">
               {suspects.map((s) => (
                 <button key={s.character_id} className={`accuse-pick ${pick === s.character_id ? "on" : ""}`} onClick={() => setPick(s.character_id)}>
-                  <Face name={s.name} size={48} />
+                  <Face name={s.name} src={s.image_url} size={48} />
                   <b>{s.name}</b>
                   <small>{s.gender ? `${s.gender} · ` : ""}{s.job?.split(",").at(-1)?.trim()}</small>
                 </button>

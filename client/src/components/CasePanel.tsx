@@ -2,6 +2,7 @@ import { useState } from "react";
 import { hhmm } from "../api";
 import type { Autopsy, Clue, Deduction, Scene, TimelineItem } from "../types";
 import { AutopsyPanel } from "./Autopsy";
+import SceneViewer from "./SceneViewer";
 
 export type Tab = "clue" | "scene" | "autopsy" | "deduction" | "timeline";
 
@@ -9,6 +10,7 @@ interface Props {
   tab: Tab;
   onTab: (t: Tab) => void;
   scenes: Scene[];
+  mapUrl: string | null;
   clues: Clue[];
   timeline: TimelineItem[];
   autopsy: Autopsy | null;
@@ -24,13 +26,15 @@ interface Props {
 }
 
 export default function CasePanel(props: Props) {
-  const { tab, onTab, scenes, clues, timeline, autopsy, victim, freshKeys, deductions, deductionTotal, left, limit, onInvestigate, onLink } = props;
+  const { tab, onTab, scenes, mapUrl, clues, timeline, autopsy, victim, freshKeys, deductions, deductionTotal, left, limit, onInvestigate, onLink } = props;
   const [busy, setBusy] = useState<number | null>(null);
   const [open, setOpen] = useState<number | null>(null);
   const [detail, setDetail] = useState<number | null>(null);
   const [picked, setPicked] = useState<number[]>([]);
   const [linking, setLinking] = useState(false);
   const [linkMsg, setLinkMsg] = useState("");
+  // 현장 조사 창: undefined = 닫힘, null = 지도, 숫자 = 그 장소
+  const [viewing, setViewing] = useState<number | null | undefined>(undefined);
 
   async function investigate(id: number) {
     setBusy(id);
@@ -148,27 +152,24 @@ export default function CasePanel(props: Props) {
               </div>
               <p>조사할 곳을 하나 열 때마다 1회를 써요. 틀린 연결도 1회를 써요.</p>
             </div>
-            {scenes.map((s) => (
-              <div key={s.scene_id} className="scene-card">
-                <b>{s.name}</b>
-                <p>{s.description}</p>
-                <div className="spots">
-                  {s.spots.map((sp) => (
-                    <button
-                      key={sp.spot_id}
-                      className={`spot ${sp.searched ? "done" : sp.locked ? "locked" : ""}`}
-                      disabled={sp.searched || sp.locked || left <= 0 || busy !== null}
-                      title={sp.locked ? "다른 단서를 찾아야 열 수 있어요" : undefined}
-                      onClick={() => void investigate(sp.spot_id)}
-                    >
-                      {busy === sp.spot_id ? "조사 중…" : sp.name}
-                      {sp.searched && <small>조사함</small>}
-                      {sp.locked && <small>잠김</small>}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ))}
+            {mapUrl && (
+              <button className="map-open" onClick={() => setViewing(null)}>
+                <img src={mapUrl} alt="" draggable={false} />
+                <span className="pill white">지도 펼치기</span>
+              </button>
+            )}
+            {scenes.map((s) => {
+              const n = s.spots.filter((p) => !p.searched).length;
+              return (
+                <button key={s.scene_id} className="scene-card scene-thumb" onClick={() => setViewing(s.scene_id)}>
+                  {s.image_url && <img src={s.image_url} alt="" draggable={false} />}
+                  <span className="scene-thumb-text">
+                    <b>{s.name}</b>
+                    <small>{n === 0 ? "조사 끝" : `조사할 곳 ${n} / ${s.spots.length}`}</small>
+                  </span>
+                </button>
+              );
+            })}
           </>
         )}
 
@@ -251,6 +252,19 @@ export default function CasePanel(props: Props) {
           </>
         )}
       </div>
+      {viewing !== undefined && (
+        <SceneViewer
+          scenes={scenes}
+          mapUrl={mapUrl}
+          sceneId={viewing}
+          onScene={setViewing}
+          left={left}
+          limit={limit}
+          busy={busy}
+          onInvestigate={(id) => void investigate(id)}
+          onClose={() => setViewing(undefined)}
+        />
+      )}
     </aside>
   );
 }

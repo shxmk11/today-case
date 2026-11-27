@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450">
+<style>.w{fill:none;stroke:#fff;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}.t{fill:none;stroke:#fff;stroke-width:1.5;stroke-linejoin:round}.g{fill:none;stroke:#636366;stroke-width:1.5;stroke-linecap:round}.k{fill:#000;stroke:#fff;stroke-width:2;stroke-linejoin:round}.r{fill:none;stroke:#C1121F;stroke-width:2.5;stroke-dasharray:7 5;stroke-linejoin:round}.s{fill:#fff;opacity:.7}</style>
+<rect width="800" height="450" fill="#000"/>
+<path class="g" d="M160 300 L100 450 M240 300 L200 450 M320 300 L300 450 M400 300 L400 450 M480 300 L500 450 M560 300 L600 450 M640 300 L700 450"/>
+<path class="w" d="M0 0 L80 30 L720 30 L800 0 M80 30 V300 H720 V30 M80 300 L0 450 M720 300 L800 450"/>
+<path class="g" d="M200 330 H600 L640 410 H160 Z" stroke-dasharray="2 5"/>
+<!-- 창문 -->
+<rect class="w" x="120" y="70" width="130" height="140" rx="2"/>
+<path class="w" d="M185 70 V210 M120 140 H250 M112 214 H258"/>
+<path class="g" d="M124 205 Q150 196 180 204 M190 204 Q220 196 246 205" stroke="#AEAEB2"/>
+<rect class="k" x="180" y="200" width="10" height="7"/>
+<g class="s"><circle cx="140" cy="90" r="1.6"/><circle cx="165" cy="112" r="1.2"/><circle cx="150" cy="128" r="1.6"/><circle cx="205" cy="88" r="1.4"/><circle cx="228" cy="104" r="1.8"/><circle cx="214" cy="126" r="1.2"/><circle cx="138" cy="166" r="1.4"/><circle cx="168" cy="182" r="1.8"/><circle cx="210" cy="160" r="1.4"/><circle cx="236" cy="178" r="1.2"/></g>
+<!-- 난방기 -->
+<rect class="t" x="125" y="240" width="120" height="42" rx="4"/>
+<path class="t" d="M140 248 V274 M155 248 V274 M170 248 V274 M185 248 V274 M200 248 V274"/>
+<rect class="t" x="212" y="250" width="24" height="14" rx="2"/>
+<text x="224" y="261" text-anchor="middle" font-family="-apple-system,system-ui,sans-serif" font-size="9" font-weight="800" fill="#fff">30°</text>
+<!-- 책장 -->
+<rect class="k" x="500" y="50" width="190" height="250"/>
+<path class="w" d="M500 110 H690 M500 170 H690 M500 230 H690"/>
+<g class="t">
+<rect x="510" y="66" width="12" height="44"/><rect x="524" y="62" width="10" height="48"/><rect x="536" y="70" width="14" height="40"/><rect x="552" y="64" width="10" height="46"/><rect x="580" y="68" width="12" height="42"/><rect x="594" y="62" width="12" height="48"/><rect x="608" y="66" width="10" height="44"/>
+<rect x="510" y="124" width="12" height="46"/><rect x="524" y="128" width="14" height="42"/><rect x="540" y="122" width="10" height="48"/><rect x="620" y="126" width="12" height="44"/><rect x="634" y="122" width="10" height="48"/><rect x="646" y="130" width="14" height="40"/><rect x="662" y="124" width="12" height="46"/>
+<rect x="510" y="182" width="10" height="48"/><rect x="522" y="186" width="14" height="44"/><rect x="538" y="180" width="12" height="50"/><rect x="552" y="188" width="10" height="42"/><rect x="564" y="182" width="14" height="48"/><rect x="580" y="186" width="10" height="44"/><rect x="606" y="184" width="12" height="46"/><rect x="620" y="180" width="10" height="50"/><rect x="632" y="188" width="14" height="42"/><rect x="648" y="182" width="12" height="48"/><rect x="662" y="186" width="16" height="44"/>
+<rect x="508" y="238" width="84" height="56" rx="2"/><rect x="598" y="238" width="84" height="56" rx="2"/>
+</g>
+<rect x="582" y="154" width="24" height="16" fill="#fff"/>
+<!-- 맨 윗칸 끝: 젖은 자국 -->
+<path class="g" d="M640 108 Q655 102 672 108 M650 112 V122 M664 112 V128" stroke="#AEAEB2"/>
+<!-- 의자, 책상 -->
+<path class="k" d="M330 240 V204 Q360 196 390 204 V240"/>
+<path class="k" d="M250 240 H470 L495 268 H225 Z"/>
+<path class="k" d="M225 268 V294 H495 V268"/>
+<path class="w" d="M235 294 V350 M485 294 V350"/>
+<path class="g" d="M300 272 V290 M420 272 V290"/>
+<!-- 스탠드 -->
+<ellipse class="w" cx="285" cy="240" rx="14" ry="4"/>
+<path class="w" d="M285 236 L298 202 L326 192 M318 186 L345 180 L350 198 L325 203 Z"/>
+<!-- 봉투 -->
+<path class="w" d="M372 252 L420 249 L424 264 L376 267 Z M372 252 L398 260 L420 249"/>
+<!-- 탁상 달력 -->
+<path class="w" d="M444 248 L452 226 H476 L470 248 Z"/>
+<path class="t" d="M450 232 H474 M456 222 V230 M468 222 V230"/>
+<!-- 휴지통 -->
+<path class="w" d="M184 318 H220 L214 360 H190 Z"/>
+<path class="t" d="M196 318 Q202 306 210 318"/>
+<!-- 책상 아래 슬리퍼 -->
+<path class="w" d="M318 338 Q330 330 344 336 Q348 344 330 345 Q316 345 318 338 Z"/>
+<!-- 끌린 자국 -->
+<path class="g" d="M480 344 Q520 352 560 372 M484 354 Q522 362 562 382" stroke="#AEAEB2" stroke-dasharray="6 5"/>
+<!-- 시신 윤곽 -->
+<path class="r" d="M700 362 L640 356 L612 340 L604 346 L630 364 L600 372 L560 368 L556 378 L600 386 L560 398 L564 408 L610 396 L645 392 L700 386 Z"/>
+<circle class="r" cx="716" cy="374" r="14"/>
+<!-- 떨어진 흉상 -->
+<g class="k"><ellipse cx="748" cy="412" rx="14" ry="5"/><path d="M736 410 Q742 396 756 398 Q764 404 760 412"/><ellipse cx="764" cy="394" rx="8" ry="10" transform="rotate(-50 764 394)"/></g>
+<!-- 장갑 -->
+<path class="w" d="M430 400 Q432 386 446 388 L452 396 Q460 398 458 408 L436 412 Z M446 388 L444 378 Q448 376 450 386"/>
+</svg>

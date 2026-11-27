@@ -4,7 +4,7 @@ import type { AccuseResult, Character, Clue, PlayState, TimelineItem } from "../
 import ChatPanel from "./ChatPanel";
 import CasePanel, { type Tab } from "./CasePanel";
 import AccuseModal from "./AccuseModal";
-import { Topline, bio } from "./Common";
+import { Face, Topline, bio } from "./Common";
 import { AutopsyModal } from "./Autopsy";
 
 interface Props {
@@ -161,7 +161,7 @@ export default function Game({ playId, onHome, onFinish }: Props) {
             <span>심문할 인물</span>
             <span>{suspects.length}명</span>
           </div>
-          {suspects.map((c, i) => {
+          {suspects.map((c) => {
             const count = state.chats.filter((m) => m.character_id === c.character_id).length;
             return (
               <button
@@ -169,7 +169,7 @@ export default function Game({ playId, onHome, onFinish }: Props) {
                 className={`suspect ${c.character_id === selected ? "on" : ""}`}
                 onClick={() => setSelected(c.character_id)}
               >
-                <span className="no">{String(i + 1).padStart(2, "0")}</span>
+                <Face name={c.name} src={c.image_url} size={38} />
                 <span className="grow">
                   <b>{c.name}</b>
                   <small>
@@ -197,6 +197,7 @@ export default function Game({ playId, onHome, onFinish }: Props) {
           tab={tab}
           onTab={setTab}
           scenes={state.scenes}
+          mapUrl={state.case.map_url ?? null}
           clues={state.clues}
           timeline={state.timeline}
           autopsy={state.autopsy}
