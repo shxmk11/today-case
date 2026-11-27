@@ -48,7 +48,7 @@ export default function Result({ result, title, onHome, onRetry }: Props) {
           <ul className="verdict-ev">
             {result.evidence.map((e) => (
               <li key={e.slot} className={e.ok ? "hit" : "miss"}>
-                <small>{e.slot === "알리바이" ? "알리바이를 깨는 증거" : "범인과 범행을 잇는 증거"}</small>
+                <small>{e.slot === "알리바이" ? "알리바이를 깨는 추론" : "범인과 범행을 잇는 추론"}</small>
                 <b>
                   {e.ok ? "● " : "○ "}
                   {e.name}
@@ -65,6 +65,13 @@ export default function Result({ result, title, onHome, onRetry }: Props) {
               <b className="display">
                 {result.stats.clues}
                 <span className="of">/{result.stats.clueTotal}</span>
+              </b>
+            </div>
+            <div className="card">
+              <span className="lbl">찾은 추론</span>
+              <b className="display">
+                {result.stats.deductions}
+                <span className="of">/{result.stats.deductionTotal}</span>
               </b>
             </div>
             <div className="card culprit"><span className="lbl">진범</span><b className="display red">{result.culprit.name}</b></div>

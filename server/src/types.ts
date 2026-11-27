@@ -5,6 +5,7 @@ export interface CaseRow {
   difficulty: "쉬움" | "보통" | "어려움";
   summary: string;
   truth: string;
+  investigation_limit: number;
 }
 
 export interface CharacterRow {
