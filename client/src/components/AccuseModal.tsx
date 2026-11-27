@@ -1,19 +1,19 @@
 import { useState } from "react";
-import type { Character, Clue } from "../types";
+import type { Character, Deduction } from "../types";
 import { Face } from "./Common";
 
 interface Props {
   suspects: Character[];
-  clues: Clue[];
+  deductions: Deduction[];
   onClose: () => void;
-  onAccuse: (characterId: number, alibiClueId: number, linkClueId: number) => Promise<void>;
+  onAccuse: (characterId: number, alibiDeductionId: number, linkDeductionId: number) => Promise<void>;
 }
 
 type Slot = "alibi" | "link";
-const SLOT_LABEL: Record<Slot, string> = { alibi: "① 알리바이를 깨는 증거", link: "② 범인과 범행을 잇는 증거" };
+const SLOT_LABEL: Record<Slot, string> = { alibi: "① 알리바이를 깨는 추론", link: "② 범인과 범행을 잇는 추론" };
 
-/** 범인 한 명 + 근거 2개(알리바이를 깨는 증거, 범인과 범행을 잇는 증거)를 고른다 */
-export default function AccuseModal({ suspects, clues, onClose, onAccuse }: Props) {
+/** 범인 한 명 + 근거 2개(알리바이를 깨는 추론, 범인과 범행을 잇는 추론)를 고른다. 단서 하나가 아니라 연결해서 얻은 추론만 낼 수 있다 */
+export default function AccuseModal({ suspects, deductions, onClose, onAccuse }: Props) {
   const [step, setStep] = useState<1 | 2>(1);
   const [pick, setPick] = useState<number | null>(null);
   const [evidence, setEvidence] = useState<Record<Slot, number | null>>({ alibi: null, link: null });
@@ -22,7 +22,7 @@ export default function AccuseModal({ suspects, clues, onClose, onAccuse }: Prop
   const [error, setError] = useState("");
   const chosen = suspects.find((s) => s.character_id === pick);
 
-  const nameOf = (id: number | null) => clues.find((c) => c.clue_id === id)?.name;
+  const nameOf = (id: number | null) => deductions.find((d) => d.deduction_id === id)?.name;
   const ready = evidence.alibi !== null && evidence.link !== null;
 
   function choose(id: number) {
@@ -50,7 +50,7 @@ export default function AccuseModal({ suspects, clues, onClose, onAccuse }: Prop
         {step === 1 ? (
           <>
             <h2 className="display">범인은 누구인가요?</h2>
-            <p className="modal-note">다음 단계에서 근거가 될 단서 2개를 함께 골라야 해요.</p>
+            <p className="modal-note">다음 단계에서 근거가 될 추론 2개를 함께 골라야 해요. 추론은 단서를 연결해서 얻어요.</p>
             <div className="accuse-list">
               {suspects.map((s) => (
                 <button key={s.character_id} className={`accuse-pick ${pick === s.character_id ? "on" : ""}`} onClick={() => setPick(s.character_id)}>
@@ -71,22 +71,23 @@ export default function AccuseModal({ suspects, clues, onClose, onAccuse }: Prop
               {(["alibi", "link"] as Slot[]).map((s) => (
                 <button key={s} className={`slot ${slot === s ? "on" : ""}`} onClick={() => setSlot(s)}>
                   <small>{SLOT_LABEL[s]}</small>
-                  <b>{nameOf(evidence[s]) ?? "단서를 고르세요"}</b>
+                  <b>{nameOf(evidence[s]) ?? "추론을 고르세요"}</b>
                 </button>
               ))}
             </div>
-            {clues.length < 2 ? (
-              <p className="modal-note">단서를 2개 이상 찾아야 지목할 수 있어요.</p>
+            {deductions.length < 2 ? (
+              <p className="modal-note">추론을 2개 이상 찾아야 지목할 수 있어요. 추론 탭에서 단서를 연결해보세요.</p>
             ) : (
               <div className="evidence-pick">
-                {clues.map((c) => (
+                {deductions.map((d) => (
                   <button
-                    key={c.clue_id}
-                    className={`ev-chip ${evidence[slot] === c.clue_id ? "on" : Object.values(evidence).includes(c.clue_id) ? "used" : ""}`}
-                    onClick={() => choose(c.clue_id)}
+                    key={d.deduction_id}
+                    className={`ev-chip ${evidence[slot] === d.deduction_id ? "on" : Object.values(evidence).includes(d.deduction_id) ? "used" : ""}`}
+                    onClick={() => choose(d.deduction_id)}
+                    title={d.description}
                   >
-                    <b>{c.name}</b>
-                    <small>{c.scene_name} · {c.clue_type}</small>
+                    <b>{d.name}</b>
+                    <small>단서 {d.clue_ids.length}개 연결</small>
                   </button>
                 ))}
               </div>

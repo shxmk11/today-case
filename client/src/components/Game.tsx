@@ -81,26 +81,37 @@ export default function Game({ playId, onHome, onFinish }: Props) {
     }
   }
 
-  async function investigate(sceneId: number) {
+  async function investigate(spotId: number) {
     const before = new Set(state!.clues.map((c) => c.clue_id));
-    const { clues, timeline } = await api.investigate(playId, sceneId);
-    announce(clues.filter((c) => !before.has(c.clue_id)).map((c) => c.name), timeline);
-    setState((s) => s && {
-      ...s,
-      clues,
-      timeline,
-      scenes: s.scenes.map((sc) => (sc.scene_id === sceneId ? { ...sc, investigated: true } : sc)),
-    });
+    try {
+      const { clues, timeline, scenes, investigationsLeft } = await api.investigate(playId, spotId);
+      const fresh = clues.filter((c) => !before.has(c.clue_id)).map((c) => c.name);
+      if (fresh.length === 0) showToast("특별한 건 없었다.");
+      else announce(fresh, timeline);
+      setState((s) => s && { ...s, clues, timeline, scenes, investigationsLeft });
+    } catch (e) {
+      showToast((e as Error).message);
+    }
   }
 
-  async function accuse(characterId: number, alibiClueId: number, linkClueId: number) {
-    const result = await api.accuse(playId, characterId, alibiClueId, linkClueId);
+  async function link(clueIds: number[]): Promise<string> {
+    const res = await api.link(playId, clueIds);
+    setState((s) => s && { ...s, deductions: res.deductions, investigationsLeft: res.investigationsLeft });
+    if (res.deduction) {
+      showToast(`＋ 새 추론 · ${res.deduction.name}`);
+      return `새 추론 「${res.deduction.name}」을 얻었어요.`;
+    }
+    return `이어지는 게 없었어요. 조사 1회가 줄었어요. (남은 조사 ${res.investigationsLeft})`;
+  }
+
+  async function accuse(characterId: number, alibiDeductionId: number, linkDeductionId: number) {
+    const result = await api.accuse(playId, characterId, alibiDeductionId, linkDeductionId);
     onFinish(result, state!.case.title);
   }
 
   return (
     <main className="game">
-      <Topline onHome={onHome} right={`질문 ${state.chats.length} · 단서 ${state.clues.length} / ${state.clueTotal}`} />
+      <Topline onHome={onHome} right={`질문 ${state.chats.length} · 조사 ${state.investigationsLeft} / ${state.investigationLimit} · 단서 ${state.clues.length} · 추론 ${state.deductions.length} / ${state.deductionTotal}`} />
 
       <section className="game-head">
         <h1 className="display">{state.case.title}</h1>
@@ -171,7 +182,12 @@ export default function Game({ playId, onHome, onFinish }: Props) {
           clues={state.clues}
           timeline={state.timeline}
           freshKeys={freshKeys}
+          deductions={state.deductions}
+          deductionTotal={state.deductionTotal}
+          left={state.investigationsLeft}
+          limit={state.investigationLimit}
           onInvestigate={investigate}
+          onLink={link}
         />
       </div>
 
@@ -185,7 +201,7 @@ export default function Game({ playId, onHome, onFinish }: Props) {
         <AccuseModal
           suspects={state.characters.filter((c) => c.character_type === "용의자")}
           onClose={() => setAccusing(false)}
-          clues={state.clues}
+          deductions={state.deductions}
           onAccuse={accuse}
         />
       )}

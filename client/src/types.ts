@@ -23,11 +23,28 @@ export interface Character {
   character_type: "피해자" | "용의자" | "목격자";
 }
 
+/** 장소 안의 조사 지점. 열 때마다 조사 1회. locked면 다른 단서를 찾아야 열림 (2차 조사) */
+export interface Spot {
+  spot_id: number;
+  name: string;
+  searched: boolean;
+  locked: boolean;
+}
+
 export interface Scene {
   scene_id: number;
   name: string;
   description: string | null;
   investigated: boolean;
+  spots: Spot[];
+}
+
+/** 단서 2~3개를 연결해서 얻은 사실. 범인 지목 근거로는 추론만 낼 수 있다 */
+export interface Deduction {
+  deduction_id: number;
+  name: string;
+  description: string;
+  clue_ids: number[];
 }
 
 export interface Fact {
@@ -75,6 +92,10 @@ export interface PlayState {
   timeline: TimelineItem[];
   clues: Clue[];
   clueTotal: number;
+  investigationLimit: number;
+  investigationsLeft: number;
+  deductions: Deduction[];
+  deductionTotal: number;
   chats: Chat[];
 }
 
@@ -87,7 +108,7 @@ export interface AccuseResult {
   culprit: { character_id: number; name: string };
   truth: string;
   timeline: Fact[];
-  stats: { minutes: number; questions: number; clues: number; clueTotal: number };
+  stats: { minutes: number; questions: number; clues: number; clueTotal: number; deductions: number; deductionTotal: number };
   keyEvidence: { name: string; description: string | null; clue_type: Clue["clue_type"]; scene_name: string; found: boolean }[];
   keyTestimony: {
     name: string;

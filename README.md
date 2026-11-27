@@ -31,11 +31,12 @@ DB 설계 과제에서 만든 MySQL 스키마(`db/schema.sql`)를 그대로 사�
 | 행동 | 쓰는 테이블 |
 |---|---|
 | 수사 시작 | `member`(게스트), `play`, `participant`(탐정) |
-| 현장 조사 | `clue` → `clue_discovery` (그 현장의 물증·기록) |
+| 현장 조사 | 조사 지점(`spot`) 한 곳을 열 때마다 조사 1회(`spot_search`). 그곳의 물증·기록이 `clue_discovery`에 추가. `spot.unlock_clue_id`가 있으면 그 단서를 찾아야 열림(2차 조사). 조사 횟수는 `case_file.investigation_limit` |
+| 단서 연결 | 찾은 단서 2~3개를 고르면 `deduction_clue`의 재료와 정확히 같을 때 추론(`deduction`)을 얻음. 시도는 `link_attempt`에 저장, 틀리면 조사 1회 차감 |
 | 심문 | `interrogation` 저장. 프롬프트는 `game_character`, `character_relation`, `character_fact`(숨긴 사실), `alibi`(거짓 여부, 거짓은 범인만)로 구성 |
 | 증거 제시 | 찾은 단서를 골라 질문과 함께 내밀면, 숨긴 사실과 어긋나는 증거에 인물이 흔들림. 질문은 `[증거 제시: 단서명] ...` 형태로 저장 |
 | 증언 단서 | `clue.character_id`가 있는 단서. AI가 답변에서 실제로 털어놓았을 때만(`revealed_clue_ids`) `clue_discovery`에 추가 |
-| 범인 지목 | `accusation`, `play.result`, 진상(`case_file.truth`)과 전체 `fact` 타임라인 공개 |
+| 범인 지목 | 범인 + 근거 추론 2개(알리바이를 깨는 추론, 범인과 범행을 잇는 추론) → `accusation`, `accusation_evidence`, `play.result`, 진상(`case_file.truth`)과 전체 `fact` 타임라인 공개 |
 
 범인 여부, 진상, 숨긴 사실은 지목 전까지 클라이언트로 보내지 않습니다.
 

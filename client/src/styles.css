@@ -250,7 +250,7 @@ button.case-row:not(.on):hover { background: rgb(255 255 255 / 0.06); }
 .stats .card { padding: 18px 20px; }
 .stats b { font-size: clamp(40px, 4vw, 58px); display: block; margin-top: 8px; }
 .stats .of { font-size: 26px; color: var(--muted); }
-.stats .culprit { border-color: var(--red); }
+.stats .culprit { border-color: var(--red); grid-column: 1 / -1; }
 .result-actions { margin-top: auto; padding-top: 28px; display: flex; gap: 8px; }
 .result-actions .pill { padding: 15px 24px; font-size: 15px; }
 .result-right { display: flex; flex-direction: column; min-width: 0; }
@@ -288,3 +288,30 @@ button.case-row:not(.on):hover { background: rgb(255 255 255 / 0.06); }
   .screen { border-radius: 40px; }
   .ppl, .accuse-list { grid-template-columns: repeat(2, 1fr); }
 }
+
+/* 조사 횟수 · 조사 지점 */
+.budget { border: var(--ol); border-radius: 18px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
+.budget b { font-size: 15px; }
+.budget p { font-size: 12px; color: var(--muted); }
+.budget-dots { display: flex; flex-wrap: wrap; gap: 5px; }
+.budget-dots i { width: 10px; height: 10px; border-radius: 50%; border: var(--ol); }
+.budget-dots i.on { background: var(--red); border-color: var(--red); }
+.spots { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.spot { display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; padding: 6px 12px; font-size: 12.5px; font-weight: 700; background: var(--white); color: var(--black); }
+.spot small { font-size: 10.5px; font-weight: 600; opacity: 0.6; }
+.spot.done { background: transparent; color: var(--muted); border: var(--ol); }
+.spot.locked { background: var(--gray); color: var(--muted); }
+.spot:disabled { cursor: default; }
+.spot:not(.done):not(.locked):disabled { opacity: 0.4; }
+
+/* 단서 연결 · 추론 카드 */
+.link-box .pill.red { align-self: flex-start; }
+.link-box .pill.red:disabled { opacity: 0.35; }
+.chip.pick { background: var(--red); border-color: var(--red); color: var(--white); }
+.chip.pick small { color: rgb(255 255 255 / 0.8); }
+.link-msg { font-size: 13px; font-weight: 700; }
+.ded-head { padding: 14px 4px 0; }
+.deduction { border: var(--ol); border-radius: 18px; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px; }
+.deduction b { font-size: 15px; }
+.deduction p { font-size: 13px; line-height: 1.5; }
+.deduction small { font-size: 11.5px; color: var(--muted); }
