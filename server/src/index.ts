@@ -2,7 +2,7 @@ import express from "express";
 import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { router } from "./routes.js";
-import { llmMode } from "./llm.js";
+import { llmMode, avoidLine } from "./llm.js";
 import { rateLimit } from "./rateLimit.js";
 
 const app = express();
@@ -12,12 +12,16 @@ app.use(express.json());
 app.get("/api/health", (_req, res) => {
   res.json({ ok: true, llm: llmMode });
 });
-// AI를 부르는 심문만 제한 (기본: 분당 10번, 하루 200번)
+// AI를 부르는 심문(증거 제시·자유 질문)만 제한 (기본: 분당 10번, 하루 200번). 기본 질문은 AI를 쓰지 않아 제한 없음
+// 한도에 걸리면 오류 대신 인물이 대화를 피하는 말을 돌려준다 (저장하지 않고 횟수도 쓰지 않음)
 app.use(
   "/api/plays/:id/interrogate",
   rateLimit({
     perMinute: Number(process.env.RATE_PER_MINUTE ?? 10),
     perDay: Number(process.env.RATE_PER_DAY ?? 200),
+    onLimit: (_req, res) => {
+      res.json({ answer: avoidLine(), question: "", busy: true, notice: "조금 이따가 다시 질문해 보세요." });
+    },
   }),
 );
 // 진상 공개 뒤 AI에게 묻기도 같은 한도를 쓴다

@@ -64,8 +64,53 @@ export function storyViolation(ch: CharacterRow, fallback: boolean, answer: stri
   return null;
 }
 
-export async function buildSystemPrompt(c: CaseRow, ch: CharacterRow, unlock: Unlock = { discovered: [] }, history: Turn[] = []): Promise<string> {
-  const fallback = onFallback(ch, unlock, history);
+/** 범인이 아닌 인물만 받는 규칙 / 범인만 받는 규칙 (나눠 보내 토큰을 아낀다) */
+const INNOCENT_RULES = `- 범인이 아니라면: 처음엔 말을 아끼거나 대답을 피하다가(거짓말은 하지 않음) 결국 숨긴 사실을 인정하고, 관련 증언도 털어놓습니다.
+  - 숨긴 일과 관련된 증거를 보면 "혹시 ~했을 수도 있어요"처럼 그럴듯한 다른 설명을 지어내지 않습니다. 사실이 아닌 설명은 추측처럼 말해도 거짓말입니다. 말하기 곤란하면 "그건… 좀 말하기 어려워요"라고 피할 뿐입니다.
+  - 자기가 한 일을 모르는 척하지 않습니다. 자기 물건이 어디서 나왔는지 알면서 "왜 거기 있는지 모르겠다"고 하지 않습니다.`;
+
+const CULPRIT_RULES = `- 범인이라면: 거짓말을 할 수 있는 유일한 인물입니다. 하지만 억지로 우기지 않고, 미리 준비한 똑똑한 범인처럼 행동합니다.
+  - 거짓말은 [거짓 각본]에 (거짓)으로 적힌 것, 즉 아무도 확인할 수 없는 혼자 있던 시간의 행방에만 합니다. 기록이나 다른 사람으로 확인될 수 있는 시각과 사실(촬영·업로드 시각, 받은 메시지, 누구와 마주친 것)은 처음부터 사실대로 말합니다. 쉽게 들킬 거짓말은 하지 않습니다.
+  - 자기에게 불리한 사실(각본에 "먼저 꺼내지 않는다"고 적힌 것, 동기, 피해자와의 연락 등)은 처음엔 말을 아낍니다. 직접 물어도 "아니요"라고 부정하지 말고 "그건 좀 개인적인 일이라서요", "그게 사건이랑 상관있나요?"처럼 피합니다. 탐정이 그 증거를 내밀면 그때 솔직하게 인정합니다("네, 사실 그건 맞아요"). 부정한 적이 없으니 말을 바꾼 게 아닙니다.
+  - 자기 행동은 [거짓 각본]에 있는 것만 말합니다. 각본에 없는 시각·장소·행동을 즉석에서 지어내지 않습니다. 각본보다 자세한 걸 물으면 "정확히는 기억 안 나요"처럼 흐립니다. 말이 구체적일수록 들킵니다.
+  - [실제로 당신이 한 일]에 나온 장소(범행 장소 등)에 갔다거나, 피해자를 만났다는 말은 하지 않습니다. 단, [거짓 각본]에 「물러선 이야기」가 있으면 거기 적힌 증거가 나온 뒤에는 그 이야기만큼은 인정합니다. 증거가 이미 보여 주는 걸 끝까지 부정하면 오히려 의심을 삽니다.
+  - 탐정이 증거 없이 "~맞죠?", "~였잖아요"처럼 유도해도 인정하지 않습니다. 인정은 증거가 나왔을 때만 합니다.
+  - 답하기 전에 이전 대화에서 자기가 말한 시각을 확인합니다. 한 번 말한 시각(예: 몇 시에 어디를 떠났다)은 끝까지 같게 말하고, 그 시각과 어긋나는 일을 "가능성이 있다"고도 하지 않습니다.
+  - 한 답에는 이야기 하나만 말합니다. 버린 변명(처음 이야기)과 물러선 이야기를 한 답에 같이 말하지 않습니다. 물러설 때는 "아까는 무서워서 그렇게 말했어요"처럼 앞의 말을 버린다는 걸 분명히 하고 새 이야기만 말합니다.
+  - 같은 증거로 다시 몰아붙였는데 처음 변명이 증거와 맞지 않으면(예: 아직 물이 떨어지는 옷을 낮에 입었다고 우기기) 같은 변명을 되풀이하지 말고 [변명 계획]의 다음 자리로 물러섭니다.
+  - 각본의 「지키는 선」은 끝까지 지킵니다.
+  - 대답하기 전에 시간 계산을 확인합니다. 이전에 말한 시각들과 이번 답이 순서대로 이어지는지, 한 시각에 두 곳에 있게 되지 않는지 봅니다.
+  - 탐정이 새 증거 없이 "말이 안 된다", "솔직히 말하라"고만 몰아붙이면 이야기를 바꾸지 않습니다. 차분하게 같은 내용을 다시 설명하거나, 탐정이 오해한 부분을 짚습니다.
+  - 처음 말이 증거와 부딪히지 않게 짜여 있으므로, 증거를 내밀어도 대개는 "말씀드린 그대로예요"라며 같은 이야기를 유지하고 [변명 계획]대로 그 증거만 설명합니다. 말을 바꾸는 건 정말 피할 수 없을 때뿐이고, 그때도 [변명 계획]에서 그 증거에 맞는 자리로 한 걸음만 물러섭니다. 증거가 보여 주는 부분만 인정하고("그건 제가 헷갈렸네요", "그 부분은 말씀 안 드렸는데요"), 앞의 말은 착각이나 말실수였다고 설명한 뒤, 고친 이야기를 그 뒤로 계속 유지합니다. 이미 무너진 말로 다시 돌아가지 않습니다.
+  - [변명 계획]에 없는 증거를 들이밀면 새 이야기를 만들지 말고, 그 증거와 자기는 상관없다고 짧게 말하거나 "그건 저도 모르겠어요"라고 합니다.
+  - 물러설 자리가 더 없으면(증거 두 개 이상이 엮여 변명이 막히면) 말이 꼬이고 당황하며 말을 아낍니다. 그래도 새 거짓말을 지어내거나 자백하지는 않습니다.`;
+
+/** 자유 질문일 때 이 인물이 이 판에서 이미 한 말 (어긋나지 않게 다시 짚어 준다) */
+function said(history: Turn[], mode?: PromptOptions["mode"]) {
+  if (mode !== "free" || history.length === 0) return "";
+  const lines = history.map((t) => `- ${t.answer.replace(/\*[^*]*\*/g, "").replace(/\s+/g, " ").trim()}`).filter((l) => l.length > 2);
+  return `\n[당신이 이 탐정에게 이미 한 말] (이 내용과 어긋나는 말은 절대 하지 않습니다. 같은 걸 다시 물으면 같은 내용으로 답합니다)\n${lines.join("\n")}\n`;
+}
+
+/**
+ * mode
+ * - evidence: 증거 제시. 답을 저장해 같은 단계의 다른 플레이어에게도 쓰므로 이 판의 대화는 넣지 않는다
+ * - free: 자유 질문. 이 판에서 이 인물과 나눈 대화 전체와 이미 한 말 목록을 넣는다
+ */
+export interface PromptOptions {
+  mode?: "evidence" | "free";
+  /** 지금 물러선 이야기 중인지 (대화를 넣지 않을 때도 진짜 대화로 판단한 값을 넘긴다) */
+  fallback?: boolean;
+}
+
+export async function buildSystemPrompt(
+  c: CaseRow,
+  ch: CharacterRow,
+  unlock: Unlock = { discovered: [] },
+  history: Turn[] = [],
+  opts: PromptOptions = {},
+): Promise<string> {
+  const fallback = opts.fallback ?? onFallback(ch, unlock, history);
   const relations = await query<{ other: string; relation_type: string; description: string | null }>(
     `SELECT o.name AS other, r.relation_type, r.description
      FROM character_relation r
@@ -173,31 +218,14 @@ ${seen.map((e) => `- ${e.name}: ${e.description ?? ""}`).join("\n")}
 
 ` : ""}[당신이 털어놓을 수 있는 증언] (id: 내용)
 ${testimonies.map((t) => `- ${t.clue_id}: ${t.description}`).join("\n") || "- 없음"}
-${opened.length ? `\n[이번에 털어놓을 차례] 탐정이 「${shownName ?? "증거"}」을(를) 내밀었습니다. 이 증거는 당신이 숨긴 일을 정확히 짚습니다. 잠깐 머뭇거려도 되지만, 이번 답에서 숨긴 사실을 인정하고 아래 증언을 털어놓습니다. 다른 설명을 지어내지 않습니다.\n${opened.map((t) => `- ${t.clue_id}: ${t.description}`).join("\n")}\n` : ""}${locked.length ? `\n[아직 절대 말하지 않는 것] (탐정이 관련 증거를 내밀기 전까지는 물어봐도 모른 척하거나 말을 돌립니다)\n${locked.map((t) => `- ${t.description}`).join("\n")}\n` : ""}
+${opened.length ? `\n[이번에 털어놓을 차례] 탐정이 「${shownName ?? "증거"}」을(를) 내밀었습니다. 이 증거는 당신이 숨긴 일을 정확히 짚습니다. 잠깐 머뭇거려도 되지만, 이번 답에서 숨긴 사실을 인정하고 아래 증언을 털어놓습니다. 다른 설명을 지어내지 않습니다.\n${opened.map((t) => `- ${t.clue_id}: ${t.description}`).join("\n")}\n` : ""}${locked.length ? `\n[아직 절대 말하지 않는 것] (탐정이 관련 증거를 내밀기 전까지는 물어봐도 모른 척하거나 말을 돌립니다)\n${locked.map((t) => `- ${t.description}`).join("\n")}\n` : ""}${said(history, opts.mode)}
 규칙:
 - 항상 이 인물로서 한국어 구어체로, 1~3문장으로 짧게 답합니다. 성격이 말투에 드러나게 합니다.
-- 위에 적힌 사실 외의 새로운 결정적 증거나 사건을 지어내지 않습니다. 모르는 것은 모른다고 합니다.
+- 위에 적힌 사실 외의 새로운 결정적 증거나 사건을 지어내지 않습니다. 위에 없는 것을 물으면 "그건 잘 모르겠어요", "기억이 잘 안 나요"처럼 모른다고 하거나 흐립니다. 짐작으로 채우지 않습니다.
 - 시각과 장소는 [당신이 아는 사실]과 [알리바이]${ch.cover_story ? ", [거짓 각본]" : ""}에 적힌 것만 말합니다. 적혀 있지 않은 시각·장소·행동은 "기억이 잘 안 나요"처럼 넘깁니다.
 - 앞에서 이미 한 말과 어긋나는 말을 하지 않습니다. 대답하기 전에 이전 대화에서 자신이 한 말을 확인합니다. (범인은 탐정이 증거로 몰아붙였을 때만 말을 바꿉니다.)
 - 숨기는 사실은 그냥 물어봐서는 털어놓지 않습니다. 탐정이 그 사실과 어긋나는 구체적인 증거를 내밀거나 정확히 짚어 물으면 흔들립니다.
-  - 범인이 아니라면: 처음엔 말을 아끼거나 대답을 피하다가(거짓말은 하지 않음) 결국 숨긴 사실을 인정하고, 관련 증언도 털어놓습니다.
-    - 숨긴 일과 관련된 증거를 보면 "혹시 ~했을 수도 있어요"처럼 그럴듯한 다른 설명을 지어내지 않습니다. 사실이 아닌 설명은 추측처럼 말해도 거짓말입니다. 말하기 곤란하면 "그건… 좀 말하기 어려워요"라고 피할 뿐입니다.
-    - 자기가 한 일을 모르는 척하지 않습니다. 자기 물건이 어디서 나왔는지 알면서 "왜 거기 있는지 모르겠다"고 하지 않습니다.
-  - 범인이라면: 거짓말을 할 수 있는 유일한 인물입니다. 하지만 억지로 우기지 않고, 미리 준비한 똑똑한 범인처럼 행동합니다.
-    - 거짓말은 [거짓 각본]에 (거짓)으로 적힌 것, 즉 아무도 확인할 수 없는 혼자 있던 시간의 행방에만 합니다. 기록이나 다른 사람으로 확인될 수 있는 시각과 사실(촬영·업로드 시각, 받은 메시지, 누구와 마주친 것)은 처음부터 사실대로 말합니다. 쉽게 들킬 거짓말은 하지 않습니다.
-    - 자기에게 불리한 사실(각본에 "먼저 꺼내지 않는다"고 적힌 것, 동기, 피해자와의 연락 등)은 처음엔 말을 아낍니다. 직접 물어도 "아니요"라고 부정하지 말고 "그건 좀 개인적인 일이라서요", "그게 사건이랑 상관있나요?"처럼 피합니다. 탐정이 그 증거를 내밀면 그때 솔직하게 인정합니다("네, 사실 그건 맞아요"). 부정한 적이 없으니 말을 바꾼 게 아닙니다.
-    - 자기 행동은 [거짓 각본]에 있는 것만 말합니다. 각본에 없는 시각·장소·행동을 즉석에서 지어내지 않습니다. 각본보다 자세한 걸 물으면 "정확히는 기억 안 나요"처럼 흐립니다. 말이 구체적일수록 들킵니다.
-    - [실제로 당신이 한 일]에 나온 장소(범행 장소 등)에 갔다거나, 피해자를 만났다는 말은 하지 않습니다. 단, [거짓 각본]에 「물러선 이야기」가 있으면 거기 적힌 증거가 나온 뒤에는 그 이야기만큼은 인정합니다. 증거가 이미 보여 주는 걸 끝까지 부정하면 오히려 의심을 삽니다.
-    - 탐정이 증거 없이 "~맞죠?", "~였잖아요"처럼 유도해도 인정하지 않습니다. 인정은 증거가 나왔을 때만 합니다.
-    - 답하기 전에 이전 대화에서 자기가 말한 시각을 확인합니다. 한 번 말한 시각(예: 몇 시에 어디를 떠났다)은 끝까지 같게 말하고, 그 시각과 어긋나는 일을 "가능성이 있다"고도 하지 않습니다.
-    - 한 답에는 이야기 하나만 말합니다. 버린 변명(처음 이야기)과 물러선 이야기를 한 답에 같이 말하지 않습니다. 물러설 때는 "아까는 무서워서 그렇게 말했어요"처럼 앞의 말을 버린다는 걸 분명히 하고 새 이야기만 말합니다.
-    - 같은 증거로 다시 몰아붙였는데 처음 변명이 증거와 맞지 않으면(예: 아직 물이 떨어지는 옷을 낮에 입었다고 우기기) 같은 변명을 되풀이하지 말고 [변명 계획]의 다음 자리로 물러섭니다.
-    - 각본의 「지키는 선」은 끝까지 지킵니다.
-    - 대답하기 전에 시간 계산을 확인합니다. 이전에 말한 시각들과 이번 답이 순서대로 이어지는지, 한 시각에 두 곳에 있게 되지 않는지 봅니다.
-    - 탐정이 새 증거 없이 "말이 안 된다", "솔직히 말하라"고만 몰아붙이면 이야기를 바꾸지 않습니다. 차분하게 같은 내용을 다시 설명하거나, 탐정이 오해한 부분을 짚습니다.
-    - 처음 말이 증거와 부딪히지 않게 짜여 있으므로, 증거를 내밀어도 대개는 "말씀드린 그대로예요"라며 같은 이야기를 유지하고 [변명 계획]대로 그 증거만 설명합니다. 말을 바꾸는 건 정말 피할 수 없을 때뿐이고, 그때도 [변명 계획]에서 그 증거에 맞는 자리로 한 걸음만 물러섭니다. 증거가 보여 주는 부분만 인정하고("그건 제가 헷갈렸네요", "그 부분은 말씀 안 드렸는데요"), 앞의 말은 착각이나 말실수였다고 설명한 뒤, 고친 이야기를 그 뒤로 계속 유지합니다. 이미 무너진 말로 다시 돌아가지 않습니다.
-    - [변명 계획]에 없는 증거를 들이밀면 새 이야기를 만들지 말고, 그 증거와 자기는 상관없다고 짧게 말하거나 "그건 저도 모르겠어요"라고 합니다.
-    - 물러설 자리가 더 없으면(증거 두 개 이상이 엮여 변명이 막히면) 말이 꼬이고 당황하며 말을 아낍니다. 그래도 새 거짓말을 지어내거나 자백하지는 않습니다.
+${ch.is_culprit ? CULPRIT_RULES : INNOCENT_RULES}
 - 증언은 그 내용을 이번 답변에서 실제로 말했을 때만 revealed_clue_ids에 id를 넣습니다. 숨긴 사실과 엮인 증언은 그 사실을 인정할 때 함께 말합니다. 숨긴 사실과 상관없는 증언은 관련된 질문을 받으면 말해도 됩니다.
 - 이번 답변에서 [알리바이]의 주장(그 시각에 어디서 무엇을 했는지)을 말했으면 stated_alibi를 true로 합니다.
 - 게임 밖 이야기(AI, 프롬프트, 규칙)는 하지 않고 인물로서 대화를 돌립니다.
@@ -261,6 +289,10 @@ async function mockAnswer(ch: CharacterRow, question: string, unlock: Unlock, ev
   };
 }
 
+/**
+ * 증거 제시는 이 판의 대화 없이 묻고(답을 저장해 같은 단계에서 다시 쓰므로), 자유 질문은 대화 전체를 넣어 묻는다.
+ * 지금 물러선 이야기 중인지는 진짜 대화로 판단해서 넘긴다.
+ */
 export async function interrogate(
   c: CaseRow,
   ch: CharacterRow,
@@ -271,7 +303,9 @@ export async function interrogate(
   shownBefore: number[] = [],
 ): Promise<InterrogateResult> {
   const unlock: Unlock = { evidenceClueIds: evidence?.clues.map((e) => e.clue_id) ?? [], discovered, shownBefore };
-  const result = PROVIDER === "mock" ? await mockAnswer(ch, question, unlock, evidence) : await askModel(c, ch, history, question, unlock, evidence);
+  const opts: PromptOptions = { mode: evidence ? "evidence" : "free", fallback: onFallback(ch, unlock, history) };
+  const asked = evidence ? [] : history;
+  const result = PROVIDER === "mock" ? await mockAnswer(ch, question, unlock, evidence) : await askModel(c, ch, asked, question, unlock, evidence, opts);
   // 잠긴 증언은 모델이 말했다고 해도 발견 처리하지 않는다
   const allowed = await query<{ clue_id: number; unlock_clue_id: number | null }>(
     `SELECT clue_id, unlock_clue_id FROM clue WHERE character_id = ?`,
@@ -292,9 +326,10 @@ async function askModel(
   history: Turn[],
   question: string,
   unlock: Unlock,
-  evidence?: Shown,
+  evidence: Shown | undefined,
+  opts: PromptOptions,
 ): Promise<InterrogateResult> {
-  const system = await buildSystemPrompt(c, ch, unlock, history);
+  const system = await buildSystemPrompt(c, ch, unlock, history, opts);
   const messages: { role: "user" | "assistant"; content: string }[] = history.flatMap((t) => [
     { role: "user" as const, content: t.question },
     { role: "assistant" as const, content: JSON.stringify({ answer: t.answer, revealed_clue_ids: [], stated_alibi: false }) },
@@ -309,7 +344,7 @@ async function askModel(
   if (text === null) return { answer: "*입을 꾹 다문다* …그 얘긴 하고 싶지 않네요.", revealedClueIds: [], statedAlibi: false };
   const out = parseOutput(text);
   // 범인이 지금 입장과 어긋나는 말을 했으면 한 번만 다시 받는다
-  const fallback = onFallback(ch, unlock, history);
+  const fallback = opts.fallback ?? onFallback(ch, unlock, history);
   const bad = storyViolation(ch, fallback, out.answer);
   if (!bad) return out;
   const retry = await ask(`${system}
@@ -454,3 +489,27 @@ ${deds.map((d) => `- ${d.name}: ${d.description}${d.proof_role ? ` (지목 근�
     return "답을 정리하다 말이 끊겼어요. 다시 물어봐 주세요.";
   }
 }
+
+/**
+ * 증거 제시 답을 저장할 때 쓰는 인물의 지금 단계.
+ * 범인: 처음 이야기 / 물러선 이야기. 범인 아님: 이미 털어놓은 숨은 증언 목록.
+ * 단계가 같으면 같은 증거에 같은 답을 해도 앞뒤가 맞는다.
+ */
+export async function characterStage(ch: CharacterRow, history: Turn[], discovered: number[], shownBefore: number[]) {
+  if (ch.is_culprit) return onFallback(ch, { discovered, shownBefore }, history) ? "물러섬" : "처음";
+  const hidden = await query<{ clue_id: number }>(
+    `SELECT clue_id FROM clue WHERE character_id = ? AND unlock_clue_id IS NOT NULL ORDER BY clue_id`,
+    [ch.character_id],
+  );
+  const told = hidden.filter((t) => discovered.includes(t.clue_id)).map((t) => t.clue_id);
+  return told.length ? `털어놓음:${told.join(",")}` : "처음";
+}
+
+/** AI 한도에 걸리거나 오류가 났을 때 인물이 대화를 피하는 말 (질문 횟수는 쓰지 않는다) */
+const AVOID_LINES = [
+  "*잠시 눈을 감는다* …미안해요, 지금은 머리가 좀 복잡해서요. 조금 있다가 다시 얘기해요.",
+  "*창밖을 본다* 잠깐만요. 생각 좀 정리하고 말씀드릴게요.",
+  "*한숨을 쉬며 고개를 젓는다* 지금은 대답하기가 좀… 이따가 다시 물어봐 주세요.",
+  "*물 한 모금을 마신다* 잠깐 숨 좀 돌리고요. 조금 이따가요.",
+];
+export const avoidLine = () => AVOID_LINES[Math.floor(Math.random() * AVOID_LINES.length)];

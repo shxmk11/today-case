@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { api } from "../api";
-import type { AccuseResult, Character, PlayState, Relation, TimelineItem } from "../types";
+import { api, type BasicTopic } from "../api";
+import type { AccuseResult, Character, Chat, PlayState, Relation, TimelineItem } from "../types";
 import ChatPanel, { type Shown } from "./ChatPanel";
 import CasePanel, { type Tab } from "./CasePanel";
 import AccuseModal from "./AccuseModal";
@@ -101,26 +101,41 @@ export default function Game({ playId, onHome, onFinish }: Props) {
     if (parts.length > 0) showToast(`＋ ${parts.join("  ·  ")}`);
   }
 
-  async function ask(ch: Character, question: string, evidence?: Shown) {
+  /** 질문 하나: 기본 질문(topic), 증거 제시(evidence), 자유 질문(question) */
+  async function ask(ch: Character, question: string, evidence?: Shown, topic?: BasicTopic) {
     const name = evidence ? (evidence.kind === "clue" ? evidence.clue.name : evidence.deduction.name) : "";
     const shown = evidence ? `[증거 제시: ${name}] ${question}` : question;
-    const pending = { character_id: ch.character_id, question: shown, answer: "", pending: true };
+    const kind: Chat["kind"] = topic ? "기본" : evidence ? "증거" : "자유";
+    const pending: Chat = { character_id: ch.character_id, kind, question: shown, answer: "", pending: true };
     setState((s) => s && { ...s, chats: [...s.chats, pending] });
     try {
-      const res = await api.interrogate(
-        playId,
-        ch.character_id,
-        question,
-        evidence && (evidence.kind === "clue" ? { clueId: evidence.clue.clue_id } : { deductionId: evidence.deduction.deduction_id }),
-      );
-      const fresh = res.clues.filter((c) => res.newClues.includes(c.clue_id)).map((c) => c.name);
-      announce(fresh, res.timeline);
+      const res = topic
+        ? await api.basic(playId, ch.character_id, topic)
+        : await api.interrogate(
+            playId,
+            ch.character_id,
+            question,
+            evidence && (evidence.kind === "clue" ? { clueId: evidence.clue.clue_id } : { deductionId: evidence.deduction.deduction_id }),
+          );
+      if (res.busy) {
+        // AI가 쉬는 중: 인물이 대화를 피한다. 저장되지 않으니 자유 질문 횟수로 세지 않는다
+        setState((s) => s && {
+          ...s,
+          chats: s.chats.map((c) =>
+            c === pending ? { ...c, kind: undefined, answer: res.answer, pending: false, notice: res.notice ?? "조금 이따가 다시 질문해 보세요." } : c,
+          ),
+        });
+        return;
+      }
+      const clues = res.clues ?? [];
+      const fresh = clues.filter((c) => (res.newClues ?? []).includes(c.clue_id)).map((c) => c.name);
+      announce(fresh, res.timeline ?? []);
       setState((s) => s && {
         ...s,
-        clues: res.clues,
-        timeline: res.timeline,
+        clues: res.clues ?? s.clues,
+        timeline: res.timeline ?? s.timeline,
         chats: s.chats.map((c) =>
-          c === pending ? { ...c, question: res.question, answer: res.answer, pending: false, newClues: fresh } : c,
+          c === pending ? { ...c, kind: res.kind ?? kind, question: res.question, answer: res.answer, pending: false, newClues: fresh } : c,
         ),
       });
     } catch (e) {
@@ -156,6 +171,7 @@ export default function Game({ playId, onHome, onFinish }: Props) {
       clues: res.clues,
       timeline: res.timeline,
       investigationsLeft: res.investigationsLeft,
+      scenes: res.scenes,
     });
     if (res.deduction) {
       showToast(`＋ 새 추론 · ${res.deduction.name}${opened.length > 0 ? `  ·  새 단서 · ${opened.join(", ")}` : ""}`);
@@ -282,7 +298,7 @@ export default function Game({ playId, onHome, onFinish }: Props) {
             chats={state.chats.filter((m) => m.character_id === current.character_id)}
             clues={state.clues}
             deductions={state.deductions}
-            onAsk={(q, ev) => ask(current, q, ev)}
+            onAsk={(q, ev, topic) => ask(current, q, ev, topic)}
           />
         ) : (
           <section className="card chat empty">심문할 인물을 골라주세요.</section>

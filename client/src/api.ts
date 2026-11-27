@@ -1,5 +1,18 @@
 import type { AccuseResult, CaseSummary, Clue, Deduction, Me, PlayState, Relation, Scene, TimelineItem } from "./types";
 
+export type BasicTopic = "알리바이" | "관계" | "목격";
+export interface AskReply {
+  answer: string;
+  question: string;
+  kind?: "기본" | "증거" | "자유";
+  clues?: Clue[];
+  newClues?: number[];
+  timeline?: TimelineItem[];
+  /** AI 한도·오류로 인물이 대화를 피함 (저장 안 됨, 횟수 안 씀) */
+  busy?: boolean;
+  notice?: string;
+}
+
 /*
  * 세션 토큰: 로그인하지 않아도 브라우저마다 게스트 회원 토큰을 하나 받아 둔다.
  * 게스트 기록은 이 브라우저에만 남고, 로그인하면 어느 기기에서든 이어 할 수 있다.
@@ -81,17 +94,17 @@ export const api = {
   link: (playId: number, clueIds: number[]) =>
     request<{
       ok: boolean; deduction: Deduction | null; deductions: Deduction[]; revealed: number[];
-      clues: Clue[]; timeline: TimelineItem[]; investigationsLeft: number;
+      clues: Clue[]; timeline: TimelineItem[]; investigationsLeft: number; scenes: Scene[];
     }>(`/plays/${playId}/link`, { clueIds }),
   relations: (playId: number) => request<Relation[]>(`/plays/${playId}/relations`),
   unlimited: (playId: number) => request<{ unlimited: true }>(`/plays/${playId}/unlimited`, {}),
   /** 증거 제시: 단서 하나 또는 추론 하나 */
+  /** 증거 제시 또는 자유 질문. AI가 한도에 걸리면 busy와 함께 인물이 대화를 피하는 말이 온다 (저장 안 됨) */
   interrogate: (playId: number, characterId: number, question: string, shown?: { clueId?: number; deductionId?: number }) =>
-    request<{ answer: string; question: string; clues: Clue[]; newClues: number[]; timeline: TimelineItem[] }>(`/plays/${playId}/interrogate`, {
-      characterId,
-      question,
-      ...shown,
-    }),
+    request<AskReply>(`/plays/${playId}/interrogate`, { characterId, question, ...shown }),
+  /** 기본 질문: AI 없이 정해 둔 답 */
+  basic: (playId: number, characterId: number, topic: BasicTopic) =>
+    request<AskReply>(`/plays/${playId}/basic`, { characterId, topic }),
   memo: (playId: number, content: string) => request<{ ok: true }>(`/plays/${playId}/memo`, { content }),
   mark: (playId: number, characterId: number, excluded: boolean) =>
     request<{ excluded: number[] }>(`/plays/${playId}/mark`, { characterId, excluded }),
