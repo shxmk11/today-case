@@ -1,34 +1,54 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450">
-<style>.w{fill:none;stroke:#fff;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}.t{fill:none;stroke:#fff;stroke-width:1.5;stroke-linejoin:round;stroke-linecap:round}.g{fill:none;stroke:#636366;stroke-width:1.5;stroke-linecap:round}.k{fill:#000;stroke:#fff;stroke-width:2;stroke-linejoin:round}.f{fill:#fff}</style>
+<style>.w{fill:none;stroke:#fff;stroke-width:1.6;stroke-linejoin:round;stroke-linecap:round}.t{fill:none;stroke:#fff;stroke-width:1;stroke-linejoin:round;stroke-linecap:round}.g{fill:none;stroke:#636366;stroke-width:1;stroke-linejoin:round;stroke-linecap:round}.k{fill:#000;stroke:#fff;stroke-width:1.6;stroke-linejoin:round;stroke-linecap:round}.kt{fill:#000;stroke:#fff;stroke-width:1;stroke-linejoin:round;stroke-linecap:round}.b{fill:#000;stroke:#C1121F;stroke-width:1.6;stroke-linejoin:round;stroke-linecap:round}.r{fill:none;stroke:#C1121F;stroke-width:1;stroke-linecap:round;stroke-linejoin:round}.gd{fill:#636366}</style>
 <rect width="800" height="450" fill="#000"/>
-<path class="g" d="M160 300 L100 450 M240 300 L200 450 M320 300 L300 450 M400 300 L400 450 M480 300 L500 450 M560 300 L600 450 M640 300 L700 450"/>
-<path class="w" d="M0 0 L80 30 L720 30 L800 0 M80 30 V300 H720 V30 M80 300 L0 450 M720 300 L800 450"/>
-<!-- 큰 창 (수영장 쪽 유리문) -->
-<rect class="w" x="480" y="60" width="200" height="240"/>
-<path class="w" d="M580 60 V300"/>
-<path class="g" d="M490 250 Q540 240 570 250 M590 250 Q640 240 670 250" stroke="#AEAEB2"/>
-<!-- 액자, 조명 -->
-<rect class="w" x="150" y="70" width="120" height="70"/>
-<path class="t" d="M150 120 Q190 96 210 110 T270 100"/>
-<path class="w" d="M400 30 V70 M384 70 H416 L410 90 H390 Z"/>
+<path class="w" d="M110.0 35.0 L690.0 35.0 L690.0 310.0 L110.0 310.0 Z"/>
+<path class="w" d="M110.0 35.0 L-470.0 -195.0"/>
+<path class="w" d="M690.0 35.0 L1270.0 -195.0"/>
+<path class="w" d="M110.0 310.0 L-470.0 630.0"/>
+<path class="w" d="M690.0 310.0 L1270.0 630.0"/>
+<!-- 큰 유리문 (수영장 쪽) -->
+<rect class="w" x="180" y="60" width="440" height="250"/>
+<path class="t" d="M326.7 60.0 L326.7 310.0"/>
+<path class="t" d="M473.3 60.0 L473.3 310.0"/>
+<path class="g" d="M180.0 205.0 L620.0 205.0"/>
+<path class="g" d="M250 240 L280 215 H520 L550 240"/>
+<circle class="t" cx="560" cy="96" r="8"/>
 <!-- 소파 -->
-<path class="k" d="M150 200 H450 V260 H150 Z"/>
-<path class="k" d="M130 230 H170 V320 H130 Z M430 230 H470 V320 H430 Z"/>
-<path class="k" d="M170 260 H430 V300 H170 Z"/>
-<path class="t" d="M300 200 V260 M300 260 V300"/>
-<path class="w" d="M140 320 V336 M460 320 V336"/>
-<path class="w" d="M190 214 Q200 200 230 206 Q240 220 226 232 H196 Z"/>
-<!-- 소파 틈 물건 -->
-<path class="t" d="M370 262 L392 256"/>
+<path class="k" d="M224.0 205.0 L576.0 205.0 L588.8 209.0 L211.2 209.0 Z"/>
+<path class="k" d="M211.2 209.0 L588.8 209.0 L588.8 282.2 L211.2 282.2 Z"/>
+<path class="k" d="M224.0 273.2 L576.0 273.2 L608.0 295.6 L192.0 295.6 Z"/>
+<path class="k" d="M192.0 295.6 L608.0 295.6 L608.0 358.0 L192.0 358.0 Z"/>
+<path class="k" d="M224.0 240.2 L192.0 256.6 L192.0 358.0 L224.0 326.0 Z"/>
+<path class="k" d="M202.0 240.2 L224.0 240.2 L192.0 256.6 L166.0 256.6 Z"/>
+<path class="k" d="M166.0 256.6 L192.0 256.6 L192.0 358.0 L166.0 358.0 Z"/>
+<path class="k" d="M576.0 240.2 L608.0 256.6 L608.0 358.0 L576.0 326.0 Z"/>
+<path class="k" d="M576.0 240.2 L598.0 240.2 L634.0 256.6 L608.0 256.6 Z"/>
+<path class="k" d="M608.0 256.6 L634.0 256.6 L634.0 358.0 L608.0 358.0 Z"/>
+<path class="t" d="M332.7 282.2 L325.9 295.6"/>
+<path class="t" d="M332.7 216.1 L332.7 282.2"/>
+<path class="t" d="M467.3 282.2 L474.1 295.6"/>
+<path class="t" d="M467.3 216.1 L467.3 282.2"/>
+<path class="kt" d="M448.0 284.4 l10 -8 l12 3 l-8 7"/>
 <!-- 커피 테이블 -->
-<path class="k" d="M220 350 H420 L444 380 H196 Z"/>
-<path class="w" d="M206 380 V420 M434 380 V420"/>
-<g class="w"><path d="M250 354 L248 334 M248 334 Q242 326 248 318 H256 Q262 326 256 334 L254 354"/><path d="M290 360 Q300 350 320 356"/></g>
-<path class="t" d="M340 352 L380 348 L384 360 L344 364 Z"/>
+<path class="k" d="M266.8 354.2 L533.2 354.2 L545.8 373.6 L254.2 373.6 Z"/>
+<path class="k" d="M254.2 373.6 L545.8 373.6 L545.8 381.7 L254.2 381.7 Z"/>
+<path class="w" d="M265.6 378.8 L265.6 406.0"/>
+<path class="w" d="M534.4 378.8 L534.4 406.0"/>
+<path class="w" d="M274.0 364.5 L274.0 390.0"/>
+<path class="w" d="M526.0 364.5 L526.0 390.0"/>
+<!-- 바닥의 깨진 액자 -->
+<path class="k" d="M595.0 390.0 L685.0 390.0 L725.9 418.8 L608.3 418.8 Z"/>
+<path class="t" d="M601.0 393.0 L679.0 393.0 L717.9 414.8 L616.3 414.8 Z"/>
+<path class="g" d="M659.5 403.9 l-26 -6 M659.5 403.9 l18 -9 M659.5 403.9 l24 10 M659.5 403.9 l-14 12"/>
+<path class="t" d="M599.5 413.9 l5 -3 l3 4 Z"/>
+<path class="t" d="M611.5 425.9 l5 -3 l3 4 Z"/>
+<path class="t" d="M729.5 409.9 l5 -3 l3 4 Z"/>
 <!-- 쓰레기통 -->
-<path class="w" d="M630 320 H670 L664 372 H636 Z M626 320 H674"/>
-<path class="t" d="M640 320 Q646 308 656 318"/>
-<!-- 러그, 바닥 -->
-<path class="g" d="M150 340 H520 L560 440 H100 Z" stroke-dasharray="2 5"/>
-<path class="w" d="M470 396 L530 388 L536 424 L476 432 Z"/><path class="t" d="M490 392 L500 412 L486 428 M500 412 L530 404"/>
+<ellipse class="k" cx="738.0" cy="295.6" rx="18" ry="5.0"/>
+<path class="k" d="M720.0 295.6 L726.0 335.6 Q738.0 341.6 750.0 335.6 L756.0 295.6"/>
+<path class="g" d="M729.9 303.0 L731.1 336.6"/>
+<path class="g" d="M738.0 303.0 L738.0 336.6"/>
+<path class="g" d="M746.1 303.0 L744.9 336.6"/>
+<path class="kt" d="M728.0 294.6 q0 -10 8 -8 q6 -8 11 2"/>
+<path class="r" d="M736.0 289.6 q2 -2 4 0"/>
 </svg>

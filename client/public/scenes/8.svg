@@ -1,37 +1,55 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450">
-<style>.w{fill:none;stroke:#fff;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}.t{fill:none;stroke:#fff;stroke-width:1.5;stroke-linejoin:round;stroke-linecap:round}.g{fill:none;stroke:#636366;stroke-width:1.5;stroke-linecap:round}.k{fill:#000;stroke:#fff;stroke-width:2;stroke-linejoin:round}.f{fill:#fff}</style>
+<style>.w{fill:none;stroke:#fff;stroke-width:1.6;stroke-linejoin:round;stroke-linecap:round}.t{fill:none;stroke:#fff;stroke-width:1;stroke-linejoin:round;stroke-linecap:round}.g{fill:none;stroke:#636366;stroke-width:1;stroke-linejoin:round;stroke-linecap:round}.k{fill:#000;stroke:#fff;stroke-width:1.6;stroke-linejoin:round;stroke-linecap:round}.kt{fill:#000;stroke:#fff;stroke-width:1;stroke-linejoin:round;stroke-linecap:round}.b{fill:#000;stroke:#C1121F;stroke-width:1.6;stroke-linejoin:round;stroke-linecap:round}.r{fill:none;stroke:#C1121F;stroke-width:1;stroke-linecap:round;stroke-linejoin:round}.gd{fill:#636366}</style>
 <rect width="800" height="450" fill="#000"/>
-<path class="g" d="M160 300 L100 450 M240 300 L200 450 M320 300 L300 450 M400 300 L400 450 M480 300 L500 450 M560 300 L600 450 M640 300 L700 450"/>
-<path class="w" d="M0 0 L80 30 L720 30 L800 0 M80 30 V300 H720 V30 M80 300 L0 450 M720 300 L800 450"/>
+<path class="w" d="M110.0 35.0 L690.0 35.0 L690.0 310.0 L110.0 310.0 Z"/>
+<path class="w" d="M110.0 35.0 L-470.0 -195.0"/>
+<path class="w" d="M690.0 35.0 L1270.0 -195.0"/>
+<path class="w" d="M110.0 310.0 L-470.0 630.0"/>
+<path class="w" d="M690.0 310.0 L1270.0 630.0"/>
+<path class="g" d="M110.0 302.0 L690.0 302.0"/>
 <!-- 욕실 문 (왼쪽 벽, 열림) -->
-<path class="k" d="M14 70 L62 86 V320 L14 346 Z"/>
-<path class="w" d="M62 86 L110 60 V300 L62 320"/>
-<path class="g" d="M24 120 H52 M24 160 H52" stroke="#AEAEB2"/>
+<path class="k" d="M86.8 90.6 L-0.2 74.1 L-0.2 370.8 L86.8 322.8 Z"/>
+<path class="k" d="M86.8 90.6 L120.8 104.6 L120.8 304.8 L86.8 322.8 Z"/>
+<circle class="t" cx="114.8" cy="206.7" r="2.5"/>
 <!-- 빨래 바구니 -->
-<path class="k" d="M110 300 H170 L162 356 H118 Z"/>
-<path class="t" d="M114 312 H166 M116 326 H164 M118 340 H162"/>
-<path class="w" d="M124 300 Q132 286 146 292 Q156 284 162 300"/>
+<path class="k" d="M18.8 340.8 L23.8 386.8 H65.8 L70.8 340.8 Z"/>
+<path class="g" d="M19.4 350.0 L70.2 350.0"/>
+<path class="g" d="M20.0 359.2 L69.6 359.2"/>
+<path class="g" d="M20.6 368.4 L69.0 368.4"/>
+<path class="g" d="M21.2 377.6 L68.4 377.6"/>
+<path class="t" d="M24.8 340.8 q8 -14 18 -6 q10 -8 20 4"/>
+<path class="g" d="M50.8 346.8 v4 M56.8 348.8 v3"/>
 <!-- 옷장 -->
-<rect class="k" x="190" y="60" width="140" height="240" rx="3"/>
-<path class="w" d="M260 60 V300"/>
-<path class="t" d="M250 170 V194 M270 170 V194"/>
-<!-- 꽃병 선반 -->
-<path class="w" d="M360 120 H440"/>
-<path class="w" d="M386 120 L382 96 H402 L398 120 M392 96 Q380 70 388 56 M392 96 Q404 74 414 70 M392 96 Q392 80 400 60"/>
-<circle class="t" cx="388" cy="54" r="5"/><circle class="t" cx="416" cy="68" r="5"/><circle class="t" cx="402" cy="58" r="5"/>
-<!-- 삼각대와 휴대폰 -->
-<path class="w" d="M440 330 L470 200 L500 330 M470 200 V340"/>
-<rect class="k" x="456" y="160" width="28" height="44" rx="4"/>
-<circle class="f" cx="470" cy="168" r="2.5"/>
+<path class="k" d="M262.0 52.0 L245.4 40.2 L245.4 329.2 L262.0 310.0 Z"/>
+<path class="k" d="M131.2 40.2 L245.4 40.2 L245.4 329.2 L131.2 329.2 Z"/>
+<path class="t" d="M188.3 49.2 L188.3 320.2"/>
+<path class="w" d="M179.4 166.8 L179.4 194.8"/>
+<path class="w" d="M197.3 166.8 L197.3 194.8"/>
 <!-- 침대와 노트북 -->
-<path class="k" d="M540 250 H720 L800 300 V370 H520 V300 Z"/>
-<path class="k" d="M520 300 H800 V336 H520 Z"/>
-<path class="w" d="M526 370 V400 M796 370 V400"/>
-<path class="w" d="M600 290 L596 258 H660 L664 290 Z M580 290 H680"/>
-<path class="t" d="M608 266 H648 M608 274 H636"/>
+<path class="k" d="M420.0 175.0 L420.8 176.0 L420.8 316.4 L420.0 310.0 Z"/>
+<path class="k" d="M420.0 175.0 L610.0 175.0 L618.4 176.0 L420.8 176.0 Z"/>
+<path class="k" d="M420.8 176.0 L618.4 176.0 L618.4 316.4 L420.8 316.4 Z"/>
+<path class="k" d="M420.8 266.5 L432.0 329.2 L432.0 399.6 L420.8 312.2 Z"/>
+<path class="k" d="M420.8 266.5 L618.4 266.5 L736.0 329.2 L432.0 329.2 Z"/>
+<path class="k" d="M432.0 329.2 L736.0 329.2 L736.0 399.6 L432.0 399.6 Z"/>
+<path class="kt" d="M434.2 269.8 L517.7 269.8 L532.0 284.4 L438.4 284.4 Z"/>
+<path class="kt" d="M528.4 269.8 L611.9 269.8 L637.6 284.4 L544.0 284.4 Z"/>
+<path class="t" d="M426.0 295.6 L673.0 295.6"/>
+<path class="kt" d="M520.4 306.8 L598.8 306.8 L613.0 318.0 L529.0 318.0 Z"/>
+<path class="k" d="M520.4 306.8 L598.8 306.8 L598.8 274.8 L520.4 274.8 Z"/>
 <!-- 화장대와 거울 (오른쪽 벽) -->
-<path class="k" d="M740 110 L790 92 V200 L740 212 Z"/>
-<ellipse class="w" cx="765" cy="150" rx="14" ry="30"/>
-<path class="k" d="M736 216 L796 200 V230 L736 244 Z"/>
-<g class="t"><path d="M746 214 V200 H754 V212"/><path d="M762 210 V194 Q766 188 770 194 V208"/><circle cx="782" cy="200" r="5"/></g>
+<path class="w" d="M719.0 106.0 L777.0 98.0 L777.0 221.5 L719.0 210.5 Z"/>
+<path class="t" d="M724.8 111.9 L771.2 106.5 L771.2 212.7 L724.8 204.9 Z"/>
+<path class="kt" d="M759.6 168.6 L771.2 169.2 L771.2 207.6 L759.6 205.8 Z"/>
+<path class="k" d="M670.0 242.9 L735.0 265.2 L735.0 364.4 L670.0 322.8 Z"/>
+<path class="k" d="M670.0 242.9 L713.2 242.9 L788.6 265.2 L735.0 265.2 Z"/>
+<path class="k" d="M735.0 265.2 L788.6 265.2 L788.6 364.4 L735.0 364.4 Z"/>
+<path class="t" d="M735.0 308.1 L670.0 277.4"/>
+<!-- 삼각대와 휴대폰 -->
+<path class="w" d="M358.0 192.0 L324.0 374.0"/>
+<path class="w" d="M358.0 192.0 L358.0 393.2"/>
+<path class="w" d="M358.0 192.0 L388.0 374.0"/>
+<path class="w" d="M358.0 192.0 L358.0 156.0"/>
+<rect class="k" x="349.0" y="128.0" width="18" height="32" rx="3"/>
+<circle class="t" cx="358.0" cy="134.0" r="2"/>
 </svg>

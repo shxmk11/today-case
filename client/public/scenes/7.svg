@@ -1,35 +1,52 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450">
-<style>.w{fill:none;stroke:#fff;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}.t{fill:none;stroke:#fff;stroke-width:1.5;stroke-linejoin:round;stroke-linecap:round}.g{fill:none;stroke:#636366;stroke-width:1.5;stroke-linecap:round}.k{fill:#000;stroke:#fff;stroke-width:2;stroke-linejoin:round}.f{fill:#fff}</style>
+<style>.w{fill:none;stroke:#fff;stroke-width:1.6;stroke-linejoin:round;stroke-linecap:round}.t{fill:none;stroke:#fff;stroke-width:1;stroke-linejoin:round;stroke-linecap:round}.g{fill:none;stroke:#636366;stroke-width:1;stroke-linejoin:round;stroke-linecap:round}.k{fill:#000;stroke:#fff;stroke-width:1.6;stroke-linejoin:round;stroke-linecap:round}.kt{fill:#000;stroke:#fff;stroke-width:1;stroke-linejoin:round;stroke-linecap:round}.b{fill:#000;stroke:#C1121F;stroke-width:1.6;stroke-linejoin:round;stroke-linecap:round}.r{fill:none;stroke:#C1121F;stroke-width:1;stroke-linecap:round;stroke-linejoin:round}.gd{fill:#636366}</style>
 <rect width="800" height="450" fill="#000"/>
-<path class="g" d="M160 300 L100 450 M240 300 L200 450 M320 300 L300 450 M400 300 L400 450 M480 300 L500 450 M560 300 L600 450 M640 300 L700 450"/>
-<path class="w" d="M0 0 L80 30 L720 30 L800 0 M80 30 V300 H720 V30 M80 300 L0 450 M720 300 L800 450"/>
+<path class="w" d="M110.0 35.0 L690.0 35.0 L690.0 310.0 L110.0 310.0 Z"/>
+<path class="w" d="M110.0 35.0 L-470.0 -195.0"/>
+<path class="w" d="M690.0 35.0 L1270.0 -195.0"/>
+<path class="w" d="M110.0 310.0 L-470.0 630.0"/>
+<path class="w" d="M690.0 310.0 L1270.0 630.0"/>
+<path class="g" d="M110.0 302.0 L690.0 302.0"/>
 <!-- 큰 창, 여름 밤 -->
-<rect class="w" x="300" y="60" width="200" height="130" rx="2"/>
-<path class="w" d="M400 60 V190"/>
-<path class="t" d="M300 60 Q290 120 302 190 M500 60 Q510 120 498 190"/>
-<path class="w" d="M440 160 V120 M440 128 Q424 110 430 96 M440 120 Q456 104 452 92"/>
-<circle class="t" cx="340" cy="92" r="10"/>
-<!-- 책상, 노트북 -->
-<path class="k" d="M100 210 H270 L286 230 H84 Z"/>
-<path class="w" d="M90 230 V320 M280 230 V320 M84 230 H286 V244 H84"/>
-<path class="w" d="M150 208 L144 168 H226 L232 208 Z"/>
-<path class="t" d="M124 208 H256"/>
-<path class="t" d="M158 178 H218 M158 188 H200 M158 198 H210"/>
-<path class="w" d="M240 206 L264 200 L268 208"/>
+<rect class="w" x="270" y="58" width="200" height="142"/>
+<rect class="t" x="276" y="64" width="188" height="130"/>
+<path class="t" d="M370.0 64.0 L370.0 194.0"/>
+<path class="w" d="M262.0 204.0 L478.0 204.0 L481.1 206.2 L256.5 206.2 Z"/>
+<path class="g" d="M282.0 150.0 L458.0 146.0"/>
+<path class="g" d="M290 160 q20 -3 40 0 M380 170 q16 -3 32 0 M420 158 q12 -2 24 0"/>
+<circle class="t" cx="430" cy="92" r="9"/>
+<!-- 책상과 노트북 -->
+<path class="k" d="M85.6 249.8 L80.2 251.5 L80.2 338.8 L85.6 335.6 Z"/>
+<path class="k" d="M77.5 249.8 L85.6 249.8 L80.2 251.5 L72.0 251.5 Z"/>
+<path class="k" d="M72.0 251.5 L80.2 251.5 L80.2 338.8 L72.0 338.8 Z"/>
+<path class="k" d="M215.6 249.8 L212.4 251.5 L212.4 338.8 L215.6 335.6 Z"/>
+<path class="k" d="M207.4 249.8 L215.6 249.8 L212.4 251.5 L204.1 251.5 Z"/>
+<path class="k" d="M204.1 251.5 L212.4 251.5 L212.4 338.8 L204.1 338.8 Z"/>
+<path class="k" d="M245.0 228.0 L214.0 243.6 L214.0 253.2 L245.0 236.0 Z"/>
+<path class="k" d="M118.0 228.0 L245.0 228.0 L214.0 243.6 L61.6 243.6 Z"/>
+<path class="k" d="M61.6 243.6 L214.0 243.6 L214.0 253.2 L61.6 253.2 Z"/>
+<path class="kt" d="M137.5 231.9 L202.6 231.9 L187.6 238.1 L117.5 238.1 Z"/>
+<path class="k" d="M137.5 231.9 L202.6 231.9 L202.6 195.9 L137.5 195.9 Z"/>
+<path class="g" d="M154.1 205.9 h30 M154.1 210.9 h30 M154.1 215.9 h30 M154.1 220.9 h18"/>
+<path class="g" d="M168.1 202.9 L168.1 222.9"/>
 <!-- 협탁과 휴대폰 -->
-<rect class="k" x="530" y="230" width="60" height="60" rx="3"/>
-<path class="w" d="M530 260 H590 M560 270 V276"/>
-<rect class="k" x="548" y="216" width="26" height="12" rx="2" transform="rotate(-6 561 222)"/>
+<path class="k" d="M490.0 240.0 L500.8 250.8 L500.8 329.2 L490.0 310.0 Z"/>
+<path class="k" d="M490.0 240.0 L540.0 240.0 L556.8 250.8 L500.8 250.8 Z"/>
+<path class="k" d="M500.8 250.8 L556.8 250.8 L556.8 329.2 L500.8 329.2 Z"/>
+<path class="t" d="M500.8 282.2 L556.8 282.2"/>
+<path class="w" d="M521.0 266.5 L536.6 266.5"/>
+<path class="kt" d="M507.1 243.6 L526.9 243.6 L535.2 248.1 L510.1 248.1 Z"/>
 <!-- 침대 -->
-<path class="k" d="M600 200 H720 V300 H600 Z"/>
-<path class="k" d="M600 240 H740 L800 290 V380 H560 V290 Z"/>
-<path class="k" d="M560 290 H800 V330 H560 Z"/>
-<path class="w" d="M620 236 Q630 220 680 224 Q696 232 684 244 H624 Z"/>
-<path class="t" d="M600 300 Q640 284 700 300 Q740 312 790 300"/>
-<path class="w" d="M566 380 V410 M796 380 V410"/>
-<!-- 여행 가방 -->
-<path class="k" d="M150 340 H250 L262 420 H138 Z"/>
-<path class="w" d="M180 340 V326 H220 V340 M150 370 H254"/>
-<!-- 운동화 -->
-<path class="w" d="M380 400 Q396 384 420 390 L440 396 Q446 408 420 408 H384 Z"/>
+<path class="k" d="M552.0 180.0 L559.6 181.5 L559.6 318.0 L552.0 310.0 Z"/>
+<path class="k" d="M552.0 180.0 L690.0 180.0 L704.5 181.5 L559.6 181.5 Z"/>
+<path class="k" d="M559.6 181.5 L704.5 181.5 L704.5 318.0 L559.6 318.0 Z"/>
+<path class="k" d="M559.6 267.6 L666.0 346.0 L666.0 423.0 L559.6 313.8 Z"/>
+<path class="k" d="M559.6 267.6 L704.5 267.6 L907.5 346.0 L666.0 346.0 Z"/>
+<path class="k" d="M666.0 346.0 L907.5 346.0 L907.5 423.0 L666.0 423.0 Z"/>
+<path class="g" d="M559.6 294.9 L666.0 391.5"/>
+<path class="kt" d="M572.8 271.0 L670.0 271.0 L710.0 288.9 L598.4 288.9 Z"/>
+<path class="t" d="M612.8 306.8 Q690.0 303.7 794.4 302.3"/>
+<!-- 침대 밑 출입증 줄 -->
+<path class="t" d="M630.0 384.5 q-10 2 -16 8 q-4 6 4 7"/>
+<rect class="kt" x="608.0" y="395.5" width="14" height="10" rx="1" transform="rotate(-12 615.0 400.5)"/>
 </svg>
