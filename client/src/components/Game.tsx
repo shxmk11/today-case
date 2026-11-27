@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { api } from "../api";
-import type { AccuseResult, Character, Clue, PlayState, Relation, TimelineItem } from "../types";
-import ChatPanel from "./ChatPanel";
+import type { AccuseResult, Character, PlayState, Relation, TimelineItem } from "../types";
+import ChatPanel, { type Shown } from "./ChatPanel";
 import CasePanel, { type Tab } from "./CasePanel";
 import AccuseModal from "./AccuseModal";
 import { Face, Topline, bio } from "./Common";
@@ -19,7 +19,7 @@ export default function Game({ playId, onHome, onFinish }: Props) {
   const [error, setError] = useState("");
   const [selected, setSelected] = useState<number | null>(null);
   const [accusing, setAccusing] = useState(false);
-  const [tab, setTab] = useState<Tab>("clue");
+  const [tab, setTab] = useState<Tab>("scene");
   const [toast, setToast] = useState("");
   // 검시 기록 창: 플레이마다 처음 한 번만 띄운다
   const seenKey = `autopsy-seen-${playId}`;
@@ -76,7 +76,7 @@ export default function Game({ playId, onHome, onFinish }: Props) {
   const freshStages = new Set(relations.filter((r) => seenStages && !seenStages.has(r.stage_id)).map((r) => r.stage_id));
 
   if (error) return <p className="error page">{error}</p>;
-  if (!state) return <p className="muted page">현장으로 이동 중…</p>;
+  if (!state) return <p className="loading-center">현장으로 이동 중…</p>;
 
   const suspects = state.characters.filter((c) => c.character_type !== "피해자");
   const victim = state.characters.find((c) => c.character_type === "피해자");
@@ -101,12 +101,18 @@ export default function Game({ playId, onHome, onFinish }: Props) {
     if (parts.length > 0) showToast(`＋ ${parts.join("  ·  ")}`);
   }
 
-  async function ask(ch: Character, question: string, evidence?: Clue) {
-    const shown = evidence ? `[증거 제시: ${evidence.name}] ${question}` : question;
+  async function ask(ch: Character, question: string, evidence?: Shown) {
+    const name = evidence ? (evidence.kind === "clue" ? evidence.clue.name : evidence.deduction.name) : "";
+    const shown = evidence ? `[증거 제시: ${name}] ${question}` : question;
     const pending = { character_id: ch.character_id, question: shown, answer: "", pending: true };
     setState((s) => s && { ...s, chats: [...s.chats, pending] });
     try {
-      const res = await api.interrogate(playId, ch.character_id, question, evidence?.clue_id);
+      const res = await api.interrogate(
+        playId,
+        ch.character_id,
+        question,
+        evidence && (evidence.kind === "clue" ? { clueId: evidence.clue.clue_id } : { deductionId: evidence.deduction.deduction_id }),
+      );
       const fresh = res.clues.filter((c) => res.newClues.includes(c.clue_id)).map((c) => c.name);
       announce(fresh, res.timeline);
       setState((s) => s && {
@@ -168,6 +174,19 @@ export default function Game({ playId, onHome, onFinish }: Props) {
     }
   }
 
+  async function toggleExcluded(characterId: number) {
+    const next = !state!.excluded.includes(characterId);
+    // 먼저 화면에 반영하고, 저장이 실패하면 되돌린다
+    setState((s) => s && { ...s, excluded: next ? [...s.excluded, characterId] : s.excluded.filter((x) => x !== characterId) });
+    try {
+      const { excluded } = await api.mark(playId, characterId, next);
+      setState((s) => s && { ...s, excluded });
+    } catch (e) {
+      setState((s) => s && { ...s, excluded: next ? s.excluded.filter((x) => x !== characterId) : [...s.excluded, characterId] });
+      showToast((e as Error).message);
+    }
+  }
+
   async function accuse(characterId: number, alibiDeductionId: number, linkDeductionId: number) {
     const result = await api.accuse(playId, characterId, alibiDeductionId, linkDeductionId);
     onFinish(result, state!.case.title);
@@ -221,21 +240,32 @@ export default function Game({ playId, onHome, onFinish }: Props) {
           </div>
           {suspects.map((c) => {
             const count = state.chats.filter((m) => m.character_id === c.character_id).length;
+            const out = state.excluded.includes(c.character_id);
             return (
-              <button
-                key={c.character_id}
-                className={`suspect ${c.character_id === selected ? "on" : ""}`}
-                onClick={() => setSelected(c.character_id)}
-              >
-                <Face name={c.name} src={c.image_url} size={38} zoom />
-                <span className="grow">
-                  <b>{c.name}</b>
-                  <small>
-                    {bio(c)}, {c.job}
-                  </small>
+              <div key={c.character_id} className={`suspect ${c.character_id === selected ? "on" : ""} ${out ? "out" : ""}`}>
+                <button className="suspect-main" onClick={() => setSelected(c.character_id)}>
+                  <Face name={c.name} src={c.image_url} size={38} zoom />
+                  <span className="grow">
+                    <b>{c.name}</b>
+                    <small>
+                      {bio(c)}, {c.job}
+                    </small>
+                  </span>
+                </button>
+                <span className="suspect-side">
+                  {count > 0 && <span className="q">질문 {count}</span>}
+                  {c.character_type === "용의자" && (
+                    <button
+                      className={`mark ${out ? "on" : ""}`}
+                      aria-pressed={out}
+                      title="표시만 해 두는 기능이에요. 판정에는 영향이 없어요."
+                      onClick={() => void toggleExcluded(c.character_id)}
+                    >
+                      {out ? "제외함" : "용의선상 제외"}
+                    </button>
+                  )}
                 </span>
-                {count > 0 && <span className="q">질문 {count}</span>}
-              </button>
+              </div>
             );
           })}
           <RelationMap
@@ -251,6 +281,7 @@ export default function Game({ playId, onHome, onFinish }: Props) {
             character={current}
             chats={state.chats.filter((m) => m.character_id === current.character_id)}
             clues={state.clues}
+            deductions={state.deductions}
             onAsk={(q, ev) => ask(current, q, ev)}
           />
         ) : (
@@ -273,6 +304,8 @@ export default function Game({ playId, onHome, onFinish }: Props) {
           onUnlimited={unlimited}
           onInvestigate={investigate}
           onLink={link}
+          memo={state.memo}
+          onMemo={(content) => api.memo(playId, content)}
         />
       </div>
 

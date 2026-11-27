@@ -150,6 +150,7 @@ CREATE TABLE spot (
     name VARCHAR(50) NOT NULL,
     unlock_clue_id INT NULL,                 -- 2차 조사: 이 단서를 찾아야 열 수 있음
     unlock_deduction_id INT NULL,            -- 2차 조사: 이 추론을 얻어야 열 수 있음
+    lock_hint VARCHAR(255) NULL,             -- 잠겨 있을 때 보여 주는 한 줄 힌트 (방향만)
     pos_x DECIMAL(5,2),                      -- 현장 그림 위 위치 (가로 %, 세로 %)
     pos_y DECIMAL(5,2),
     PRIMARY KEY (spot_id),
@@ -389,6 +390,40 @@ CREATE TABLE accusation_evidence (
         REFERENCES deduction (deduction_id)
 );
 
+-- 로그인 세션 (게스트도 브라우저마다 게스트 회원 + 세션을 하나 받는다)
+CREATE TABLE login_session (
+    token CHAR(64) NOT NULL,
+    member_id VARCHAR(20) NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (token),
+    CONSTRAINT fk_session_member FOREIGN KEY (member_id)
+        REFERENCES member (member_id) ON DELETE CASCADE
+);
+
+-- 용의선상 제외 표시 (플레이어 메모용. 판정에는 영향 없음)
+CREATE TABLE suspect_mark (
+    participant_id INT NOT NULL,
+    character_id INT NOT NULL,
+    marked_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (participant_id, character_id),
+    CONSTRAINT fk_mark_participant FOREIGN KEY (participant_id)
+        REFERENCES participant (participant_id) ON DELETE CASCADE,
+    CONSTRAINT fk_mark_character FOREIGN KEY (character_id)
+        REFERENCES game_character (character_id) ON DELETE CASCADE
+);
+
+-- 진상 공개 뒤 AI에게 한 질문 (한 판에 10번까지)
+CREATE TABLE truth_question (
+    question_id INT NOT NULL AUTO_INCREMENT,
+    participant_id INT NOT NULL,
+    question VARCHAR(300) NOT NULL,
+    answer TEXT NOT NULL,
+    asked_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (question_id),
+    CONSTRAINT fk_tq_participant FOREIGN KEY (participant_id)
+        REFERENCES participant (participant_id) ON DELETE CASCADE
+);
+
 
 /* 2. 사건 데이터 */
 
@@ -485,6 +520,7 @@ INSERT INTO clue (clue_id, scene_id, spot_id, character_id, name, description, c
 
 -- 2차 조사: 이 단서를 찾아야 열리는 곳
 UPDATE spot SET unlock_clue_id = 4 WHERE spot_id = 19;   -- 서류가방 ← 빈 유언장 봉투 ("윤 변호사 지참")
+UPDATE spot SET lock_hint = '가방 주인이 무엇을 들고 왔는지 알려 주는 기록을 먼저 찾아보세요.' WHERE spot_id = 19;
 -- 숨은 증언: 관련 증거를 내밀어야만 털어놓는다
 UPDATE clue SET unlock_clue_id = 6 WHERE clue_id = 19;   -- 서재의 언쟁 ← 반쯤 한 설거지
 
@@ -1112,7 +1148,7 @@ INSERT INTO clue (clue_id, scene_id, spot_id, character_id, name, description, c
 (210, 12, 205, NULL, '바닷가 사진', '도훈과 태규가 바닷가에서 손을 잡고 있는 사진. 뒷면에 "4주년"이라고 적혀 있다.', '물증', FALSE, NULL),
 (211, 12, 205, NULL, '지분표', '로즈필름 지분표. 장미라의 지분 30%가 2년 전 0%로 바뀌었다. 비고: "기획안 저작권 회사 귀속".', '기록', FALSE, NULL),
 (212, 13, 207, NULL, '조명 나사', '신랑 인사 자리 바로 위 알루미늄 트러스의 4mm 육각 나사에 새 공구 자국이 있다.', '물증', FALSE, NULL),
-(213, 13, 207, NULL, '시설 점검표', '"20:28 무대 트러스 나사 풀림 발견, 재조임 완료. 시설팀 오".', '기록', FALSE, '20:28:00'),
+(213, 13, 207, NULL, '시설 점검표', '"20:28 무대 트러스 나사 풀림 발견, 재조임 완료. 시설팀 오민수".', '기록', FALSE, '20:28:00'),
 (214, 13, 208, NULL, '촬영 기록', '태규의 카메라에 20:28~21:00 사진 214장이 있다. 1~2분 간격이고 모두 피로연장에서 찍혔다.', '기록', FALSE, '20:28:00'),
 (215, 13, 208, NULL, '무대 인사 사진', '20:50:12 촬영. 무대의 신랑은 검은 원형 커프스와 흰 장미 장식을 달았다. 확대하면 오른쪽 눈썹 끝에 작은 흉터가 보인다.', '기록', TRUE, '20:50:00'),
 (216, 14, 210, NULL, '진정제 약병', '처방자 "백서린"의 진정제 병. 절반이 비어 있다.', '물증', FALSE, NULL),
@@ -1186,6 +1222,7 @@ INSERT INTO deduction_clue (deduction_id, clue_id) VALUES
 (217, 221), (217, 222);
 
 UPDATE spot SET unlock_deduction_id = 212 WHERE spot_id = 217;   -- 반납 턱시도 걸이 ← 두 번째 신랑
+UPDATE spot SET lock_hint = '신랑의 차림을 꼼꼼히 비교해 보세요.' WHERE spot_id = 217;
 
 -- 인물 관계도
 INSERT INTO relation_stage (character_a_id, character_b_id, stage_order, label, tone, clue_id, deduction_id) VALUES

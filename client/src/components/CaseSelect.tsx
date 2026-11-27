@@ -1,38 +1,56 @@
 import { useEffect, useState } from "react";
-import { api } from "../api";
-import type { CaseSummary } from "../types";
+import { api, shortDate } from "../api";
+import type { CaseSummary, Me, MyPlay } from "../types";
 import { Face, Topline } from "./Common";
+import LoginModal from "./LoginModal";
 
 const today = () => {
   const d = new Date();
   return `${d.getFullYear()}. ${d.getMonth() + 1}. ${d.getDate()}.`;
 };
 
-export default function CaseSelect({ onStart, onHome }: { onStart: (playId: number) => void; onHome: () => void }) {
+interface Props {
+  me: Me;
+  onMe: (me: Me) => void;
+  onHome: () => void;
+  onNew: (caseId: number) => Promise<void>;
+  onResume: (playId: number) => Promise<void>;
+  onResult: (playId: number, title: string) => Promise<void>;
+}
+
+const statusText = (m: MyPlay) => (m.status === "진행중" ? "진행 중" : m.result === "성공" ? "성공" : "실패");
+
+export default function CaseSelect({ me, onMe, onHome, onNew, onResume, onResult }: Props) {
   const [cases, setCases] = useState<CaseSummary[] | null>(null);
   const [error, setError] = useState("");
   const [pick, setPick] = useState<number | null>(null);
-  const [starting, setStarting] = useState(false);
+  const [busy, setBusy] = useState("");
+  const [loginOpen, setLoginOpen] = useState(false);
 
+  // 로그인·로그아웃하면 내 기록이 바뀌므로 다시 받는다
   useEffect(() => {
     api
       .cases()
       .then((cs) => {
         setCases(cs);
-        setPick(cs[0]?.case_id ?? null);
+        setPick((p) => p ?? cs[0]?.case_id ?? null);
       })
       .catch((e: Error) => setError(e.message));
-  }, []);
+  }, [me.memberId]);
 
-  async function start(caseId: number) {
-    setStarting(true);
+  async function run(label: string, fn: () => Promise<void>) {
+    setBusy(label);
+    setError("");
     try {
-      const { playId } = await api.startPlay(caseId);
-      onStart(playId);
+      await fn();
     } catch (e) {
       setError((e as Error).message);
-      setStarting(false);
+      setBusy("");
     }
+  }
+
+  async function logout() {
+    onMe(await api.logout());
   }
 
   const list = cases ?? [];
@@ -42,10 +60,28 @@ export default function CaseSelect({ onStart, onHome }: { onStart: (playId: numb
 
   return (
     <main className="select">
-      <Topline onHome={onHome} right={`${today()}`} />
+      <Topline
+        onHome={onHome}
+        right={
+          <span className="account">
+            <span>{today()}</span>
+            {me.guest ? (
+              <button className="pill outline small" onClick={() => setLoginOpen(true)}>
+                로그인
+              </button>
+            ) : (
+              <>
+                <b className="account-name">{me.nickname}</b>
+                <button className="link" onClick={() => void logout()}>
+                  로그아웃
+                </button>
+              </>
+            )}
+          </span>
+        }
+      />
       <div className="select-main">
         <div className="select-left">
-          <p className="lbl">사건을 고르세요</p>
           <h1 className="display hero-title">
             오늘의
             <br />
@@ -62,7 +98,7 @@ export default function CaseSelect({ onStart, onHome }: { onStart: (playId: numb
               <span>사건 목록</span>
               <span>{list.length}</span>
             </div>
-            {error && <p className="error">{error}</p>}
+            {!cases && error && <p className="error">{error}</p>}
             {!cases && !error && <p className="muted">사건 파일을 여는 중…</p>}
             {list.map((c, i) => (
               <button
@@ -76,7 +112,11 @@ export default function CaseSelect({ onStart, onHome }: { onStart: (playId: numb
                   <small>{c.genre}</small>
                 </span>
                 <span className="num">{c.difficulty}</span>
-                {c.clue_count != null && <span className="num">단서 {c.clue_count}</span>}
+                {c.mine ? (
+                  <span className={`num ${c.mine.status === "진행중" ? "ongoing" : ""}`}>{statusText(c.mine)}</span>
+                ) : (
+                  c.clue_count != null && <span className="num">단서 {c.clue_count}</span>
+                )}
               </button>
             ))}
             {cases &&
@@ -108,7 +148,7 @@ export default function CaseSelect({ onStart, onHome }: { onStart: (playId: numb
                 <p className="phone-summary">{chosen.summary}</p>
                 <div className="kv">
                   <div><small>난이도</small><b>{chosen.difficulty}</b></div>
-                  <div><small>해결률</small><b className={chosen.solve_rate != null ? "red" : ""}>{chosen.solve_rate != null ? `${chosen.solve_rate}%` : "—"}</b></div>
+                  <div><small>장르</small><b className="kv-genre">{chosen.genre}</b></div>
                   <div><small>현장</small><b>{chosen.scene_count ?? "—"}곳</b></div>
                   <div><small>단서</small><b>{chosen.clue_count ?? "—"}개</b></div>
                 </div>
@@ -123,15 +163,55 @@ export default function CaseSelect({ onStart, onHome }: { onStart: (playId: numb
                     ))}
                   </div>
                 )}
-                <button className="pill red go" disabled={starting} onClick={() => void start(chosen.case_id)}>
-                  {starting ? "사건 파일 여는 중…" : "수사 시작 →"}
-                </button>
+                {error && <p className="error">{error}</p>}
+                <div className="go-group">
+                  {chosen.mine && (
+                    <div className="mine">
+                      <small>내 기록{chosen.mine.plays > 1 ? ` · ${chosen.mine.plays}판째` : ""}</small>
+                      <b>
+                        {shortDate(chosen.mine.startedAt)} 시작 ·{" "}
+                        <span className={chosen.mine.result === "실패" ? "red" : ""}>{statusText(chosen.mine)}</span>
+                      </b>
+                      {chosen.mine.status === "종료" && (
+                        <button className="link dark" disabled={!!busy} onClick={() => void run("result", () => onResult(chosen.mine!.playId, chosen.title))}>
+                          결과 다시 보기
+                        </button>
+                      )}
+                    </div>
+                  )}
+                  {chosen.mine && chosen.mine.result !== "성공" ? (
+                    <>
+                      <button className="pill red go" disabled={!!busy} onClick={() => void run("resume", () => onResume(chosen.mine!.playId))}>
+                        {busy === "resume" ? "사건 파일 여는 중…" : "이어서 하기 →"}
+                      </button>
+                      <small className="go-note">
+                        {chosen.mine.status === "진행중" ? "나간 곳부터 이어서 해요." : "범인을 지목하기 직전으로 돌아가요. 단서·추론·대화는 그대로예요."}
+                      </small>
+                      <button className="pill outline-ink go2" disabled={!!busy} onClick={() => void run("new", () => onNew(chosen.case_id))}>
+                        {busy === "new" ? "새 사건 파일 여는 중…" : "처음부터 다시 하기"}
+                      </button>
+                    </>
+                  ) : (
+                    <button className="pill red go" disabled={!!busy} onClick={() => void run("new", () => onNew(chosen.case_id))}>
+                      {busy === "new" ? "사건 파일 여는 중…" : chosen.mine ? "처음부터 다시 하기 →" : "수사 시작 →"}
+                    </button>
+                  )}
+                </div>
                 <div className="home-bar" />
               </div>
             </div>
           </div>
         )}
       </div>
+      {loginOpen && (
+        <LoginModal
+          onClose={() => setLoginOpen(false)}
+          onDone={(m) => {
+            setLoginOpen(false);
+            onMe(m);
+          }}
+        />
+      )}
     </main>
   );
 }

@@ -9,10 +9,27 @@ export interface CaseSummary {
   suspect_count?: number;
   scene_count?: number;
   clue_count?: number;
-  solve_rate?: number | null;
+  /** 이 사건에서 내 가장 최근 판 */
+  mine?: MyPlay | null;
   suspects?: { name: string; job: string | null; gender: "남" | "여" | null; image_url?: string | null }[];
   /** 건물 단면도 그림 */
   map_url?: string | null;
+}
+
+export interface MyPlay {
+  playId: number;
+  status: "진행중" | "종료";
+  result: "성공" | "실패" | null;
+  startedAt: string;
+  endedAt: string | null;
+  /** 이 사건을 몇 판 했는지 */
+  plays: number;
+}
+
+export interface Me {
+  memberId: string;
+  nickname: string;
+  guest: boolean;
 }
 
 export interface Character {
@@ -32,6 +49,8 @@ export interface Spot {
   name: string;
   searched: boolean;
   locked: boolean;
+  /** 잠겼을 때 방향만 알려 주는 한 줄 힌트 */
+  hint: string | null;
   /** 현장 그림 위 위치 (%) */
   x: number | null;
   y: number | null;
@@ -133,25 +152,55 @@ export interface PlayState {
   deductions: Deduction[];
   deductionTotal: number;
   chats: Chat[];
+  /** 메모 탭 내용 */
+  memo: string;
+  /** 용의선상에서 뺀 인물 */
+  excluded: number[];
+}
+
+/** 못 찾은 추론의 재료 단서와 그 단서를 찾는 법 */
+export interface HowToPart {
+  name: string;
+  found: boolean;
+  howTo: string;
+}
+
+export interface AnswerDeduction {
+  name: string;
+  description: string;
+  role: "알리바이" | "연결" | null;
+  note: string | null;
+  found: boolean;
+  howTo: HowToPart[] | null;
 }
 
 export interface AccuseResult {
+  playId: number;
+  caseId: number;
   result: "성공" | "실패";
   /** 범인은 맞혔는지 (근거가 부족하면 범인을 맞혀도 실패) */
   culpritCorrect: boolean;
-  evidence: { slot: "알리바이" | "연결"; name: string; ok: boolean; note: string | null }[];
   accused: string;
-  culprit: { character_id: number; name: string };
-  truth: string;
-  timeline: Fact[];
   stats: { minutes: number; questions: number; clues: number; clueTotal: number; deductions: number; deductionTotal: number };
-  keyEvidence: { name: string; description: string | null; clue_type: Clue["clue_type"]; scene_name: string; found: boolean }[];
-  keyTestimony: {
-    name: string;
-    description: string | null;
-    character: string | null;
-    found: boolean;
-    chat: { question: string; answer: string } | null;
+  /** 범인을 맞혔을 때만: 고른 근거와 맞았는지 */
+  evidence: { slot: "알리바이" | "연결"; name: string; ok: boolean; note: string | null }[] | null;
+  culprit: { character_id: number; name: string } | null;
+  /** 범인을 맞혔을 때만: 진상, 정답, 결정적 증거, AI 질문 */
+  reveal: {
+    truth: string;
+    timeline: Fact[];
+    keyEvidence: { name: string; description: string | null; clue_type: Clue["clue_type"]; scene_name: string; found: boolean; howTo: string | null }[];
+    keyTestimony: {
+      name: string;
+      description: string | null;
+      character: string | null;
+      found: boolean;
+      chat: { question: string; answer: string } | null;
+      howTo: string | null;
+    } | null;
+    answers: AnswerDeduction[];
+    missed: AnswerDeduction[];
+    asks: { question: string; answer: string }[];
+    askLeft: number;
   } | null;
-  caseId: number;
 }

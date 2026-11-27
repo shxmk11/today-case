@@ -1,7 +1,8 @@
 import { Router, type Request, type Response, type NextFunction } from "express";
 import { query, one, insert } from "./db.js";
-import { interrogate, formatQuestion, LlmBusyError, type Evidence } from "./llm.js";
+import { interrogate, formatQuestion, askAboutTruth, LlmBusyError, type Evidence, type Shown } from "./llm.js";
 import type { AutopsyRow, CaseRow, CharacterRow, ClueRow, FactRow } from "./types.js";
+import { adoptGuestPlays, checkPassword, hashPassword, isGuestId, newGuest, newSession, tokenOf, whoAmI } from "./auth.js";
 
 export const router = Router();
 
@@ -20,14 +21,23 @@ const wrap =
 /* 플레이어에게 보여도 되는 필드만 고른다 (범인 여부, 진상, 숨긴 사실은 제외) */
 const publicCharacter = ({ is_culprit: _c, case_id: _id, backstory: _b, cover_story: _s, fallback_story: _fs, fallback_clue_ids: _fc, fallback_guard: _fg, fallback_admit: _fa, ...rest }: CharacterRow) => rest;
 
-async function getPlay(playId: number) {
-  const play = await one<{ play_id: number; case_id: number; status: string; participant_id: number; unlimited: number }>(
-    `SELECT pl.play_id, pl.case_id, pl.status, p.participant_id, p.unlimited
+/** 로그인(또는 게스트) 세션이 있어야 하는 요청 */
+async function requireMe(req: Request) {
+  const me = await whoAmI(req);
+  if (!me) throw new HttpError(401, "세션이 끝났어요. 새로고침해 주세요.");
+  return me;
+}
+
+/** 내 판만 열 수 있다 */
+async function getPlay(req: Request) {
+  const me = await requireMe(req);
+  const play = await one<{ play_id: number; case_id: number; status: string; result: string | null; participant_id: number; unlimited: number; member_id: string | null }>(
+    `SELECT pl.play_id, pl.case_id, pl.status, pl.result, p.participant_id, p.unlimited, p.member_id
      FROM play pl JOIN participant p ON p.play_id = pl.play_id AND p.role = '탐정'
      WHERE pl.play_id = ?`,
-    [playId],
+    [Number(req.params.id)],
   );
-  if (!play) throw new HttpError(404, "플레이를 찾을 수 없어요.");
+  if (!play || play.member_id !== me.memberId) throw new HttpError(404, "플레이를 찾을 수 없어요.");
   return play;
 }
 
@@ -78,7 +88,7 @@ async function investigationsLeft(participantId: number, caseId: number) {
   return Math.max(0, Number(r?.n ?? 0));
 }
 
-/** 장소별 조사 지점: 조사했는지, 아직 잠겼는지 (잠금을 여는 단서는 알려주지 않음) */
+/** 장소별 조사 지점: 조사했는지, 아직 잠겼는지 (잠겼으면 방향만 알려 주는 한 줄 힌트) */
 async function sceneSpots(participantId: number, caseId: number) {
   const scenes = await query<{
     scene_id: number; name: string; description: string | null; image_url: string | null;
@@ -88,9 +98,9 @@ async function sceneSpots(participantId: number, caseId: number) {
     [caseId],
   );
   const spots = await query<{
-    spot_id: number; scene_id: number; name: string; searched: number; locked: number; pos_x: string | null; pos_y: string | null;
+    spot_id: number; scene_id: number; name: string; searched: number; locked: number; pos_x: string | null; pos_y: string | null; lock_hint: string | null;
   }>(
-    `SELECT sp.spot_id, sp.scene_id, sp.name, sp.pos_x, sp.pos_y,
+    `SELECT sp.spot_id, sp.scene_id, sp.name, sp.pos_x, sp.pos_y, sp.lock_hint,
             EXISTS (SELECT 1 FROM spot_search ss WHERE ss.participant_id = ? AND ss.spot_id = sp.spot_id) AS searched,
             ((sp.unlock_clue_id IS NOT NULL AND NOT EXISTS (
                SELECT 1 FROM clue_discovery cd WHERE cd.participant_id = ? AND cd.clue_id = sp.unlock_clue_id))
@@ -107,6 +117,7 @@ async function sceneSpots(participantId: number, caseId: number) {
       .filter((x) => x.scene_id === sc.scene_id)
       .map((x) => ({
         spot_id: x.spot_id, name: x.name, searched: !!x.searched, locked: !!x.locked,
+        hint: x.locked ? (x.lock_hint ?? "다른 단서를 더 찾아보세요.") : null,
         x: num(x.pos_x), y: num(x.pos_y),
       }));
     const map = map_x == null ? null : { x: num(map_x)!, y: num(map_y)!, w: num(map_w)!, h: num(map_h)! };
@@ -197,42 +208,58 @@ async function addAlibiEntries(participantId: number, interrogationId: number, c
 /* 사건 목록 */
 router.get(
   "/cases",
-  wrap(async (_req, res) => {
-    const cases = await query<Omit<CaseRow, "truth"> & { suspect_count: number; scene_count: number; clue_count: number; solve_rate: string | null }>(
+  wrap(async (req, res) => {
+    const cases = await query<Omit<CaseRow, "truth"> & { suspect_count: number; scene_count: number; clue_count: number }>(
       `SELECT c.case_id, c.title, c.genre, c.difficulty, c.summary,
               (SELECT COUNT(*) FROM game_character g
                WHERE g.case_id = c.case_id AND g.character_type = '용의자') AS suspect_count,
               (SELECT COUNT(*) FROM scene s WHERE s.case_id = c.case_id) AS scene_count,
-              (SELECT COUNT(*) FROM clue k JOIN scene s ON s.scene_id = k.scene_id WHERE s.case_id = c.case_id) AS clue_count,
-              (SELECT ROUND(100 * AVG(p.result = '성공')) FROM play p
-               WHERE p.case_id = c.case_id AND p.status = '종료') AS solve_rate
+              (SELECT COUNT(*) FROM clue k JOIN scene s ON s.scene_id = k.scene_id WHERE s.case_id = c.case_id) AS clue_count
        FROM case_file c ORDER BY c.case_id`,
     );
+    // 사건마다 내 가장 최근 판 (실행 날짜, 진행 중/성공/실패)
+    const me = await whoAmI(req);
+    const mine = me
+      ? await query<{ case_id: number; play_id: number; status: string; result: string | null; started_at: Date; ended_at: Date | null; plays: number }>(
+          `SELECT pl.case_id, pl.play_id, pl.status, pl.result, pl.started_at, pl.ended_at,
+                  (SELECT COUNT(*) FROM play p2 JOIN participant q2 ON q2.play_id = p2.play_id
+                   WHERE q2.member_id = pa.member_id AND p2.case_id = pl.case_id) AS plays
+           FROM play pl JOIN participant pa ON pa.play_id = pl.play_id AND pa.role = '탐정'
+           WHERE pa.member_id = ?
+             AND pl.play_id = (SELECT MAX(p3.play_id) FROM play p3 JOIN participant q3 ON q3.play_id = p3.play_id
+                               WHERE q3.member_id = pa.member_id AND p3.case_id = pl.case_id)`,
+          [me.memberId],
+        )
+      : [];
     const suspects = await query<{ case_id: number; name: string; job: string | null; gender: string | null; image_url: string | null }>(
       `SELECT case_id, name, job, gender, image_url FROM game_character WHERE character_type = '용의자' ORDER BY character_id`,
     );
     res.json(
       cases.map((c) => ({
         ...c,
-        solve_rate: c.solve_rate == null ? null : Number(c.solve_rate),
+        mine: (() => {
+          const m = mine.find((x) => x.case_id === c.case_id);
+          return m
+            ? { playId: m.play_id, status: m.status, result: m.result, startedAt: m.started_at, endedAt: m.ended_at, plays: Number(m.plays) }
+            : null;
+        })(),
         suspects: suspects.filter((s) => s.case_id === c.case_id).map(({ name, job, gender, image_url }) => ({ name, job, gender, image_url })),
       })),
     );
   }),
 );
 
-/* 새 플레이 시작: 게스트 회원 + 1인 탐정 참가자 생성 */
+/* 새 플레이 시작: 지금 세션의 회원(게스트 포함)으로 1인 탐정 참가자 생성 */
 router.post(
   "/plays",
   wrap(async (req, res) => {
+    const me = await requireMe(req);
     const caseId = Number(req.body?.caseId);
     const c = await one<CaseRow>(`SELECT * FROM case_file WHERE case_id = ?`, [caseId]);
     if (!c) throw new HttpError(404, "사건을 찾을 수 없어요.");
 
-    const guestId = `guest_${Date.now().toString(36)}${Math.floor(Math.random() * 1e4)}`.slice(0, 20);
-    await insert(`INSERT INTO member (member_id, password, nickname) VALUES (?, '', ?)`, [guestId, guestId]);
     const playId = await insert(`INSERT INTO play (case_id, mode) VALUES (?, '1인')`, [caseId]);
-    await insert(`INSERT INTO participant (play_id, member_id, role) VALUES (?, ?, '탐정')`, [playId, guestId]);
+    await insert(`INSERT INTO participant (play_id, member_id, role) VALUES (?, ?, '탐정')`, [playId, me.memberId]);
     res.status(201).json({ playId });
   }),
 );
@@ -241,7 +268,7 @@ router.post(
 router.get(
   "/plays/:id",
   wrap(async (req, res) => {
-    const play = await getPlay(Number(req.params.id));
+    const play = await getPlay(req);
     const c = await one<CaseRow>(`SELECT * FROM case_file WHERE case_id = ?`, [play.case_id]);
     const characters = await query<CharacterRow>(
       `SELECT * FROM game_character WHERE case_id = ? ORDER BY character_id`,
@@ -281,6 +308,14 @@ router.get(
         [play.case_id],
       ))!.n,
       chats,
+      memo: (await one<{ content: string }>(
+        `SELECT content FROM memo WHERE participant_id = ? AND is_auto = FALSE ORDER BY memo_id DESC LIMIT 1`,
+        [play.participant_id],
+      ))?.content ?? "",
+      excluded: (await query<{ character_id: number }>(
+        `SELECT character_id FROM suspect_mark WHERE participant_id = ?`,
+        [play.participant_id],
+      )).map((m) => m.character_id),
     });
   }),
 );
@@ -289,7 +324,7 @@ router.get(
 router.post(
   "/plays/:id/investigate",
   wrap(async (req, res) => {
-    const play = await getPlay(Number(req.params.id));
+    const play = await getPlay(req);
     assertOngoing(play);
     const spotId = Number(req.body?.spotId);
     const spot = await one<{ spot_id: number; name: string; unlock_clue_id: number | null; unlock_deduction_id: number | null }>(
@@ -333,7 +368,7 @@ router.post(
 router.post(
   "/plays/:id/link",
   wrap(async (req, res) => {
-    const play = await getPlay(Number(req.params.id));
+    const play = await getPlay(req);
     assertOngoing(play);
     const raw: unknown[] = Array.isArray(req.body?.clueIds) ? req.body.clueIds : [];
     const ids = [...new Set(raw.map(Number))]
@@ -396,7 +431,7 @@ router.post(
 router.get(
   "/plays/:id/relations",
   wrap(async (req, res) => {
-    const play = await getPlay(Number(req.params.id));
+    const play = await getPlay(req);
     const rows = await query<{ stage_id: number; a: number; b: number; stage_order: number; label: string; tone: string }>(
       `SELECT rs.stage_id, rs.character_a_id AS a, rs.character_b_id AS b, rs.stage_order, rs.label, rs.tone
        FROM relation_stage rs
@@ -419,7 +454,7 @@ router.get(
 router.post(
   "/plays/:id/unlimited",
   wrap(async (req, res) => {
-    const play = await getPlay(Number(req.params.id));
+    const play = await getPlay(req);
     assertOngoing(play);
     if (!play.unlimited && (await investigationsLeft(play.participant_id, play.case_id)) > 0) {
       throw new HttpError(409, "조사 횟수가 남아 있어요. 다 쓰고 나면 켤 수 있어요.");
@@ -433,7 +468,7 @@ router.post(
 router.post(
   "/plays/:id/interrogate",
   wrap(async (req, res) => {
-    const play = await getPlay(Number(req.params.id));
+    const play = await getPlay(req);
     assertOngoing(play);
     const question = String(req.body?.question ?? "").trim();
     if (!question || question.length > 300) throw new HttpError(400, "질문은 1~300자로 해주세요.");
@@ -447,23 +482,34 @@ router.post(
        WHERE participant_id = ? AND character_id = ? ORDER BY asked_at, interrogation_id`,
       [play.participant_id, ch.character_id],
     );
-    // 증거 제시: 이미 발견한 단서만 낼 수 있다
-    let evidence: Evidence | undefined;
+    // 증거 제시: 이미 발견한 단서, 또는 얻은 추론(= 그 재료 단서 2개를 함께 내민 것)만 낼 수 있다
+    let evidence: Shown | undefined;
     if (req.body?.clueId != null) {
-      evidence = await one<Evidence>(
+      const clue = await one<Evidence>(
         `SELECT c.clue_id, c.name, c.description FROM clue_discovery cd JOIN clue c ON c.clue_id = cd.clue_id
          WHERE cd.participant_id = ? AND cd.clue_id = ?`,
         [play.participant_id, Number(req.body.clueId)],
       );
-      if (!evidence) throw new HttpError(400, "아직 찾지 못한 단서예요.");
+      if (!clue) throw new HttpError(400, "아직 찾지 못한 단서예요.");
+      evidence = { name: clue.name, clues: [clue] };
+    } else if (req.body?.deductionId != null) {
+      const d = (await foundDeductions(play.participant_id)).find((x) => x.deduction_id === Number(req.body.deductionId));
+      if (!d) throw new HttpError(400, "아직 얻지 못한 추론이에요.");
+      const clues = await query<Evidence>(
+        `SELECT clue_id, name, description FROM clue WHERE clue_id IN (?) ORDER BY clue_id`,
+        [d.clue_ids],
+      );
+      evidence = { name: d.name, clues, deduction: { name: d.name, description: d.description } };
     }
 
     const found = await discoveredClues(play.participant_id);
     const discoveredIds = found.map((x) => x.clue_id);
-    // 이 인물에게 앞서 내민 증거: 저장된 질문 앞의 [증거 제시: 이름]으로 찾는다
-    const shownBefore = found
-      .filter((x) => history.some((h) => h.question.startsWith(`[증거 제시: ${x.name}]`)))
-      .map((x) => x.clue_id);
+    // 이 인물에게 앞서 내민 증거: 저장된 질문 앞의 [증거 제시: 이름]으로 찾는다 (추론이면 그 재료 단서들)
+    const shownTo = (name: string) => history.some((h) => h.question.startsWith(`[증거 제시: ${name}]`));
+    const shownBefore = [
+      ...found.filter((x) => shownTo(x.name)).map((x) => x.clue_id),
+      ...(await foundDeductions(play.participant_id)).filter((d) => shownTo(d.name)).flatMap((d) => d.clue_ids),
+    ];
     const { answer, revealedClueIds, statedAlibi } = await interrogate(c, ch, history.slice(-20), question, evidence, discoveredIds, shownBefore);
     const storedQuestion = formatQuestion(question, evidence);
     const interrogationId = await insert(
@@ -489,11 +535,11 @@ router.post(
   }),
 );
 
-/* 범인 지목: 결과와 진상 공개 */
+/* 범인 지목: 판정을 저장하고 결과를 돌려준다 */
 router.post(
   "/plays/:id/accuse",
   wrap(async (req, res) => {
-    const play = await getPlay(Number(req.params.id));
+    const play = await getPlay(req);
     assertOngoing(play);
     const accused = await getCharacterInCase(play.case_id, Number(req.body?.characterId));
     if (accused.character_type !== "용의자") throw new HttpError(400, "용의자 중에서 골라주세요.");
@@ -506,80 +552,339 @@ router.post(
     if (slots.some((s) => !s.id) || slots[0].id === slots[1].id) {
       throw new HttpError(400, "근거가 될 추론을 칸마다 하나씩 골라주세요.");
     }
-    const found = await query<{ deduction_id: number; name: string; proof_role: string | null; proof_note: string | null }>(
-      `SELECT d.deduction_id, d.name, d.proof_role, d.proof_note FROM link_attempt la JOIN deduction d ON d.deduction_id = la.deduction_id
+    const found = await query<{ deduction_id: number; proof_role: string | null }>(
+      `SELECT d.deduction_id, d.proof_role FROM link_attempt la JOIN deduction d ON d.deduction_id = la.deduction_id
        WHERE la.participant_id = ? AND d.deduction_id IN (?)`,
       [play.participant_id, slots.map((s) => s.id)],
     );
     if (found.length !== 2) throw new HttpError(400, "찾은 추론 중에서 골라주세요.");
-    const picked = slots.map((s) => {
-      const c = found.find((f) => f.deduction_id === s.id)!;
-      return { ...s, name: c.name, ok: !!accused.is_culprit && c.proof_role === s.slot, note: c.proof_note, role: c.proof_role };
-    });
 
     const accusationId = await insert(
       `INSERT INTO accusation (participant_id, character_id) VALUES (?, ?)`,
       [play.participant_id, accused.character_id],
     );
     await query(`INSERT INTO accusation_evidence (accusation_id, deduction_id, slot) VALUES ?`, [
-      picked.map((p) => [accusationId, p.id, p.slot]),
+      slots.map((s) => [accusationId, s.id, s.slot]),
     ]);
     // 범인을 맞히고, 두 근거가 각각 맞는 역할이어야 해결
-    const result = picked.every((p) => p.ok) ? "성공" : "실패";
-    await query(`UPDATE play SET status = '종료', result = ?, ended_at = NOW() WHERE play_id = ?`, [result, play.play_id]);
+    const ok = !!accused.is_culprit && slots.every((s) => found.find((f) => f.deduction_id === s.id)?.proof_role === s.slot);
+    await query(`UPDATE play SET status = '종료', result = ?, ended_at = NOW() WHERE play_id = ?`, [ok ? "성공" : "실패", play.play_id]);
+    res.json(await buildResult(play.play_id, play.participant_id, play.case_id));
+  }),
+);
 
-    const c = (await one<CaseRow>(`SELECT * FROM case_file WHERE case_id = ?`, [play.case_id]))!;
-    const culprit = await one<{ character_id: number; name: string }>(
-      `SELECT character_id, name FROM game_character WHERE case_id = ? AND is_culprit = TRUE`,
-      [play.case_id],
+/* 끝난 판의 결과 다시 보기 */
+router.get(
+  "/plays/:id/result",
+  wrap(async (req, res) => {
+    const play = await getPlay(req);
+    if (play.status !== "종료") throw new HttpError(409, "아직 진행 중인 사건이에요.");
+    res.json(await buildResult(play.play_id, play.participant_id, play.case_id));
+  }),
+);
+
+/* 실패한 판을 지목 직전으로 되돌려 이어 하기 (단서·추론·대화·남은 조사 횟수 그대로) */
+router.post(
+  "/plays/:id/resume",
+  wrap(async (req, res) => {
+    const play = await getPlay(req);
+    if (play.status === "진행중") return res.json({ playId: play.play_id });
+    if (play.result !== "실패") throw new HttpError(409, "해결한 사건은 이어 할 수 없어요. 처음부터 다시 해 보세요.");
+    await query(`UPDATE play SET status = '진행중', result = NULL, ended_at = NULL WHERE play_id = ?`, [play.play_id]);
+    res.json({ playId: play.play_id });
+  }),
+);
+
+/* 메모: 판마다 한 장. 덮어써서 저장 */
+router.post(
+  "/plays/:id/memo",
+  wrap(async (req, res) => {
+    const play = await getPlay(req);
+    const content = String(req.body?.content ?? "").slice(0, 5000);
+    const m = await one<{ memo_id: number }>(
+      `SELECT memo_id FROM memo WHERE participant_id = ? AND is_auto = FALSE ORDER BY memo_id DESC LIMIT 1`,
+      [play.participant_id],
     );
-    const timeline = await query<FactRow>(
-      `SELECT fact_id, occurred_at, place, content, is_initial FROM fact WHERE case_id = ? ORDER BY occurred_at`,
-      [play.case_id],
-    );
-    const stats = await one<{ minutes: number; questions: number; clues: number; clueTotal: number; deductions: number; deductionTotal: number }>(
-      `SELECT TIMESTAMPDIFF(MINUTE, pl.started_at, pl.ended_at) AS minutes,
-              (SELECT COUNT(*) FROM interrogation i WHERE i.participant_id = ?) AS questions,
-              (SELECT COUNT(*) FROM clue_discovery d WHERE d.participant_id = ?) AS clues,
-              (SELECT COUNT(*) FROM clue k JOIN scene s ON s.scene_id = k.scene_id WHERE s.case_id = pl.case_id) AS clueTotal,
-              (SELECT COUNT(*) FROM link_attempt la WHERE la.participant_id = ? AND la.deduction_id IS NOT NULL) AS deductions,
-              (SELECT COUNT(*) FROM deduction d WHERE d.case_id = pl.case_id) AS deductionTotal
-       FROM play pl WHERE pl.play_id = ?`,
-      [play.participant_id, play.participant_id, play.participant_id, play.play_id],
-    );
-    // 결정적 증거/증언: 찾았는지 여부와, 증언이면 그걸 털어놓은 실제 대화
-    const keyClues = await query<ClueRow & { scene_name: string; found_at: string | null; char_name: string | null }>(
-      `SELECT k.clue_id, k.scene_id, k.character_id, k.name, k.description, k.clue_type,
-              s.name AS scene_name, cd.found_at, g.name AS char_name
-       FROM clue k JOIN scene s ON s.scene_id = k.scene_id
-       LEFT JOIN clue_discovery cd ON cd.clue_id = k.clue_id AND cd.participant_id = ?
-       LEFT JOIN game_character g ON g.character_id = k.character_id
-       WHERE s.case_id = ? AND k.is_key = TRUE ORDER BY k.clue_id`,
-      [play.participant_id, play.case_id],
-    );
-    const keyEvidence = keyClues
-      .filter((k) => k.clue_type !== "증언")
-      .map((k) => ({ name: k.name, description: k.description, clue_type: k.clue_type, scene_name: k.scene_name, found: k.found_at != null }));
-    const t = keyClues.find((k) => k.clue_type === "증언");
-    let keyTestimony = null;
-    if (t) {
-      const chat = t.found_at
-        ? await one<{ question: string; answer: string }>(
-            `SELECT question, answer FROM interrogation
-             WHERE participant_id = ? AND character_id = ? AND asked_at <= ?
-             ORDER BY asked_at DESC, interrogation_id DESC LIMIT 1`,
-            [play.participant_id, t.character_id, t.found_at],
-          )
-        : null;
-      keyTestimony = { name: t.name, description: t.description, character: t.char_name, found: t.found_at != null, chat };
+    if (m) await query(`UPDATE memo SET content = ?, written_at = NOW() WHERE memo_id = ?`, [content, m.memo_id]);
+    else await insert(`INSERT INTO memo (participant_id, content) VALUES (?, ?)`, [play.participant_id, content]);
+    res.json({ ok: true });
+  }),
+);
+
+/* 용의선상 제외 표시 켜고 끄기 (표시용. 판정과 상관없음) */
+router.post(
+  "/plays/:id/mark",
+  wrap(async (req, res) => {
+    const play = await getPlay(req);
+    const ch = await getCharacterInCase(play.case_id, Number(req.body?.characterId));
+    if (req.body?.excluded) {
+      await query(`INSERT IGNORE INTO suspect_mark (participant_id, character_id) VALUES (?, ?)`, [play.participant_id, ch.character_id]);
+    } else {
+      await query(`DELETE FROM suspect_mark WHERE participant_id = ? AND character_id = ?`, [play.participant_id, ch.character_id]);
     }
-    res.json({
-      result,
-      culpritCorrect: !!accused.is_culprit,
-      // 범인을 틀렸으면 근거 설명은 진범 기준이라 의미가 없으므로 이름만
-      evidence: picked.map((p) => ({ slot: p.slot, name: p.name, ok: p.ok, note: accused.is_culprit ? p.note : null })),
-      accused: accused.name,
-      culprit, truth: c.truth, timeline, stats, keyEvidence, keyTestimony, caseId: play.case_id });
+    const rows = await query<{ character_id: number }>(`SELECT character_id FROM suspect_mark WHERE participant_id = ?`, [play.participant_id]);
+    res.json({ excluded: rows.map((r) => r.character_id) });
+  }),
+);
+
+const TRUTH_ASK_LIMIT = 10;
+
+/* 진상을 본 뒤 AI에게 묻기: 범인을 맞힌 판에서만, 한 판에 10번까지 */
+router.post(
+  "/plays/:id/ask",
+  wrap(async (req, res) => {
+    const play = await getPlay(req);
+    const question = String(req.body?.question ?? "").trim();
+    if (!question || question.length > 300) throw new HttpError(400, "질문은 1~300자로 해주세요.");
+    if (play.status !== "종료" || !(await culpritFound(play.participant_id))) {
+      throw new HttpError(409, "범인을 맞혀야 진상에 대해 물어볼 수 있어요.");
+    }
+    const history = await query<{ question: string; answer: string }>(
+      `SELECT question, answer FROM truth_question WHERE participant_id = ? ORDER BY question_id`,
+      [play.participant_id],
+    );
+    if (history.length >= TRUTH_ASK_LIMIT) throw new HttpError(429, `이 판에서는 질문을 ${TRUTH_ASK_LIMIT}번 다 했어요.`);
+    const c = (await one<CaseRow>(`SELECT * FROM case_file WHERE case_id = ?`, [play.case_id]))!;
+    const answer = await askAboutTruth(c, history, question);
+    await insert(`INSERT INTO truth_question (participant_id, question, answer) VALUES (?, ?, ?)`, [play.participant_id, question, answer]);
+    res.json({ question, answer, left: TRUTH_ASK_LIMIT - history.length - 1 });
+  }),
+);
+
+/** 가장 최근 지목에서 범인을 맞혔는지 */
+async function culpritFound(participantId: number) {
+  const r = await one<{ is_culprit: boolean }>(
+    `SELECT g.is_culprit FROM accusation a JOIN game_character g ON g.character_id = a.character_id
+     WHERE a.participant_id = ? ORDER BY a.accused_at DESC, a.accusation_id DESC LIMIT 1`,
+    [participantId],
+  );
+  return !!r?.is_culprit;
+}
+
+/**
+ * 못 찾은 단서를 어떻게 찾는지 한 줄로 (진상을 볼 수 있을 때만 쓴다)
+ * 조사 지점이면 "장소 · 지점", 증언이면 "인물 심문 · 「단서」를 증거로 내밀기", 추론으로 나오면 "추론 「…」을 얻으면"
+ */
+async function clueHowTo(caseId: number) {
+  const rows = await query<{
+    clue_id: number; name: string; scene: string; spot: string | null; who: string | null;
+    unlock_name: string | null; spot_unlock_clue: string | null; spot_unlock_ded: string | null; from_ded: string | null;
+  }>(
+    `SELECT k.clue_id, k.name, s.name AS scene, sp.name AS spot, g.name AS who,
+            u.name AS unlock_name, su.name AS spot_unlock_clue, sd.name AS spot_unlock_ded,
+            (SELECT d.name FROM deduction d WHERE d.reveal_clue_id = k.clue_id LIMIT 1) AS from_ded
+     FROM clue k JOIN scene s ON s.scene_id = k.scene_id
+     LEFT JOIN spot sp ON sp.spot_id = k.spot_id
+     LEFT JOIN clue su ON su.clue_id = sp.unlock_clue_id
+     LEFT JOIN deduction sd ON sd.deduction_id = sp.unlock_deduction_id
+     LEFT JOIN game_character g ON g.character_id = k.character_id
+     LEFT JOIN clue u ON u.clue_id = k.unlock_clue_id
+     WHERE s.case_id = ?`,
+    [caseId],
+  );
+  const map = new Map<number, { name: string; howTo: string }>();
+  for (const r of rows) {
+    let how: string;
+    if (r.who) how = `${r.who} 심문${r.unlock_name ? ` · 「${r.unlock_name}」을(를) 증거로 내밀기` : ""}`;
+    else if (r.from_ded) how = `추론 「${r.from_ded}」을(를) 얻으면 나와요`;
+    else if (r.spot) {
+      how = `${r.scene} · ${r.spot} 조사`;
+      if (r.spot_unlock_clue) how += ` (「${r.spot_unlock_clue}」을(를) 먼저 찾아야 열려요)`;
+      if (r.spot_unlock_ded) how += ` (추론 「${r.spot_unlock_ded}」을(를) 먼저 얻어야 열려요)`;
+    } else how = r.scene;
+    map.set(r.clue_id, { name: r.name, howTo: how });
+  }
+  return map;
+}
+
+/** 결과 화면에 필요한 것. 진상·정답·결정적 증거는 범인을 맞혔을 때만 보낸다 */
+async function buildResult(playId: number, participantId: number, caseId: number) {
+  const pl = (await one<{ result: "성공" | "실패" }>(`SELECT result FROM play WHERE play_id = ?`, [playId]))!;
+  const acc = await one<{ accusation_id: number; character_id: number }>(
+    `SELECT accusation_id, character_id FROM accusation WHERE participant_id = ? ORDER BY accused_at DESC, accusation_id DESC LIMIT 1`,
+    [participantId],
+  );
+  if (!acc) throw new HttpError(409, "아직 범인을 지목하지 않았어요.");
+  const accused = (await one<CharacterRow>(`SELECT * FROM game_character WHERE character_id = ?`, [acc.character_id]))!;
+  const culpritCorrect = !!accused.is_culprit;
+  const picked = await query<{ slot: "알리바이" | "연결"; name: string; proof_role: string | null; proof_note: string | null }>(
+    `SELECT ae.slot, d.name, d.proof_role, d.proof_note FROM accusation_evidence ae JOIN deduction d ON d.deduction_id = ae.deduction_id
+     WHERE ae.accusation_id = ? ORDER BY ae.slot`,
+    [acc.accusation_id],
+  );
+  const stats = (await one<{ minutes: number; questions: number; clues: number; clueTotal: number; deductions: number; deductionTotal: number }>(
+    `SELECT TIMESTAMPDIFF(MINUTE, pl.started_at, COALESCE(pl.ended_at, NOW())) AS minutes,
+            (SELECT COUNT(*) FROM interrogation i WHERE i.participant_id = ?) AS questions,
+            (SELECT COUNT(*) FROM clue_discovery d WHERE d.participant_id = ?) AS clues,
+            (SELECT COUNT(*) FROM clue k JOIN scene s ON s.scene_id = k.scene_id WHERE s.case_id = pl.case_id) AS clueTotal,
+            (SELECT COUNT(*) FROM link_attempt la WHERE la.participant_id = ? AND la.deduction_id IS NOT NULL) AS deductions,
+            (SELECT COUNT(*) FROM deduction d WHERE d.case_id = pl.case_id) AS deductionTotal
+     FROM play pl WHERE pl.play_id = ?`,
+    [participantId, participantId, participantId, playId],
+  ))!;
+  const base = {
+    playId,
+    caseId,
+    result: pl.result,
+    culpritCorrect,
+    accused: accused.name,
+    stats,
+  };
+  // 범인을 틀렸으면 진범·진상·정답은 보내지 않는다 (다시 해서 범인부터 맞혀야 열림)
+  if (!culpritCorrect) return { ...base, evidence: null, culprit: null, reveal: null };
+
+  const c = (await one<CaseRow>(`SELECT * FROM case_file WHERE case_id = ?`, [caseId]))!;
+  const howTo = await clueHowTo(caseId);
+  const foundIds = new Set(
+    (await query<{ clue_id: number }>(`SELECT clue_id FROM clue_discovery WHERE participant_id = ?`, [participantId])).map((r) => r.clue_id),
+  );
+  const timeline = await query<FactRow>(
+    `SELECT fact_id, occurred_at, place, content, is_initial FROM fact WHERE case_id = ? ORDER BY occurred_at`,
+    [caseId],
+  );
+  // 결정적 증거/증언: 찾았는지, 못 찾았으면 찾는 법, 증언이면 그걸 털어놓은 실제 대화
+  const keyClues = await query<ClueRow & { scene_name: string; found_at: string | null; char_name: string | null }>(
+    `SELECT k.clue_id, k.scene_id, k.character_id, k.name, k.description, k.clue_type,
+            s.name AS scene_name, cd.found_at, g.name AS char_name
+     FROM clue k JOIN scene s ON s.scene_id = k.scene_id
+     LEFT JOIN clue_discovery cd ON cd.clue_id = k.clue_id AND cd.participant_id = ?
+     LEFT JOIN game_character g ON g.character_id = k.character_id
+     WHERE s.case_id = ? AND k.is_key = TRUE ORDER BY k.clue_id`,
+    [participantId, caseId],
+  );
+  const keyEvidence = keyClues
+    .filter((k) => k.clue_type !== "증언")
+    .map((k) => ({
+      name: k.name, description: k.description, clue_type: k.clue_type, scene_name: k.scene_name,
+      found: k.found_at != null, howTo: k.found_at != null ? null : howTo.get(k.clue_id)?.howTo ?? null,
+    }));
+  const t = keyClues.find((k) => k.clue_type === "증언");
+  let keyTestimony = null;
+  if (t) {
+    const chat = t.found_at
+      ? await one<{ question: string; answer: string }>(
+          `SELECT question, answer FROM interrogation
+           WHERE participant_id = ? AND character_id = ? AND asked_at <= ?
+           ORDER BY asked_at DESC, interrogation_id DESC LIMIT 1`,
+          [participantId, t.character_id, t.found_at],
+        )
+      : null;
+    keyTestimony = {
+      name: t.name, description: t.description, character: t.char_name, found: t.found_at != null, chat,
+      howTo: t.found_at != null ? null : howTo.get(t.clue_id)?.howTo ?? null,
+    };
+  }
+  // 추론: 정답(지목 근거)과 놓친 추론, 놓쳤으면 어떤 단서를 이어야 하는지 (못 찾은 재료 단서는 찾는 법까지)
+  const deds = await query<{ deduction_id: number; name: string; description: string; proof_role: "알리바이" | "연결" | null; proof_note: string | null; found: number }>(
+    `SELECT d.deduction_id, d.name, d.description, d.proof_role, d.proof_note,
+            EXISTS (SELECT 1 FROM link_attempt la WHERE la.participant_id = ? AND la.deduction_id = d.deduction_id) AS found
+     FROM deduction d WHERE d.case_id = ? ORDER BY d.deduction_id`,
+    [participantId, caseId],
+  );
+  const recipe = await query<{ deduction_id: number; clue_id: number }>(
+    `SELECT dc.deduction_id, dc.clue_id FROM deduction_clue dc JOIN deduction d ON d.deduction_id = dc.deduction_id
+     WHERE d.case_id = ? ORDER BY dc.clue_id`,
+    [caseId],
+  );
+  const dedView = (d: (typeof deds)[number]) => ({
+    name: d.name,
+    description: d.description,
+    role: d.proof_role,
+    note: d.proof_note,
+    found: !!d.found,
+    // 못 찾았으면 "「a」 + 「b」"를 이어 보라고, 재료 단서를 아직 못 찾았으면 그 단서 찾는 법도
+    howTo: d.found
+      ? null
+      : recipe
+          .filter((r) => r.deduction_id === d.deduction_id)
+          .map((r) => ({ name: howTo.get(r.clue_id)?.name ?? "?", found: foundIds.has(r.clue_id), howTo: howTo.get(r.clue_id)?.howTo ?? "" })),
+  });
+  const asks = await query<{ question: string; answer: string }>(
+    `SELECT question, answer FROM truth_question WHERE participant_id = ? ORDER BY question_id`,
+    [participantId],
+  );
+  return {
+    ...base,
+    evidence: picked.map((p) => ({ slot: p.slot, name: p.name, ok: p.proof_role === p.slot, note: p.proof_note })),
+    culprit: { character_id: accused.character_id, name: accused.name },
+    reveal: {
+      truth: c.truth,
+      timeline,
+      keyEvidence,
+      keyTestimony,
+      answers: deds.filter((d) => d.proof_role).map(dedView),
+      missed: deds.filter((d) => !d.proof_role && !d.found).map(dedView),
+      asks,
+      askLeft: Math.max(0, TRUTH_ASK_LIMIT - asks.length),
+    },
+  };
+}
+
+/* ───────── 로그인 (선택). 로그인 안 하면 게스트 회원으로 이 브라우저에만 저장 ───────── */
+
+/* 게스트 세션 받기 */
+router.post(
+  "/auth/guest",
+  wrap(async (_req, res) => {
+    const g = await newGuest();
+    res.status(201).json({ token: g.token, me: { memberId: g.memberId, nickname: "게스트", guest: true } });
+  }),
+);
+
+router.get(
+  "/auth/me",
+  wrap(async (req, res) => {
+    const me = await requireMe(req);
+    res.json({ ...me, nickname: me.guest ? "게스트" : me.nickname });
+  }),
+);
+
+const ID_RE = /^[a-zA-Z0-9_]{4,20}$/;
+
+/* 가입: 지금 게스트로 하던 판은 새 계정으로 옮긴다 */
+router.post(
+  "/auth/signup",
+  wrap(async (req, res) => {
+    const id = String(req.body?.id ?? "").trim();
+    const password = String(req.body?.password ?? "");
+    const nickname = String(req.body?.nickname ?? "").trim();
+    if (!ID_RE.test(id) || isGuestId(id)) throw new HttpError(400, "아이디는 영문·숫자·밑줄 4~20자로 해주세요.");
+    if (password.length < 6 || password.length > 100) throw new HttpError(400, "비밀번호는 6자 이상으로 해주세요.");
+    if (!nickname || nickname.length > 30 || isGuestId(nickname)) throw new HttpError(400, "닉네임은 1~30자로 해주세요.");
+    if (await one(`SELECT 1 FROM member WHERE member_id = ?`, [id])) throw new HttpError(409, "이미 있는 아이디예요.");
+    if (await one(`SELECT 1 FROM member WHERE nickname = ?`, [nickname])) throw new HttpError(409, "이미 있는 닉네임이에요.");
+    await query(`INSERT INTO member (member_id, password, nickname) VALUES (?, ?, ?)`, [id, await hashPassword(password), nickname]);
+    const before = await whoAmI(req);
+    if (before?.guest) await adoptGuestPlays(before.memberId, id);
+    res.status(201).json({ token: await newSession(id), me: { memberId: id, nickname, guest: false } });
+  }),
+);
+
+/* 로그인: 지금 게스트로 하던 판은 이 계정으로 옮긴다 */
+router.post(
+  "/auth/login",
+  wrap(async (req, res) => {
+    const id = String(req.body?.id ?? "").trim();
+    const password = String(req.body?.password ?? "");
+    const m = await one<{ member_id: string; password: string; nickname: string }>(
+      `SELECT member_id, password, nickname FROM member WHERE member_id = ?`,
+      [id],
+    );
+    if (!m || isGuestId(m.member_id) || !(await checkPassword(password, m.password))) {
+      throw new HttpError(401, "아이디나 비밀번호가 맞지 않아요.");
+    }
+    const before = await whoAmI(req);
+    if (before?.guest) await adoptGuestPlays(before.memberId, m.member_id);
+    res.json({ token: await newSession(m.member_id), me: { memberId: m.member_id, nickname: m.nickname, guest: false } });
+  }),
+);
+
+router.post(
+  "/auth/logout",
+  wrap(async (req, res) => {
+    const token = tokenOf(req);
+    if (token) await query(`DELETE FROM login_session WHERE token = ?`, [token]);
+    res.json({ ok: true });
   }),
 );
 

@@ -26,7 +26,7 @@ for (const file of readdirSync(dir).filter((f) => f.endsWith(".json"))) {
           `SELECT clue_id, name, description FROM clue WHERE clue_id = ?`, [t.evidence]))!
       : undefined;
     const discovered = [...new Set([...shown, ...(ev ? [ev.clue_id] : [])])];
-    const r = await interrogate(c, ch, history, t.q, ev, discovered, shown);
+    const r = await interrogate(c, ch, history, t.q, ev && { name: ev.name, clues: [ev] }, discovered, shown);
     if (ev) shown.push(ev.clue_id);
     history.push({ question: formatQuestion(t.q, ev), answer: r.answer });
     const stage = onFallback(ch, { discovered, shownBefore: shown }, history) ? "물러선 이야기" : "처음 이야기";

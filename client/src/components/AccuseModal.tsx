@@ -84,10 +84,9 @@ export default function AccuseModal({ suspects, deductions, onClose, onAccuse }:
                     key={d.deduction_id}
                     className={`ev-chip ${evidence[slot] === d.deduction_id ? "on" : Object.values(evidence).includes(d.deduction_id) ? "used" : ""}`}
                     onClick={() => choose(d.deduction_id)}
-                    title={d.description}
                   >
                     <b>{d.name}</b>
-                    <small>단서 {d.clue_ids.length}개 연결</small>
+                    <small className="ev-desc">{d.description}</small>
                   </button>
                 ))}
               </div>
