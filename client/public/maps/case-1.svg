@@ -1,11 +1,12 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 420">
-<style>.w{fill:none;stroke:#fff;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}.g{fill:none;stroke:#636366;stroke-width:2;stroke-linejoin:round}.room{fill:none;stroke:#636366;stroke-width:1.5;stroke-dasharray:4 4}.lbl{font-family:-apple-system,'Apple SD Gothic Neo',system-ui,sans-serif;font-size:13px;font-weight:700;fill:#8E8E93}.fl{font-family:-apple-system,system-ui,sans-serif;font-size:11px;font-weight:800;fill:#8E8E93}</style>
+<style>.w{fill:none;stroke:#fff;stroke-width:1.2;stroke-linejoin:round;stroke-linecap:round}.g{fill:none;stroke:#636366;stroke-width:1.1;stroke-linejoin:round}.room{fill:none;stroke:#636366;stroke-width:1;stroke-dasharray:3 4}.lbl{font-family:-apple-system,'Apple SD Gothic Neo',system-ui,sans-serif;font-size:13px;font-weight:700;fill:#8E8E93}.fl{font-family:-apple-system,system-ui,sans-serif;font-size:11px;font-weight:800;fill:#8E8E93}</style>
 <rect width="800" height="420" fill="#000"/>
 <g fill="#fff" opacity=".5"><circle cx="620" cy="60" r="1.6"/><circle cx="700" cy="40" r="1.2"/><circle cx="760" cy="90" r="1.6"/><circle cx="660" cy="130" r="1.2"/><circle cx="740" cy="170" r="1.6"/><circle cx="610" cy="200" r="1.2"/><circle cx="700" cy="230" r="1.8"/><circle cx="40" cy="40" r="1.2"/><circle cx="110" cy="70" r="1.6"/></g>
 <!-- 지붕과 눈 -->
 
-<path class="w" d="M28 132 L300 42 L572 132" stroke-width="3"/>
-<path d="M60 124 L300 50 L540 124" fill="none" stroke="#fff" stroke-width="6" stroke-opacity=".85" stroke-linecap="round"/>
+<path class="w" d="M440 94 V64 H462 V100"/>
+<path d="M24 134 L300 54 L576 134" fill="#000" stroke="#fff" stroke-width="1.2" stroke-linejoin="round"/>
+<path class="w" d="M36 134 V382 M564 134 V318 M564 376 V382"/>
 <!-- 방 (장소가 아닌 곳) -->
 <rect class="room" x="184" y="136" width="136" height="112" rx="10"/>
 <rect class="room" x="40" y="254" width="140" height="124" rx="10"/>
@@ -16,19 +17,19 @@
 <path class="g" d="M200 372 H216 V356 H232 V340 H248 V324 H264 V308 H280 V292 H296 V276 H312 V248"/>
 <g class="g"><rect x="70" y="320" width="80" height="30" rx="4"/><path d="M80 350 V370 M140 350 V370"/></g>
 <!-- 장소 방 -->
-<g fill="none" stroke="#fff" stroke-width="1.5" stroke-opacity=".7"><rect x="40" y="136" width="140" height="112" rx="10"/><rect x="324" y="136" width="116" height="112" rx="10"/><rect x="444" y="136" width="116" height="112" rx="10"/><rect x="324" y="254" width="236" height="124" rx="10"/><rect x="652" y="300" width="106" height="76" rx="6"/></g>
+<g fill="none" stroke="#fff" stroke-width="1" stroke-opacity=".85"><rect x="40" y="136" width="140" height="112" rx="10"/><rect x="324" y="136" width="116" height="112" rx="10"/><rect x="444" y="136" width="116" height="112" rx="10"/><rect x="324" y="254" width="236" height="124" rx="10"/><rect x="652" y="300" width="106" height="76" rx="6"/></g>
 <g class="g"><path d="M58 246 V200 H82 V246"/><path d="M140 246 V176 H172 V246 M140 200 H172 M140 222 H172"/><rect x="350" y="330" width="70" height="44" rx="4"/><path d="M470 374 V330 H530 V374"/><rect x="690" y="340" width="26" height="36" rx="3"/></g>
 <!-- 시신 위치 -->
 <g transform="translate(46 230) scale(0.42 0.3)" fill="#C1121F"><path d="M158 16 Q172 4 196 6 Q201 9 196 11 Q177 11 165 23 Z"/><path d="M72 22 L12 19 Q3 19 3 25 Q4 30 11 30 L72 32 Z"/><path d="M72 34 L16 40 Q7 42 7 46 Q9 50 15 49 L74 43 Z"/><path d="M166 18 Q150 11 120 14 L82 18 Q68 20 68 30 Q68 41 82 43 L120 46 Q150 49 166 42 Q172 30 166 18 Z"/><path d="M158 43 Q142 57 118 57 Q110 57 111 52 Q114 49 120 50 Q138 50 150 38 Z"/><ellipse cx="182" cy="30" rx="14" ry="12"/></g>
 <!-- 바닥판, 뒷문 -->
-<path d="M36 382 H564" stroke="#fff" stroke-width="2"/>
-<rect x="556" y="318" width="8" height="58" fill="#000"/>
-<text class="fl" x="560" y="312" text-anchor="middle">뒷문</text>
+<path d="M36 382 H564" stroke="#fff" stroke-width="1.2"/>
+<text class="fl" x="572" y="352">뒷문</text>
 <!-- 눈밭 -->
-<path d="M564 380 Q620 368 680 376 Q730 372 800 378" fill="none" stroke="#fff" stroke-width="1.5"/>
-<path d="M0 382 H36" stroke="#fff" stroke-width="1.5"/>
+<path d="M564 382 H800" stroke="#fff" stroke-width="1"/>
+<path d="M0 382 H36" stroke="#fff" stroke-width="1"/>
 <!-- 창고 지붕 -->
-<path d="M646 300 L705 270 L764 300 Z" fill="none" stroke="#fff" stroke-width="2.5" stroke-linejoin="round"/>
+<path d="M646 300 L705 270 L764 300 Z" fill="none" stroke="#fff" stroke-width="1.2" stroke-linejoin="round"/>
+<path class="w" d="M652 300 V382 M758 300 V382"/>
 <text class="fl" x="18" y="200" transform="rotate(-90 18 200)">2F</text>
 <text class="fl" x="18" y="322" transform="rotate(-90 18 322)">1F</text>
 </svg>

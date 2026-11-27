@@ -116,7 +116,7 @@ export default function CaseSelect({ onStart, onHome }: { onStart: (playId: numb
                   <div className="ppl">
                     {chosen.suspects.map((s) => (
                       <div key={s.name}>
-                        <Face name={s.name} src={s.image_url} size={44} />
+                        <Face name={s.name} src={s.image_url} size={44} zoom />
                         {s.name}
                         <small>{s.gender ? `${s.gender} · ` : ""}{s.job?.split(",").at(-1)?.trim()}</small>
                       </div>

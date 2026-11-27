@@ -189,8 +189,8 @@ button.case-row:not(.on):hover { background: rgb(255 255 255 / 0.06); }
 .dots-timeline li { display: grid; grid-template-columns: 50px 12px 1fr; gap: 12px; align-items: start; padding: 9px 0; position: relative; font-size: 14px; }
 .dots-timeline time { font-weight: 800; font-variant-numeric: tabular-nums; }
 .dots-timeline i { width: 11px; height: 11px; border-radius: 50%; background: var(--bubble); margin-top: 5px; }
-.dots-timeline li.hot time { color: var(--red); }
-.dots-timeline li.hot i { background: var(--red); }
+.dots-timeline li.fresh time { color: var(--red); }
+.dots-timeline li.fresh i { background: var(--red); }
 .dots-timeline li:not(:last-child)::after { content: ""; position: absolute; left: 67.5px; top: 25px; bottom: -14px; width: 2px; background: var(--gray); }
 .dots-timeline small { display: block; font-size: 11px; color: var(--muted); font-weight: 600; }
 .panel .dots-timeline { padding: 4px 6px; }
@@ -199,7 +199,7 @@ button.case-row:not(.on):hover { background: rgb(255 255 255 / 0.06); }
 .player-tl li.k-물증 i, .player-tl li.k-기록 i, .player-tl li.k-증언 i { background: var(--white); }
 .player-tl li.k-주장 i { background: transparent; border: 2px solid var(--white); }
 .player-tl li.k-주장 span { color: rgb(255 255 255 / 0.8); }
-.player-tl li.hot i { background: var(--red); border-color: var(--red); }
+.player-tl li.fresh i { background: var(--red); border-color: var(--red); }
 
 .toast { position: fixed; left: 50%; top: 20px; transform: translateX(-50%); background: var(--red); border-radius: 999px; padding: 12px 22px; font-weight: 700; z-index: 40; box-shadow: 0 8px 30px rgb(0 0 0 / 0.5); }
 
@@ -359,9 +359,10 @@ button.case-row:not(.on):hover { background: rgb(255 255 255 / 0.06); }
 .viewer-left { font-size: 14px; color: var(--muted); font-weight: 600; }
 .viewer-left b { color: var(--white); font-size: 16px; }
 .viewer-left b.red { color: var(--red); }
-.stage { position: relative; border-radius: 18px; overflow: hidden; border: 1px solid var(--gray); background: var(--black); }
-.stage > img { width: 100%; display: block; user-select: none; }
-.stage-empty { aspect-ratio: 16 / 9; display: grid; place-items: center; color: var(--muted); }
+.stage { position: relative; flex: none; aspect-ratio: 800 / 450; width: min(100%, calc((100vh - 300px) * 16 / 9)); min-width: min(100%, 320px); margin: 0 auto; border-radius: 18px; overflow: hidden; border: 1px solid var(--gray); background: var(--black); }
+.stage.map-stage { aspect-ratio: 800 / 420; width: min(100%, 680px, calc((100vh - 160px) * 800 / 420)); }
+.stage > img { position: absolute; inset: 0; width: 100%; height: 100%; display: block; user-select: none; }
+.stage-empty { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); }
 .hot { position: absolute; transform: translate(-50%, -50%); width: 44px; height: 44px; display: grid; place-items: center; }
 .hot-dot { width: 30px; height: 30px; border-radius: 50%; background: var(--red); color: var(--white); font-size: 14px; font-weight: 800; display: grid; place-items: center; box-shadow: 0 0 0 6px rgb(193 18 31 / 0.35); transition: transform 0.15s; }
 .hot:not(:disabled):hover .hot-dot, .hot:focus-visible .hot-dot { transform: scale(1.15); }
@@ -468,3 +469,12 @@ button.case-row:not(.on):hover { background: rgb(255 255 255 / 0.06); }
 .picker-preview { display: flex; align-items: flex-start; gap: 10px; border: var(--thin); border-radius: 16px; padding: 10px 12px; }
 .picker-preview p { flex: 1; font-size: 12.5px; line-height: 1.5; color: rgb(255 255 255 / 0.85); }
 .picker-preview b { display: block; font-size: 13.5px; color: var(--white); margin-bottom: 2px; }
+
+/* 인물 사진 크게 보기 */
+.face.zoomable { cursor: zoom-in; }
+.face.zoomable:focus-visible { outline: 2px solid var(--white); outline-offset: 2px; }
+.face-back { z-index: 60; cursor: zoom-out; }
+.face-big { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.face-big img { width: min(420px, 80vw, 70vh); aspect-ratio: 1; object-fit: cover; border-radius: 28px; border: 1px solid var(--white); display: block; }
+.face-big figcaption { font-size: 22px; font-weight: 900; letter-spacing: -0.02em; }
+.viewer:has(> .map-stage) { width: min(760px, 100%); }
