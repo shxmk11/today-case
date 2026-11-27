@@ -156,11 +156,11 @@ export default function CasePanel(props: Props) {
   return (
     <aside className="card panel">
       <nav className="tabs">
-        <button className={`pill ${tab === "scene" ? "white" : "outline"}`} onClick={() => onTab("scene")}>
-          현장
-        </button>
         <button className={`pill ${tab === "timeline" ? "white" : "outline"}`} onClick={() => onTab("timeline")}>
           타임라인
+        </button>
+        <button className={`pill ${tab === "scene" ? "white" : "outline"}`} onClick={() => onTab("scene")}>
+          현장
         </button>
         <button className={`pill ${tab === "clue" ? "white" : "outline"}`} onClick={() => onTab("clue")}>
           단서 {clues.length + deductions.length}
