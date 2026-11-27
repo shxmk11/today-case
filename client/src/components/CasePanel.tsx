@@ -39,6 +39,26 @@ export default function CasePanel(props: Props) {
   const [linkMsg, setLinkMsg] = useState("");
   // 현장 조사 창: undefined = 닫힘, null = 지도, 숫자 = 그 장소
   const [viewing, setViewing] = useState<number | null | undefined>(undefined);
+  // 현장 조사 창을 열 때 가지고 있던 단서. 닫을 때 새로 얻은 단서가 있으면 단서 탭에서 그 단서를 펼친다
+  const [cluesAtOpen, setCluesAtOpen] = useState<Set<number>>(new Set());
+  function openViewer(id: number | null) {
+    setCluesAtOpen(new Set(allClues.map((c) => c.clue_id)));
+    setViewing(id);
+  }
+  function closeViewer() {
+    setViewing(undefined);
+    const latest = [...clues].reverse().find((c) => !cluesAtOpen.has(c.clue_id));
+    if (!latest) return;
+    onTab("clue");
+    setOpen(latest.scene_id);
+    setDetail(latest.clue_id);
+  }
+  // 펼친 단서가 보이도록 단서 탭을 스크롤
+  const bodyRef = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    if (tab !== "clue" || detail == null || detail < 0) return;
+    bodyRef.current?.querySelector<HTMLElement>(".chip.on")?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }, [tab, detail, open]);
 
   async function investigate(id: number) {
     setBusy(id);
@@ -112,7 +132,7 @@ export default function CasePanel(props: Props) {
         </button>
       </nav>
 
-      <div className="panel-body">
+      <div className="panel-body" ref={bodyRef}>
         {tab === "clue" && clues.length + deductions.length > 0 && deductions.length > 0 &&
           (dedOpen ? (
             <div className="scene-open">
@@ -227,7 +247,7 @@ export default function CasePanel(props: Props) {
               )}
             </div>
             {mapUrl && (
-              <button className="map-open" onClick={() => setViewing(null)}>
+              <button className="map-open" onClick={() => openViewer(null)}>
                 <img src={mapUrl} alt="" draggable={false} />
                 <span className="pill white">지도 펼치기</span>
               </button>
@@ -235,7 +255,7 @@ export default function CasePanel(props: Props) {
             {scenes.map((s) => {
               const n = s.spots.filter((p) => !p.searched).length;
               return (
-                <button key={s.scene_id} className="scene-card scene-thumb" onClick={() => setViewing(s.scene_id)}>
+                <button key={s.scene_id} className="scene-card scene-thumb" onClick={() => openViewer(s.scene_id)}>
                   {s.image_url && <img src={s.image_url} alt="" draggable={false} />}
                   <span className="scene-thumb-text">
                     <b>{s.name}</b>
@@ -352,7 +372,7 @@ export default function CasePanel(props: Props) {
           onUnlimited={() => void onUnlimited()}
           busy={busy}
           onInvestigate={(id) => void investigate(id)}
-          onClose={() => setViewing(undefined)}
+          onClose={closeViewer}
         />
       )}
     </aside>
