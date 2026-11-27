@@ -1,9 +1,12 @@
-import { useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { hhmm } from "../api";
 import type { Clue, Deduction, Scene, TimelineItem } from "../types";
 import SceneViewer from "./SceneViewer";
 
-export type Tab = "clue" | "scene" | "deduction" | "timeline";
+export type Tab = "scene" | "timeline" | "clue" | "deduction" | "memo";
+
+/** 처음 시작할 때와 단서가 없을 때 보여 주는 안내 */
+export const GUIDE = "심문과 현장 조사로 단서를 얻고, 단서를 이어 추론해 보세요.";
 
 interface Props {
   tab: Tab;
@@ -22,13 +25,15 @@ interface Props {
   onInvestigate: (spotId: number) => Promise<void>;
   /** 연결 결과 문구를 돌려준다 */
   onLink: (clueIds: number[]) => Promise<string>;
+  memo: string;
+  onMemo: (content: string) => Promise<unknown>;
 }
 
 /** 단서 탭에서 추론 묶음을 가리키는 값 (장소 id와 겹치지 않게 음수) */
 const DED_GROUP = -1;
 
 export default function CasePanel(props: Props) {
-  const { tab, onTab, scenes, mapUrl, clues: allClues, timeline, freshKeys, deductions, deductionTotal, left, limit, unlimited, onUnlimited, onInvestigate, onLink } = props;
+  const { tab, onTab, scenes, mapUrl, clues: allClues, timeline, freshKeys, deductions, deductionTotal, left, limit, unlimited, onUnlimited, onInvestigate, onLink, onMemo } = props;
   // 추론에 다 쓰인 단서는 목록에서 빼고 추론 카드 안에서만 보여준다
   const clues = allClues.filter((c) => !c.retired);
   const [busy, setBusy] = useState<number | null>(null);
@@ -59,6 +64,39 @@ export default function CasePanel(props: Props) {
     if (tab !== "clue" || detail == null || detail < 0) return;
     bodyRef.current?.querySelector<HTMLElement>(".chip.on")?.scrollIntoView({ block: "nearest", behavior: "smooth" });
   }, [tab, detail, open]);
+
+  // 메모: 입력을 멈추고 0.8초 뒤에 저장. 탭을 옮기거나 화면을 나가도 마지막 글은 저장한다
+  const [memo, setMemo] = useState(props.memo);
+  const [memoState, setMemoState] = useState<"saved" | "dirty" | "saving" | "error">("saved");
+  const memoTimer = useRef<number>(undefined);
+  const memoLatest = useRef({ text: props.memo, dirty: false });
+  async function saveMemo() {
+    if (!memoLatest.current.dirty) return;
+    memoLatest.current.dirty = false;
+    setMemoState("saving");
+    try {
+      await onMemo(memoLatest.current.text);
+      setMemoState((s) => (s === "saving" ? "saved" : s));
+    } catch {
+      memoLatest.current.dirty = true;
+      setMemoState("error");
+    }
+  }
+  function editMemo(text: string) {
+    setMemo(text);
+    memoLatest.current = { text, dirty: true };
+    setMemoState("dirty");
+    window.clearTimeout(memoTimer.current);
+    memoTimer.current = window.setTimeout(() => void saveMemo(), 800);
+  }
+  useEffect(
+    () => () => {
+      window.clearTimeout(memoTimer.current);
+      void saveMemo();
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
 
   async function investigate(id: number) {
     setBusy(id);
@@ -118,17 +156,20 @@ export default function CasePanel(props: Props) {
   return (
     <aside className="card panel">
       <nav className="tabs">
-        <button className={`pill ${tab === "clue" ? "white" : "outline"}`} onClick={() => onTab("clue")}>
-          단서 {clues.length + deductions.length}
-        </button>
         <button className={`pill ${tab === "scene" ? "white" : "outline"}`} onClick={() => onTab("scene")}>
           현장
+        </button>
+        <button className={`pill ${tab === "timeline" ? "white" : "outline"}`} onClick={() => onTab("timeline")}>
+          타임라인
+        </button>
+        <button className={`pill ${tab === "clue" ? "white" : "outline"}`} onClick={() => onTab("clue")}>
+          단서 {clues.length + deductions.length}
         </button>
         <button className={`pill ${tab === "deduction" ? "white" : "outline"}`} onClick={() => onTab("deduction")}>
           추론 {deductions.length}
         </button>
-        <button className={`pill ${tab === "timeline" ? "white" : "outline"}`} onClick={() => onTab("timeline")}>
-          타임라인
+        <button className={`pill ${tab === "memo" ? "white" : "outline"}`} onClick={() => onTab("memo")}>
+          메모
         </button>
       </nav>
 
@@ -174,7 +215,7 @@ export default function CasePanel(props: Props) {
           ))}
         {tab === "clue" &&
           (clues.length + deductions.length === 0 ? (
-            <p className="muted pad">현장을 조사하거나 인물을 심문하면 단서가 모여요.</p>
+            <p className="guide pad">{GUIDE}</p>
           ) : (
             scenes.map((sc) => {
               const items = clues.filter((c) => c.scene_id === sc.scene_id);
@@ -195,11 +236,16 @@ export default function CasePanel(props: Props) {
                         >
                           <i className={`dot t-${c.clue_type}`} />
                           <span>{c.name}</span>
-                          <small>{c.clue_type}</small>
+                          <small>{c.character_id ? "증언 · 심문" : c.clue_type}</small>
                         </button>
                       ))}
                     </div>
-                    {d && <p className="chip-detail">{d.description}</p>}
+                    {d && (
+                      <p className="chip-detail">
+                        {d.description}
+                        {d.character_id && <small className="chip-from">심문으로 얻은 증언</small>}
+                      </p>
+                    )}
                   </div>
                 );
               }
@@ -278,26 +324,37 @@ export default function CasePanel(props: Props) {
             ) : (
               <div className="link-list" ref={listRef}>
                 {thread && <i className="link-thread" style={{ top: thread.top, height: thread.height }} />}
-                {clues.map((c) => {
-                  const order = picked.indexOf(c.clue_id);
-                  return (
-                    <button
-                      key={c.clue_id}
-                      data-clue={c.clue_id}
-                      className={`link-row ${order >= 0 ? "pick" : ""}`}
-                      onClick={() => togglePick(c.clue_id)}
-                      aria-pressed={order >= 0}
-                    >
-                      <span className="link-knot">{order >= 0 ? order + 1 : ""}</span>
-                      <span>
-                        <b>{c.name}</b>
-                        <small>
-                          {c.character_id ? "증언" : `${c.scene_name} · ${c.clue_type}`}
-                        </small>
-                      </span>
-                    </button>
-                  );
-                })}
+                {scenes
+                  .filter((sc) => clues.some((c) => c.scene_id === sc.scene_id))
+                  .flatMap((sc) => [
+                    <div key={`h${sc.scene_id}`} className="link-group">
+                      {sc.name}
+                    </div>,
+                    ...clues
+                      .filter((c) => c.scene_id === sc.scene_id)
+                      .map((c) => {
+                        const order = picked.indexOf(c.clue_id);
+                        return (
+                          <button
+                            key={c.clue_id}
+                            data-clue={c.clue_id}
+                            className={`link-row ${order >= 0 ? "pick" : ""}`}
+                            onClick={() => togglePick(c.clue_id)}
+                            aria-pressed={order >= 0}
+                            title={c.description ?? undefined}
+                          >
+                            <span className="link-knot">{order >= 0 ? order + 1 : ""}</span>
+                            <span className="grow">
+                              <b>
+                                {c.name}
+                                {c.character_id && <em className="link-tag">심문</em>}
+                              </b>
+                              <small className="one-line">{c.description}</small>
+                            </span>
+                          </button>
+                        );
+                      }),
+                  ])}
               </div>
             )}
             {linkMsg && <p className="link-msg pad">{linkMsg}</p>}
@@ -332,6 +389,24 @@ export default function CasePanel(props: Props) {
               ))
             )}
           </>
+        )}
+
+        {tab === "memo" && (
+          <div className="memo">
+            <div className="row-between lbl">
+              <span>내 메모 · 이 사건에만 저장돼요</span>
+              <span className={memoState === "error" ? "red" : ""}>
+                {memoState === "saved" ? "저장됨" : memoState === "error" ? "저장 실패 · 고치면 다시 저장해요" : "저장 중…"}
+              </span>
+            </div>
+            <textarea
+              value={memo}
+              maxLength={5000}
+              placeholder="떠오른 생각, 의심 가는 점, 확인할 것을 적어 두세요."
+              onChange={(e) => editMemo(e.target.value)}
+              onBlur={() => void saveMemo()}
+            />
+          </div>
         )}
 
         {tab === "timeline" && (

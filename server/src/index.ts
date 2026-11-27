@@ -20,6 +20,14 @@ app.use(
     perDay: Number(process.env.RATE_PER_DAY ?? 200),
   }),
 );
+// 진상 공개 뒤 AI에게 묻기도 같은 한도를 쓴다
+app.use(
+  "/api/plays/:id/ask",
+  rateLimit({
+    perMinute: Number(process.env.RATE_PER_MINUTE ?? 10),
+    perDay: Number(process.env.RATE_PER_DAY ?? 200),
+  }),
+);
 app.use("/api", router);
 
 // 배포할 때는 이 서버가 빌드된 화면(client/dist)도 함께 보낸다

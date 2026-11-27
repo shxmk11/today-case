@@ -1,6 +1,7 @@
 import type { Autopsy } from "../types";
 import { hhmm } from "../api";
 import { Face } from "./Common";
+import { GUIDE } from "./CasePanel";
 
 export function AutopsyRows({ a }: { a: Autopsy }) {
   const rows: [string, string | null, string?][] = [
@@ -44,6 +45,7 @@ export function AutopsyModal({ a, victim, victimImg, first, onClose }: {
             </div>
           </div>
           <AutopsyRows a={a} />
+          {first && <p className="guide rep-guide">{GUIDE}</p>}
           <div className="modal-actions">
             <span className="lbl rep-hint">{first ? "위쪽 피해자 정보를 누르면 다시 볼 수 있어요" : ""}</span>
             <button className={`pill ${first ? "red" : "outline"}`} onClick={onClose}>

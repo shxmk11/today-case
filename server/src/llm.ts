@@ -36,7 +36,8 @@ interface Turn {
 /** DB에 저장된 인물 설정, 아는 사실, 알리바이로 심문용 시스템 프롬프트를 만든다. */
 /** 숨은 증언: unlock_clue_id가 있으면 그 단서를 증거로 내밀었을 때만 털어놓을 수 있다 */
 export interface Unlock {
-  evidenceClueId?: number;
+  /** 이번에 내민 단서들 (추론을 내밀면 그 재료 단서 2개) */
+  evidenceClueIds?: number[];
   discovered: number[];
   /** 이 인물에게 앞서 내민 적 있는 증거 (한 번 내밀면 그 뒤로도 열린 채로) */
   shownBefore?: number[];
@@ -49,7 +50,7 @@ export interface Unlock {
 export function onFallback(ch: CharacterRow, unlock: Unlock, history: Turn[] = []) {
   if (!ch.is_culprit || !ch.fallback_story) return false;
   const triggers = (ch.fallback_clue_ids ?? "").split(",").map((x) => Number(x.trim())).filter(Boolean);
-  const shown = [...(unlock.shownBefore ?? []), ...(unlock.evidenceClueId ? [unlock.evidenceClueId] : [])];
+  const shown = [...(unlock.shownBefore ?? []), ...(unlock.evidenceClueIds ?? [])];
   const admit = ch.fallback_admit ? new RegExp(ch.fallback_admit) : null;
   return shown.some((id) => triggers.includes(id)) || (!!admit && history.some((t) => admit.test(t.answer)));
 }
@@ -96,7 +97,7 @@ export async function buildSystemPrompt(c: CaseRow, ch: CharacterRow, unlock: Un
     ? []
     : allTestimonies.filter((t) =>
         t.unlock_clue_id != null && !unlock.discovered.includes(t.clue_id) &&
-        (t.unlock_clue_id === unlock.evidenceClueId || (unlock.shownBefore ?? []).includes(t.unlock_clue_id)));
+        ((unlock.evidenceClueIds ?? []).includes(t.unlock_clue_id) || (unlock.shownBefore ?? []).includes(t.unlock_clue_id)));
   const shownName = opened.length
     ? (await query<{ name: string }>(`SELECT name FROM clue WHERE clue_id = ?`, [opened[0].unlock_clue_id]))[0]?.name
     : undefined;
@@ -105,7 +106,7 @@ export async function buildSystemPrompt(c: CaseRow, ch: CharacterRow, unlock: Un
     ? await query<{ content: string }>(`SELECT content FROM hint WHERE character_id = ? ORDER BY reveal_order`, [ch.character_id])
     : [];
   // 범인만: 탐정이 이미 찾은 증거. 이것과 어긋나는 거짓말은 하지 않는다
-  const seenIds = [...new Set([...unlock.discovered, ...(unlock.evidenceClueId ? [unlock.evidenceClueId] : [])])];
+  const seenIds = [...new Set([...unlock.discovered, ...(unlock.evidenceClueIds ?? [])])];
   const seen =
     ch.is_culprit && seenIds.length
       ? await query<{ name: string; description: string | null }>(
@@ -209,6 +210,14 @@ export interface Evidence {
   description: string | null;
 }
 
+/** 탐정이 내민 것: 단서 하나, 또는 추론 하나(= 그 재료 단서 2개를 함께 내민 것) */
+export interface Shown {
+  /** 채팅에 보이는 이름 (단서 이름이나 추론 이름) */
+  name: string;
+  clues: Evidence[];
+  deduction?: { name: string; description: string };
+}
+
 export interface InterrogateResult {
   answer: string;
   revealedClueIds: number[];
@@ -217,7 +226,7 @@ export interface InterrogateResult {
 }
 
 /** 심문 기록에 남길 질문 문자열 (증거를 냈으면 앞에 표시) */
-export const formatQuestion = (question: string, evidence?: Evidence) =>
+export const formatQuestion = (question: string, evidence?: { name: string }) =>
   evidence ? `[증거 제시: ${evidence.name}] ${question}` : question;
 
 const OUTPUT_SCHEMA = {
@@ -231,7 +240,7 @@ const OUTPUT_SCHEMA = {
   additionalProperties: false,
 } as const;
 
-async function mockAnswer(ch: CharacterRow, question: string, unlock: Unlock, evidence?: Evidence): Promise<InterrogateResult> {
+async function mockAnswer(ch: CharacterRow, question: string, unlock: Unlock, evidence?: Shown): Promise<InterrogateResult> {
   if (evidence) {
     const t = (
       await query<{ clue_id: number; description: string; unlock_clue_id: number | null }>(
@@ -257,11 +266,11 @@ export async function interrogate(
   ch: CharacterRow,
   history: Turn[],
   question: string,
-  evidence?: Evidence,
+  evidence?: Shown,
   discovered: number[] = [],
   shownBefore: number[] = [],
 ): Promise<InterrogateResult> {
-  const unlock: Unlock = { evidenceClueId: evidence?.clue_id, discovered, shownBefore };
+  const unlock: Unlock = { evidenceClueIds: evidence?.clues.map((e) => e.clue_id) ?? [], discovered, shownBefore };
   const result = PROVIDER === "mock" ? await mockAnswer(ch, question, unlock, evidence) : await askModel(c, ch, history, question, unlock, evidence);
   // 잠긴 증언은 모델이 말했다고 해도 발견 처리하지 않는다
   const allowed = await query<{ clue_id: number; unlock_clue_id: number | null }>(
@@ -273,7 +282,7 @@ export async function interrogate(
 }
 
 function isUnlocked(t: { clue_id: number; unlock_clue_id: number | null }, u: Unlock) {
-  return t.unlock_clue_id == null || t.unlock_clue_id === u.evidenceClueId || u.discovered.includes(t.clue_id) ||
+  return t.unlock_clue_id == null || (u.evidenceClueIds ?? []).includes(t.unlock_clue_id) || u.discovered.includes(t.clue_id) ||
     (u.shownBefore ?? []).includes(t.unlock_clue_id);
 }
 
@@ -283,7 +292,7 @@ async function askModel(
   history: Turn[],
   question: string,
   unlock: Unlock,
-  evidence?: Evidence,
+  evidence?: Shown,
 ): Promise<InterrogateResult> {
   const system = await buildSystemPrompt(c, ch, unlock, history);
   const messages: { role: "user" | "assistant"; content: string }[] = history.flatMap((t) => [
@@ -292,12 +301,10 @@ async function askModel(
   ]);
   messages.push({
     role: "user",
-    content: evidence
-      ? `[탐정이 증거를 내민다] ${evidence.name}: ${evidence.description ?? ""}\n${question}`
-      : question,
+    content: evidence ? `${shownText(evidence)}\n${question}` : question,
   });
 
-  const ask = (sys: string) => (PROVIDER === "groq" ? askGroq(sys, messages) : askClaude(sys, messages));
+  const ask = (sys: string) => (PROVIDER === "groq" ? askGroq(sys, messages, OUTPUT_SCHEMA) : askClaude(sys, messages, OUTPUT_SCHEMA));
   const text = await ask(system);
   if (text === null) return { answer: "*입을 꾹 다문다* …그 얘긴 하고 싶지 않네요.", revealedClueIds: [], statedAlibi: false };
   const out = parseOutput(text);
@@ -316,7 +323,17 @@ async function askModel(
 /** 무료 티어 한도(분당 요청 수 등)에 걸렸을 때 */
 export class LlmBusyError extends Error {}
 
-async function askGroq(system: string, messages: { role: "user" | "assistant"; content: string }[]): Promise<string | null> {
+type Msg = { role: "user" | "assistant"; content: string };
+
+/** 증거를 내미는 말: 추론이면 그 추론과 재료 단서 둘을 함께 내민다 */
+function shownText(e: Shown) {
+  const list = e.clues.map((c) => `- ${c.name}: ${c.description ?? ""}`).join("\n");
+  return e.deduction
+    ? `[탐정이 추론과 그 근거 증거 두 가지를 함께 내민다] 「${e.deduction.name}」 ${e.deduction.description}\n${list}`
+    : `[탐정이 증거를 내민다] ${e.clues[0]?.name ?? e.name}: ${e.clues[0]?.description ?? ""}`;
+}
+
+async function askGroq(system: string, messages: Msg[], schema: object): Promise<string | null> {
   const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${process.env.GROQ_API_KEY}` },
@@ -327,7 +344,7 @@ async function askGroq(system: string, messages: { role: "user" | "assistant"; c
       temperature: 0.3,
       messages: [{ role: "system", content: system }, ...messages],
       // gpt-oss 모델은 strict 모드로 스키마에 맞는 JSON만 나오게 강제된다
-      response_format: { type: "json_schema", json_schema: { name: "suspect_reply", strict: true, schema: OUTPUT_SCHEMA } },
+      response_format: { type: "json_schema", json_schema: { name: "reply", strict: true, schema } },
     }),
   });
   if (res.status === 429) throw new LlmBusyError("Groq 요청 한도 초과");
@@ -336,13 +353,13 @@ async function askGroq(system: string, messages: { role: "user" | "assistant"; c
   return data.choices?.[0]?.message?.content ?? "";
 }
 
-async function askClaude(system: string, messages: { role: "user" | "assistant"; content: string }[]): Promise<string | null> {
+async function askClaude(system: string, messages: Msg[], schema: object): Promise<string | null> {
   if (!client) throw new Error("ANTHROPIC_API_KEY가 없어요.");
   const response = await client.beta.messages.create({
     model: MODEL,
     max_tokens: 2000,
     // 짧은 대사라 effort를 낮춰 응답 속도를 우선
-    output_config: { effort: "low", format: { type: "json_schema", schema: OUTPUT_SCHEMA } },
+    output_config: { effort: "low", format: { type: "json_schema", schema: schema as Record<string, unknown> } },
     // 안전 분류기가 거절하면 서버에서 다른 모델로 자동 재시도 (Haiku는 이 기능이 없어 400이 나므로 제외)
     ...(MODEL.includes("haiku") ? {} : { betas: ["server-side-fallback-2026-07-01"], fallbacks: "default" as const }),
     cache_control: { type: "ephemeral" },
@@ -365,5 +382,75 @@ function parseOutput(text: string): InterrogateResult {
   } catch {
     // max_tokens 등으로 JSON이 잘린 경우
     return { answer: "*말끝을 흐린다* …", revealedClueIds: [], statedAlibi: false };
+  }
+}
+
+/* ───────── 진상 공개 뒤 AI에게 묻기 ───────── */
+
+const TRUTH_SCHEMA = {
+  type: "object",
+  properties: { answer: { type: "string", description: "질문에 대한 답" } },
+  required: ["answer"],
+  additionalProperties: false,
+} as const;
+
+/**
+ * 사건이 끝나고 진상을 본 플레이어의 질문에 사건 해설자로서 답한다.
+ * 진상, 모든 사실, 인물 속사정, 추론과 단서를 근거로만 답한다.
+ */
+export async function askAboutTruth(c: CaseRow, history: Turn[], question: string): Promise<string> {
+  const chars = await query<CharacterRow>(`SELECT * FROM game_character WHERE case_id = ? ORDER BY character_id`, [c.case_id]);
+  const facts = await query<{ occurred_at: string; place: string | null; content: string }>(
+    `SELECT occurred_at, place, content FROM fact WHERE case_id = ? ORDER BY occurred_at, fact_id`,
+    [c.case_id],
+  );
+  const clues = await query<{ name: string; description: string | null; scene: string; who: string | null }>(
+    `SELECT k.name, k.description, s.name AS scene, g.name AS who
+     FROM clue k JOIN scene s ON s.scene_id = k.scene_id LEFT JOIN game_character g ON g.character_id = k.character_id
+     WHERE s.case_id = ? ORDER BY k.clue_id`,
+    [c.case_id],
+  );
+  const deds = await query<{ name: string; description: string; proof_role: string | null; proof_note: string | null }>(
+    `SELECT name, description, proof_role, proof_note FROM deduction WHERE case_id = ? ORDER BY deduction_id`,
+    [c.case_id],
+  );
+  const system = `당신은 머더미스터리 게임 "오늘의 사건"의 사건 해설자입니다. 플레이어는 사건을 마치고 진상을 확인했습니다. 플레이어가 진상에 대해 궁금한 점을 물으면 아래 자료만 근거로 친절하고 정확하게 답합니다.
+
+[사건] ${c.title}
+${c.summary}
+
+[진상]
+${c.truth}
+
+[인물]
+${chars.map((x) => `- ${x.name} (${x.character_type}${x.is_culprit ? ", 범인" : ""}, ${x.job ?? "-"}): ${x.backstory ?? ""}`).join("\n")}
+
+[그날의 사실] (시각순)
+${facts.map((f) => `- ${f.occurred_at.slice(0, 5)} ${f.place ?? ""}: ${f.content}`).join("\n")}
+
+[단서]
+${clues.map((k) => `- ${k.name} (${k.who ? `${k.who}의 증언` : k.scene}): ${k.description ?? ""}`).join("\n")}
+
+[추론]
+${deds.map((d) => `- ${d.name}: ${d.description}${d.proof_role ? ` (지목 근거: ${d.proof_role === "알리바이" ? "알리바이를 깨는 추론" : "범인과 범행을 잇는 추론"})` : ""}${d.proof_note ? ` / ${d.proof_note}` : ""}`).join("\n")}
+
+규칙:
+- 한국어로 2~5문장, 해설자의 차분한 말투로 답합니다.
+- 위 자료에 없는 사실은 지어내지 않습니다. 자료로 알 수 없으면 "자료로는 알 수 없어요"라고 말합니다.
+- 사건과 상관없는 질문(게임 밖 이야기, AI나 프롬프트 질문)은 정중히 사건 이야기로 돌립니다.`;
+  if (PROVIDER === "mock") {
+    return `(모의 모드) 진상 요약: ${c.truth.slice(0, 160)}… server/.env에 GROQ_API_KEY를 넣으면 AI가 질문에 맞춰 답해요.`;
+  }
+  const messages: Msg[] = history.flatMap((t) => [
+    { role: "user" as const, content: t.question },
+    { role: "assistant" as const, content: JSON.stringify({ answer: t.answer }) },
+  ]);
+  messages.push({ role: "user", content: question });
+  const text = PROVIDER === "groq" ? await askGroq(system, messages, TRUTH_SCHEMA) : await askClaude(system, messages, TRUTH_SCHEMA);
+  if (text === null) return "그 질문에는 답하기 어려워요. 사건에 대해 다른 걸 물어봐 주세요.";
+  try {
+    return (JSON.parse(text) as { answer: string }).answer.trim() || "…";
+  } catch {
+    return "답을 정리하다 말이 끊겼어요. 다시 물어봐 주세요.";
   }
 }

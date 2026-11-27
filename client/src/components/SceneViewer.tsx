@@ -1,5 +1,5 @@
-import { useEffect } from "react";
-import type { Scene } from "../types";
+import { useEffect, useState } from "react";
+import type { Scene, Spot } from "../types";
 
 interface Props {
   scenes: Scene[];
@@ -18,6 +18,16 @@ interface Props {
 
 const remaining = (s: Scene) => s.spots.filter((p) => !p.searched).length;
 
+/* 자물쇠 (잠긴 조사 지점) */
+export function LockIcon({ size = 12 }: { size?: number }) {
+  return (
+    <svg className="lock-icon" viewBox="0 0 12 14" width={size} height={(size * 14) / 12} aria-hidden>
+      <path d="M3.2 6V4.2a2.8 2.8 0 0 1 5.6 0V6" fill="none" stroke="currentColor" strokeWidth="1.4" />
+      <rect x="1" y="6" width="10" height="7.2" rx="1.6" fill="none" stroke="currentColor" strokeWidth="1.4" />
+    </svg>
+  );
+}
+
 /* 현장 조사 창: 단면도 지도에서 방을 고르고, 현장 그림 위 조사 지점을 눌러 조사한다 */
 export default function SceneViewer(props: Props) {
   const { scenes, mapUrl, sceneId, onScene, left, limit, unlimited, onUnlimited, busy, onInvestigate, onClose } = props;
@@ -30,6 +40,13 @@ export default function SceneViewer(props: Props) {
   }, [onClose]);
 
   const canOpen = (searched: boolean, locked: boolean) => !searched && !locked && (unlimited || left > 0) && busy === null;
+  // 잠긴 지점을 누르면(폰은 탭) 무엇이 필요한지 방향만 알려 준다
+  const [hintFor, setHintFor] = useState<Spot | null>(null);
+  useEffect(() => setHintFor(null), [sceneId]);
+  function press(p: Spot) {
+    if (p.locked) setHintFor(hintFor?.spot_id === p.spot_id ? null : p);
+    else onInvestigate(p.spot_id);
+  }
 
   return (
     <div className="modal-back" onClick={onClose}>
@@ -100,14 +117,19 @@ export default function SceneViewer(props: Props) {
                     key={p.spot_id}
                     className={`hot ${p.searched ? "done" : p.locked ? "locked" : ""} ${busy === p.spot_id ? "busy" : ""}`}
                     style={{ left: `${p.x}%`, top: `${p.y}%` }}
-                    disabled={!canOpen(p.searched, p.locked)}
-                    onClick={() => onInvestigate(p.spot_id)}
-                    aria-label={`${p.name}${p.searched ? " (조사함)" : p.locked ? " (잠김)" : ""}`}
+                    disabled={!p.locked && !canOpen(p.searched, p.locked)}
+                    onClick={() => press(p)}
+                    aria-label={`${p.name}${p.searched ? " (조사함)" : p.locked ? ` (잠김: ${p.hint ?? ""})` : ""}`}
                   >
-                    <span className="hot-dot">{p.searched ? "✓" : p.locked ? "·" : i + 1}</span>
-                    <span className="hot-tip">
+                    <span className="hot-dot">{p.searched ? "✓" : p.locked ? <LockIcon size={11} /> : i + 1}</span>
+                    <span className={`hot-tip ${p.locked ? "wide" : ""}`}>
                       {p.name}
-                      {p.locked && " · 잠김"}
+                      {p.locked && (
+                        <>
+                          <small> · 잠김</small>
+                          {p.hint && <span className="hot-hint">{p.hint}</span>}
+                        </>
+                      )}
                     </span>
                   </button>
                 ))}
@@ -117,18 +139,26 @@ export default function SceneViewer(props: Props) {
                 {scene.spots.map((p, i) => (
                   <button
                     key={p.spot_id}
-                    className={`spot ${p.searched ? "done" : p.locked ? "locked" : ""}`}
-                    disabled={!canOpen(p.searched, p.locked)}
-                    title={p.locked ? "다른 단서를 찾아야 열 수 있어요" : undefined}
-                    onClick={() => onInvestigate(p.spot_id)}
+                    className={`spot ${p.searched ? "done" : p.locked ? "locked" : ""} ${hintFor?.spot_id === p.spot_id ? "on" : ""}`}
+                    disabled={!p.locked && !canOpen(p.searched, p.locked)}
+                    title={p.locked ? p.hint ?? undefined : undefined}
+                    onClick={() => press(p)}
                   >
-                    <span className="spot-no">{i + 1}</span>
+                    {p.locked ? <LockIcon /> : <span className="spot-no">{p.searched ? "✓" : i + 1}</span>}
                     {busy === p.spot_id ? "조사 중…" : p.name}
                     {p.searched && <small>조사함</small>}
                     {p.locked && <small>잠김</small>}
                   </button>
                 ))}
               </div>
+              {hintFor && (
+                <p className="lock-hint" role="status">
+                  <LockIcon />
+                  <span>
+                    <b>{hintFor.name}</b>은(는) 아직 열 수 없어요. {hintFor.hint}
+                  </span>
+                </p>
+              )}
               <nav className="room-tabs" aria-label="다른 장소">
                 {scenes.map((s) => (
                   <button
