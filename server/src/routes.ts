@@ -457,8 +457,13 @@ router.post(
       if (!evidence) throw new HttpError(400, "아직 찾지 못한 단서예요.");
     }
 
-    const discoveredIds = (await discoveredClues(play.participant_id)).map((x) => x.clue_id);
-    const { answer, revealedClueIds, statedAlibi } = await interrogate(c, ch, history.slice(-20), question, evidence, discoveredIds);
+    const found = await discoveredClues(play.participant_id);
+    const discoveredIds = found.map((x) => x.clue_id);
+    // 이 인물에게 앞서 내민 증거: 저장된 질문 앞의 [증거 제시: 이름]으로 찾는다
+    const shownBefore = found
+      .filter((x) => history.some((h) => h.question.startsWith(`[증거 제시: ${x.name}]`)))
+      .map((x) => x.clue_id);
+    const { answer, revealedClueIds, statedAlibi } = await interrogate(c, ch, history.slice(-20), question, evidence, discoveredIds, shownBefore);
     const storedQuestion = formatQuestion(question, evidence);
     const interrogationId = await insert(
       `INSERT INTO interrogation (participant_id, character_id, question, answer) VALUES (?, ?, ?, ?)`,

@@ -38,6 +38,8 @@ interface Turn {
 export interface Unlock {
   evidenceClueId?: number;
   discovered: number[];
+  /** 이 인물에게 앞서 내민 적 있는 증거 (한 번 내밀면 그 뒤로도 열린 채로) */
+  shownBefore?: number[];
 }
 
 export async function buildSystemPrompt(c: CaseRow, ch: CharacterRow, unlock: Unlock = { discovered: [] }): Promise<string> {
@@ -66,6 +68,16 @@ export async function buildSystemPrompt(c: CaseRow, ch: CharacterRow, unlock: Un
   );
   const testimonies = allTestimonies.filter((t) => isUnlocked(t, unlock));
   const locked = allTestimonies.filter((t) => !isUnlocked(t, unlock));
+  // 범인이 아닌 사람: 방금 내민 증거가 숨은 증언을 여는 열쇠라면, 이번 답에서 숨긴 일을 인정하고 털어놓는다
+  // (앞서 내밀었는데 아직 털어놓지 않은 것도 포함)
+  const opened = ch.is_culprit
+    ? []
+    : allTestimonies.filter((t) =>
+        t.unlock_clue_id != null && !unlock.discovered.includes(t.clue_id) &&
+        (t.unlock_clue_id === unlock.evidenceClueId || (unlock.shownBefore ?? []).includes(t.unlock_clue_id)));
+  const shownName = opened.length
+    ? (await query<{ name: string }>(`SELECT name FROM clue WHERE clue_id = ?`, [opened[0].unlock_clue_id]))[0]?.name
+    : undefined;
   // 범인만: 증거마다 댈 변명 계획
   const plan = ch.is_culprit
     ? await query<{ content: string }>(`SELECT content FROM hint WHERE character_id = ? ORDER BY reveal_order`, [ch.character_id])
@@ -135,7 +147,7 @@ ${seen.map((e) => `- ${e.name}: ${e.description ?? ""}`).join("\n")}
 
 ` : ""}[당신이 털어놓을 수 있는 증언] (id: 내용)
 ${testimonies.map((t) => `- ${t.clue_id}: ${t.description}`).join("\n") || "- 없음"}
-${locked.length ? `\n[아직 절대 말하지 않는 것] (탐정이 관련 증거를 내밀기 전까지는 물어봐도 모른 척하거나 말을 돌립니다)\n${locked.map((t) => `- ${t.description}`).join("\n")}\n` : ""}
+${opened.length ? `\n[이번에 털어놓을 차례] 탐정이 「${shownName ?? "증거"}」을(를) 내밀었습니다. 이 증거는 당신이 숨긴 일을 정확히 짚습니다. 잠깐 머뭇거려도 되지만, 이번 답에서 숨긴 사실을 인정하고 아래 증언을 털어놓습니다. 다른 설명을 지어내지 않습니다.\n${opened.map((t) => `- ${t.clue_id}: ${t.description}`).join("\n")}\n` : ""}${locked.length ? `\n[아직 절대 말하지 않는 것] (탐정이 관련 증거를 내밀기 전까지는 물어봐도 모른 척하거나 말을 돌립니다)\n${locked.map((t) => `- ${t.description}`).join("\n")}\n` : ""}
 규칙:
 - 항상 이 인물로서 한국어 구어체로, 1~3문장으로 짧게 답합니다. 성격이 말투에 드러나게 합니다.
 - 위에 적힌 사실 외의 새로운 결정적 증거나 사건을 지어내지 않습니다. 모르는 것은 모른다고 합니다.
@@ -143,6 +155,8 @@ ${locked.length ? `\n[아직 절대 말하지 않는 것] (탐정이 관련 증�
 - 앞에서 이미 한 말과 어긋나는 말을 하지 않습니다. 대답하기 전에 이전 대화에서 자신이 한 말을 확인합니다. (범인은 탐정이 증거로 몰아붙였을 때만 말을 바꿉니다.)
 - 숨기는 사실은 그냥 물어봐서는 털어놓지 않습니다. 탐정이 그 사실과 어긋나는 구체적인 증거를 내밀거나 정확히 짚어 물으면 흔들립니다.
   - 범인이 아니라면: 처음엔 말을 아끼거나 대답을 피하다가(거짓말은 하지 않음) 결국 숨긴 사실을 인정하고, 관련 증언도 털어놓습니다.
+    - 숨긴 일과 관련된 증거를 보면 "혹시 ~했을 수도 있어요"처럼 그럴듯한 다른 설명을 지어내지 않습니다. 사실이 아닌 설명은 추측처럼 말해도 거짓말입니다. 말하기 곤란하면 "그건… 좀 말하기 어려워요"라고 피할 뿐입니다.
+    - 자기가 한 일을 모르는 척하지 않습니다. 자기 물건이 어디서 나왔는지 알면서 "왜 거기 있는지 모르겠다"고 하지 않습니다.
   - 범인이라면: 거짓말을 할 수 있는 유일한 인물입니다. 하지만 억지로 우기지 않고, 미리 준비한 똑똑한 범인처럼 행동합니다.
     - 거짓말은 [거짓 각본]에 (거짓)으로 적힌 것, 즉 아무도 확인할 수 없는 혼자 있던 시간의 행방에만 합니다. 기록이나 다른 사람으로 확인될 수 있는 시각과 사실(촬영·업로드 시각, 받은 메시지, 누구와 마주친 것)은 처음부터 사실대로 말합니다. 쉽게 들킬 거짓말은 하지 않습니다.
     - 자기에게 불리한 사실(각본에 "먼저 꺼내지 않는다"고 적힌 것, 동기, 피해자와의 연락 등)은 처음엔 말을 아낍니다. 직접 물어도 "아니요"라고 부정하지 말고 "그건 좀 개인적인 일이라서요", "그게 사건이랑 상관있나요?"처럼 피합니다. 탐정이 그 증거를 내밀면 그때 솔직하게 인정합니다("네, 사실 그건 맞아요"). 부정한 적이 없으니 말을 바꾼 게 아닙니다.
@@ -216,8 +230,9 @@ export async function interrogate(
   question: string,
   evidence?: Evidence,
   discovered: number[] = [],
+  shownBefore: number[] = [],
 ): Promise<InterrogateResult> {
-  const unlock: Unlock = { evidenceClueId: evidence?.clue_id, discovered };
+  const unlock: Unlock = { evidenceClueId: evidence?.clue_id, discovered, shownBefore };
   const result = PROVIDER === "mock" ? await mockAnswer(ch, question, unlock, evidence) : await askModel(c, ch, history, question, unlock, evidence);
   // 잠긴 증언은 모델이 말했다고 해도 발견 처리하지 않는다
   const allowed = await query<{ clue_id: number; unlock_clue_id: number | null }>(
@@ -229,7 +244,8 @@ export async function interrogate(
 }
 
 function isUnlocked(t: { clue_id: number; unlock_clue_id: number | null }, u: Unlock) {
-  return t.unlock_clue_id == null || t.unlock_clue_id === u.evidenceClueId || u.discovered.includes(t.clue_id);
+  return t.unlock_clue_id == null || t.unlock_clue_id === u.evidenceClueId || u.discovered.includes(t.clue_id) ||
+    (u.shownBefore ?? []).includes(t.unlock_clue_id);
 }
 
 async function askModel(
