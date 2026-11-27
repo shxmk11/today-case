@@ -201,7 +201,7 @@ button.case-row:not(.on):hover { background: rgb(255 255 255 / 0.06); }
 .player-tl li.k-주장 span { color: rgb(255 255 255 / 0.8); }
 .player-tl li.hot i { background: var(--red); border-color: var(--red); }
 
-.toast { position: fixed; left: 50%; bottom: 32px; transform: translateX(-50%); background: var(--red); border-radius: 999px; padding: 12px 22px; font-weight: 700; z-index: 40; box-shadow: 0 8px 30px rgb(0 0 0 / 0.5); }
+.toast { position: fixed; left: 50%; top: 20px; transform: translateX(-50%); background: var(--red); border-radius: 999px; padding: 12px 22px; font-weight: 700; z-index: 40; box-shadow: 0 8px 30px rgb(0 0 0 / 0.5); }
 
 /* 범인 지목 창 */
 .modal-back { position: fixed; inset: 0; background: rgb(0 0 0 / 0.75); display: grid; place-items: center; z-index: 30; padding: 20px; }
@@ -390,3 +390,81 @@ button.case-row:not(.on):hover { background: rgb(255 255 255 / 0.06); }
   .hot { width: 36px; height: 36px; }
   .hot-dot { width: 24px; height: 24px; font-size: 12px; box-shadow: 0 0 0 4px rgb(193 18 31 / 0.35); }
 }
+
+/* ───────── 흰 얇은 선 레이아웃: 면을 채우지 않고 선으로만 구분 ───────── */
+:root { --thin: 1px solid rgb(255 255 255 / 0.55); --bold: 1.5px solid var(--white); }
+.pill.white { background: transparent; color: var(--white); border: var(--bold); }
+.pill.outline.on { background: transparent; color: var(--white); border: var(--bold); }
+.pill.outline-dark { border: var(--thin); color: var(--white); }
+
+/* 창 (범인 지목, 검시 기록) */
+.modal { background: var(--black); color: var(--white); border: var(--thin); }
+.modal .lbl, .modal-note { color: var(--muted); }
+.accuse-pick { border: var(--thin); }
+.accuse-pick small { color: var(--muted); }
+.accuse-pick.on { background: transparent; border: 2px solid var(--red); color: var(--white); }
+.accuse-pick.on b { color: var(--red); }
+.accuse-pick.on small { color: var(--muted); }
+.ev-chip { border: var(--thin); }
+.ev-chip small { color: var(--muted); }
+.ev-chip.on { background: transparent; border: 2px solid var(--red); color: var(--white); }
+.ev-chip.on small { color: var(--muted); }
+.slot { border: 1.5px dashed rgb(255 255 255 / 0.4); }
+.slot small { color: var(--muted); }
+
+/* 검시 기록 */
+.rep-panel { background: transparent; color: var(--white); border: var(--thin); }
+.rep-row { border-bottom: 1px solid rgb(255 255 255 / 0.15); }
+.rep-row small, .rep-sub, .rep-victim { color: var(--muted); }
+
+/* 단서 탭의 열린 장소 */
+.scene-open { background: transparent; color: var(--white); border: var(--thin); }
+.scene-open .num { border: var(--thin); }
+.chip { border: var(--thin); }
+.chip.on { border: var(--bold); }
+.chip small { color: var(--muted); }
+.chip-detail { color: rgb(255 255 255 / 0.8); }
+.t-기록 { background: var(--white); }
+
+/* 조사 지점 버튼, 지도, 현장 창 */
+.spot { background: transparent; color: var(--white); border: var(--bold); }
+.spot.done { border: 1px solid rgb(255 255 255 / 0.3); }
+.spot.locked { background: transparent; border: 1px dashed rgb(255 255 255 / 0.35); }
+.hot-tip { background: var(--black); color: var(--white); border: var(--bold); }
+.hot.done .hot-dot { background: var(--black); box-shadow: none; border: 1.5px solid var(--bubble); color: var(--bubble); }
+.room:hover, .room:focus-visible { background: transparent; border-color: var(--white); }
+.map-open .pill { background: var(--black); }
+.plus.on { background: transparent; color: var(--white); border: var(--bold); }
+
+/* 단서 연결 (목록 + 빨간 실) */
+.link-head { display: flex; flex-direction: column; gap: 4px; padding: 4px 4px 6px; }
+.link-head b { font-size: 17px; font-weight: 800; }
+.link-head p { font-size: 12.5px; line-height: 1.5; color: var(--muted); }
+.link-list { position: relative; display: flex; flex-direction: column; }
+.link-thread { position: absolute; left: 20px; width: 2px; background: var(--red); border-radius: 2px; pointer-events: none; }
+.link-row { position: relative; display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 6px 4px; border-bottom: 1px solid rgb(255 255 255 / 0.12); text-align: left; width: 100%; }
+.link-row:last-child { border-bottom: 0; }
+.link-knot { position: relative; z-index: 1; width: 26px; height: 26px; flex: none; border-radius: 50%; border: 1.5px solid var(--bubble); background: var(--black); display: grid; place-items: center; font-size: 12px; font-weight: 900; margin-left: 4px; }
+.link-row.pick .link-knot { background: var(--red); border-color: var(--red); }
+.link-row b { display: block; font-size: 14px; font-weight: 800; }
+.link-row small { font-size: 11.5px; color: var(--muted); }
+.link-bar { position: sticky; bottom: 0; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 6px 6px 14px; border: var(--thin); border-radius: 999px; background: var(--black); margin-top: 6px; }
+.link-bar span { font-size: 13px; font-weight: 700; }
+.link-bar span small { color: var(--muted); font-weight: 500; }
+.link-bar .pill.red:disabled { opacity: 0.35; }
+.deduction { border: var(--thin); }
+.deduction .ded-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--red); display: inline-block; margin-right: 8px; vertical-align: middle; }
+
+/* 증거 내밀기 */
+.picker { gap: 8px; }
+.picker-tabs { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; }
+.picker-tabs .pill { padding: 6px 12px; font-size: 12px; }
+.picker-rows { display: flex; flex-direction: column; max-height: 168px; overflow-y: auto; }
+.picker-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 8px 4px; border-bottom: 1px solid rgb(255 255 255 / 0.12); text-align: left; width: 100%; font-size: 13.5px; font-weight: 700; }
+.picker-row:last-child { border-bottom: 0; }
+.picker-row small { font-size: 11px; color: var(--muted); font-weight: 600; flex: none; }
+.picker-row.on { color: var(--red); }
+.picker-row .shown { color: var(--muted); font-weight: 500; }
+.picker-preview { display: flex; align-items: flex-start; gap: 10px; border: var(--thin); border-radius: 16px; padding: 10px 12px; }
+.picker-preview p { flex: 1; font-size: 12.5px; line-height: 1.5; color: rgb(255 255 255 / 0.85); }
+.picker-preview b { display: block; font-size: 13.5px; color: var(--white); margin-bottom: 2px; }

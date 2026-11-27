@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { hhmm } from "../api";
 import type { Autopsy, Clue, Deduction, Scene, TimelineItem } from "../types";
 import { AutopsyPanel } from "./Autopsy";
@@ -61,6 +61,20 @@ export default function CasePanel(props: Props) {
       setLinking(false);
     }
   }
+
+  // 고른 단서들의 매듭을 잇는 빨간 실: 첫 매듭부터 마지막 매듭까지
+  const listRef = useRef<HTMLDivElement>(null);
+  const [thread, setThread] = useState<{ top: number; height: number } | null>(null);
+  useLayoutEffect(() => {
+    const box = listRef.current;
+    if (!box || picked.length < 2) return setThread(null);
+    const ys = picked
+      .map((id) => box.querySelector<HTMLElement>(`[data-clue="${id}"]`))
+      .filter((el): el is HTMLElement => !!el)
+      .map((el) => el.offsetTop + el.offsetHeight / 2);
+    if (ys.length < 2) return setThread(null);
+    setThread({ top: Math.min(...ys), height: Math.max(...ys) - Math.min(...ys) });
+  }, [picked, clues.length, tab]);
 
   const nameOf = (id: number) => clues.find((c) => c.clue_id === id)?.name ?? "?";
 
@@ -175,36 +189,48 @@ export default function CasePanel(props: Props) {
 
         {tab === "deduction" && (
           <>
-            <div className="scene-open link-box">
-              <div className="row-between h">
-                <span>단서 연결하기</span>
-                <span className="num">{picked.length} / 3</span>
-              </div>
-              <p className="chip-detail">
-                함께 보면 새 사실이 드러나는 단서를 2~3개 고르세요. 맞으면 추론을 얻고, 틀리면 조사 1회가 줄어요. (남은 조사 {left})
-              </p>
-              {clues.length < 2 ? (
-                <p className="chip-detail">단서를 2개 이상 찾으면 연결할 수 있어요.</p>
-              ) : (
-                <div className="chips">
-                  {clues.map((c) => (
+            <div className="link-head">
+              <b>단서 연결하기</b>
+              <p>함께 보면 새 사실이 드러나는 단서를 2~3개 이으세요. 틀리면 조사 1회가 줄어요.</p>
+            </div>
+            {clues.length < 2 ? (
+              <p className="muted pad">단서를 2개 이상 찾으면 연결할 수 있어요.</p>
+            ) : (
+              <div className="link-list" ref={listRef}>
+                {thread && <i className="link-thread" style={{ top: thread.top, height: thread.height }} />}
+                {clues.map((c) => {
+                  const order = picked.indexOf(c.clue_id);
+                  return (
                     <button
                       key={c.clue_id}
-                      className={`chip ${picked.includes(c.clue_id) ? "pick" : ""}`}
+                      data-clue={c.clue_id}
+                      className={`link-row ${order >= 0 ? "pick" : ""}`}
                       onClick={() => togglePick(c.clue_id)}
+                      aria-pressed={order >= 0}
                     >
-                      <i className={`dot t-${c.clue_type}`} />
-                      <span>{c.name}</span>
-                      <small>{c.character_id ? "증언" : c.scene_name}</small>
+                      <span className="link-knot">{order >= 0 ? order + 1 : ""}</span>
+                      <span>
+                        <b>{c.name}</b>
+                        <small>
+                          {c.character_id ? "증언" : `${c.scene_name} · ${c.clue_type}`}
+                        </small>
+                      </span>
                     </button>
-                  ))}
-                </div>
-              )}
-              <button className="pill red" disabled={picked.length < 2 || linking} onClick={() => void link()}>
-                {linking ? "맞춰보는 중…" : "연결하기"}
-              </button>
-              {linkMsg && <p className="link-msg">{linkMsg}</p>}
-            </div>
+                  );
+                })}
+              </div>
+            )}
+            {linkMsg && <p className="link-msg pad">{linkMsg}</p>}
+            {clues.length >= 2 && (
+              <div className="link-bar">
+                <span>
+                  {picked.length}개 이음 <small>· 남은 조사 {left}</small>
+                </span>
+                <button className="pill red" disabled={picked.length < 2 || linking} onClick={() => void link()}>
+                  {linking ? "맞춰보는 중…" : "연결하기"}
+                </button>
+              </div>
+            )}
             <div className="row-between lbl ded-head">
               <span>찾은 추론</span>
               <span>
@@ -216,7 +242,10 @@ export default function CasePanel(props: Props) {
             ) : (
               [...deductions].reverse().map((d) => (
                 <div key={d.deduction_id} className="deduction">
-                  <b>{d.name}</b>
+                  <b>
+                    <i className="ded-dot" />
+                    {d.name}
+                  </b>
                   <p>{d.description}</p>
                   <small>{d.clue_ids.map(nameOf).join(" + ")}</small>
                 </div>

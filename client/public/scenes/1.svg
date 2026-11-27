@@ -48,9 +48,19 @@
 <path class="w" d="M318 338 Q330 330 344 336 Q348 344 330 345 Q316 345 318 338 Z"/>
 <!-- 끌린 자국 -->
 <path class="g" d="M480 344 Q520 352 560 372 M484 354 Q522 362 562 382" stroke="#AEAEB2" stroke-dasharray="6 5"/>
-<!-- 시신 윤곽 -->
-<path class="r" d="M700 362 L640 356 L612 340 L604 346 L630 364 L600 372 L560 368 L556 378 L600 386 L560 398 L564 408 L610 396 L645 392 L700 386 Z"/>
-<circle class="r" cx="716" cy="374" r="14"/>
+<!-- 시신 -->
+<path d="M700 398 Q738 388 760 400 Q748 414 712 410 Z" fill="#C1121F" opacity=".55"/>
+<g transform="translate(540 344) scale(0.95 0.95)">
+<g fill="#000" stroke="#fff" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round">
+<path d="M158 16 Q172 4 196 6 Q201 9 196 11 Q177 11 165 23 Z"/>
+<path d="M72 22 L12 19 Q3 19 3 25 Q4 30 11 30 L72 32 Z"/>
+<path d="M72 34 L16 40 Q7 42 7 46 Q9 50 15 49 L74 43 Z"/>
+<path d="M166 18 Q150 11 120 14 L82 18 Q68 20 68 30 Q68 41 82 43 L120 46 Q150 49 166 42 Q172 30 166 18 Z"/>
+<path d="M158 43 Q142 57 118 57 Q110 57 111 52 Q114 49 120 50 Q138 50 150 38 Z"/>
+<ellipse cx="182" cy="30" rx="14" ry="12"/>
+</g>
+<circle cx="190" cy="23" r="4" fill="#C1121F"/>
+</g>
 <!-- 떨어진 흉상 -->
 <g class="k"><ellipse cx="748" cy="412" rx="14" ry="5"/><path d="M736 410 Q742 396 756 398 Q764 404 760 412"/><ellipse cx="764" cy="394" rx="8" ry="10" transform="rotate(-50 764 394)"/></g>
 <!-- 장갑 -->

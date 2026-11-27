@@ -38,6 +38,8 @@ export default function ChatPanel({ character, chats, clues, onAsk }: Props) {
   const [error, setError] = useState("");
   const [evidence, setEvidence] = useState<Clue | null>(null);
   const [picking, setPicking] = useState(false);
+  const [place, setPlace] = useState<string>("방금 찾음");
+  const [preview, setPreview] = useState<Clue | null>(null);
   const log = useRef<HTMLDivElement>(null);
   const busy = chats.some((c) => c.pending);
 
@@ -45,13 +47,14 @@ export default function ChatPanel({ character, chats, clues, onAsk }: Props) {
     log.current?.scrollTo({ top: log.current.scrollHeight, behavior: "smooth" });
   }, [chats.length, chats.at(-1)?.pending, character.character_id]);
 
-  async function send(question: string) {
-    const ev = evidence ?? undefined;
+  async function send(question: string, withEvidence?: Clue) {
+    const ev = withEvidence ?? evidence ?? undefined;
     const q = question.trim() || (ev ? "이건 어떻게 설명하실 건가요?" : "");
     if (!q || busy) return;
     setInput("");
     setEvidence(null);
     setPicking(false);
+    setPreview(null);
     setError("");
     try {
       await onAsk(q, ev);
@@ -61,6 +64,17 @@ export default function ChatPanel({ character, chats, clues, onAsk }: Props) {
       setEvidence(ev ?? null);
     }
   }
+
+  // 첫 질문 칩: 이 인물에게 이미 한 질문만 빠진다
+  const suggestions = SUGGESTIONS.filter((q) => !chats.some((c) => splitEvidence(c.question).question === q));
+
+  // 이 인물에게 이미 내민 증거
+  const shown = new Set(chats.map((c) => splitEvidence(c.question).evidence).filter(Boolean) as string[]);
+  const places = ["방금 찾음", ...new Set(clues.map((c) => (c.character_id ? "증언" : c.scene_name)))];
+  const inPlace =
+    place === "방금 찾음"
+      ? clues.slice(-3).reverse()
+      : clues.filter((c) => (c.character_id ? "증언" : c.scene_name) === place);
 
   function submit(e: FormEvent) {
     e.preventDefault();
@@ -104,9 +118,9 @@ export default function ChatPanel({ character, chats, clues, onAsk }: Props) {
         })}
       </div>
 
-      {chats.length === 0 && (
+      {suggestions.length > 0 && !picking && (
         <div className="suggestions">
-          {SUGGESTIONS.map((s) => (
+          {suggestions.map((s) => (
             <button key={s} className="pill outline" onClick={() => void send(s)}>
               {s}
             </button>
@@ -120,21 +134,50 @@ export default function ChatPanel({ character, chats, clues, onAsk }: Props) {
           {clues.length === 0 ? (
             <p className="muted">아직 내밀 단서가 없어요. 현장을 먼저 조사해보세요.</p>
           ) : (
-            <div className="picker-list">
-              {clues.map((c) => (
-                <button
-                  key={c.clue_id}
-                  type="button"
-                  className={`pill outline ${evidence?.clue_id === c.clue_id ? "on" : ""}`}
-                  onClick={() => {
-                    setEvidence(c);
-                    setPicking(false);
-                  }}
-                >
-                  {c.name}
-                </button>
-              ))}
-            </div>
+            <>
+              <div className="picker-tabs">
+                {places.map((p) => (
+                  <button
+                    key={p}
+                    type="button"
+                    className={`pill outline ${place === p ? "on" : ""}`}
+                    onClick={() => {
+                      setPlace(p);
+                      setPreview(null);
+                    }}
+                  >
+                    {p}
+                  </button>
+                ))}
+              </div>
+              <div className="picker-rows">
+                {inPlace.map((c) => (
+                  <button
+                    key={c.clue_id}
+                    type="button"
+                    className={`picker-row ${preview?.clue_id === c.clue_id ? "on" : ""}`}
+                    onClick={() => setPreview(c)}
+                  >
+                    <span>
+                      {c.name}
+                      {shown.has(c.name) && <span className="shown"> · 제시함</span>}
+                    </span>
+                    <small>{c.clue_type}</small>
+                  </button>
+                ))}
+              </div>
+              {preview && (
+                <div className="picker-preview">
+                  <p>
+                    <b>{preview.name}</b>
+                    {preview.description}
+                  </p>
+                  <button type="button" className="pill red" disabled={busy} onClick={() => void send(input, preview)}>
+                    내밀기
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </div>
       )}
@@ -152,7 +195,10 @@ export default function ChatPanel({ character, chats, clues, onAsk }: Props) {
           className={`plus ${picking || evidence ? "on" : ""}`}
           title="찾은 단서를 증거로 내밀기"
           aria-label="증거 내밀기"
-          onClick={() => setPicking((p) => !p)}
+          onClick={() => {
+            setPicking((p) => !p);
+            setPreview(null);
+          }}
         >
           ＋
         </button>
