@@ -15,6 +15,7 @@ interface Props {
   timeline: TimelineItem[];
   autopsy: Autopsy | null;
   victim: string;
+  victimImg?: string | null;
   freshKeys: Set<string>;
   deductions: Deduction[];
   deductionTotal: number;
@@ -26,7 +27,7 @@ interface Props {
 }
 
 export default function CasePanel(props: Props) {
-  const { tab, onTab, scenes, mapUrl, clues, timeline, autopsy, victim, freshKeys, deductions, deductionTotal, left, limit, onInvestigate, onLink } = props;
+  const { tab, onTab, scenes, mapUrl, clues, timeline, autopsy, victim, victimImg, freshKeys, deductions, deductionTotal, left, limit, onInvestigate, onLink } = props;
   const [busy, setBusy] = useState<number | null>(null);
   const [open, setOpen] = useState<number | null>(null);
   const [detail, setDetail] = useState<number | null>(null);
@@ -254,7 +255,7 @@ export default function CasePanel(props: Props) {
           </>
         )}
 
-        {tab === "autopsy" && autopsy && <AutopsyPanel a={autopsy} victim={victim} />}
+        {tab === "autopsy" && autopsy && <AutopsyPanel a={autopsy} victim={victim} victimImg={victimImg} />}
 
         {tab === "timeline" && (
           <>

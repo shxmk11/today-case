@@ -478,3 +478,9 @@ button.case-row:not(.on):hover { background: rgb(255 255 255 / 0.06); }
 .face-big img { width: min(420px, 80vw, 70vh); aspect-ratio: 1; object-fit: cover; border-radius: 28px; border: 1px solid var(--white); display: block; }
 .face-big figcaption { font-size: 22px; font-weight: 900; letter-spacing: -0.02em; }
 .viewer:has(> .map-stage) { width: min(760px, 100%); }
+
+/* 피해자 사진 */
+.meta-victim { display: flex; align-items: flex-start; gap: 12px; }
+.rep-top { display: flex; align-items: center; gap: 16px; }
+.rep-top .lbl { display: block; }
+.rep-victim { display: flex; align-items: center; gap: 10px; }

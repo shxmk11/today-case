@@ -1,5 +1,6 @@
 import type { Autopsy } from "../types";
 import { hhmm } from "../api";
+import { Face } from "./Common";
 
 export function AutopsyRows({ a }: { a: Autopsy }) {
   const rows: [string, string | null, string?][] = [
@@ -28,13 +29,18 @@ export function AutopsyRows({ a }: { a: Autopsy }) {
 }
 
 /* 게임 시작 때 한 번 보여주는 검시 기록 창 */
-export function AutopsyModal({ a, victim, onClose }: { a: Autopsy; victim: string; onClose: () => void }) {
+export function AutopsyModal({ a, victim, victimImg, onClose }: { a: Autopsy; victim: string; victimImg?: string | null; onClose: () => void }) {
   return (
     <div className="modal-back" onClick={onClose}>
       <div className="modal rep-modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="검시 기록">
         <div className="rep-main">
-          <span className="lbl">사건 파일 · {victim}</span>
-          <h2 className="display">검시 기록</h2>
+          <div className="rep-top">
+            <Face name={victim} src={victimImg} size={76} zoom />
+            <div>
+              <span className="lbl">사건 파일 · 피해자 {victim}</span>
+              <h2 className="display">검시 기록</h2>
+            </div>
+          </div>
           <AutopsyRows a={a} />
           <div className="modal-actions">
             <span className="lbl rep-hint">오른쪽 패널 「검시」에서 다시 볼 수 있어요</span>
@@ -49,11 +55,14 @@ export function AutopsyModal({ a, victim, onClose }: { a: Autopsy; victim: strin
 }
 
 /* 오른쪽 패널 「검시」 탭 */
-export function AutopsyPanel({ a, victim }: { a: Autopsy; victim: string }) {
+export function AutopsyPanel({ a, victim, victimImg }: { a: Autopsy; victim: string; victimImg?: string | null }) {
   return (
     <div className="rep-panel">
       <span className="h">검시 기록</span>
-      <span className="rep-victim">피해자 {victim}</span>
+      <span className="rep-victim">
+        <Face name={victim} src={victimImg} size={40} zoom />
+        피해자 {victim}
+      </span>
       <AutopsyRows a={a} />
     </div>
   );
