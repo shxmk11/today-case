@@ -1,4 +1,5 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 
 /* 맨 위 한 줄: 왼쪽 로고, 가운데 소개, 오른쪽은 화면마다 다른 정보 */
 export function Topline({ right, onHome }: { right?: ReactNode; onHome?: () => void }) {
@@ -14,13 +15,54 @@ export function Topline({ right, onHome }: { right?: ReactNode; onHome?: () => v
 }
 
 /* 얼굴 그림. 그림이 없거나 못 불러오면 이름 첫 글자를 뺀 두 글자(서진, 유나)로 */
-export function Face({ name, src, size = 44 }: { name: string; src?: string | null; size?: number }) {
+export function Face({ name, src, size = 44, zoom = false }: { name: string; src?: string | null; size?: number; zoom?: boolean }) {
   const [broken, setBroken] = useState(false);
+  const [open, setOpen] = useState(false);
   const label = name.length >= 3 ? name.slice(1, 3) : name;
+  const hasImg = !!src && !broken;
+  const canZoom = zoom && hasImg;
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.stopPropagation();
+        setOpen(false);
+      }
+    };
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
+  }, [open]);
+  const show = (e: React.SyntheticEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    setOpen(true);
+  };
   return (
-    <span className="face" style={{ width: size, height: size, fontSize: Math.round(size * 0.3) }}>
-      {src && !broken ? <img src={src} alt="" onError={() => setBroken(true)} draggable={false} /> : label}
-    </span>
+    <>
+      <span
+        className={`face ${canZoom ? "zoomable" : ""}`}
+        style={{ width: size, height: size, fontSize: Math.round(size * 0.3) }}
+        {...(canZoom && {
+          role: "button",
+          tabIndex: 0,
+          "aria-label": `${name} 사진 크게 보기`,
+          onClick: show,
+          onKeyDown: (e: React.KeyboardEvent) => (e.key === "Enter" || e.key === " ") && show(e),
+        })}
+      >
+        {hasImg ? <img src={src!} alt="" onError={() => setBroken(true)} draggable={false} /> : label}
+      </span>
+      {open &&
+        createPortal(
+          <div className="modal-back face-back" onClick={() => setOpen(false)}>
+            <figure className="face-big" role="dialog" aria-label={`${name} 사진`}>
+              <img src={src!} alt={name} draggable={false} />
+              <figcaption>{name}</figcaption>
+            </figure>
+          </div>,
+          document.body,
+        )}
+    </>
   );
 }
 

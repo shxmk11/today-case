@@ -169,7 +169,7 @@ export default function Game({ playId, onHome, onFinish }: Props) {
                 className={`suspect ${c.character_id === selected ? "on" : ""}`}
                 onClick={() => setSelected(c.character_id)}
               >
-                <Face name={c.name} src={c.image_url} size={38} />
+                <Face name={c.name} src={c.image_url} size={38} zoom />
                 <span className="grow">
                   <b>{c.name}</b>
                   <small>

@@ -107,7 +107,7 @@ export default function Result({ result, title, onHome, onRetry }: Props) {
               </div>
               <ol className="dots-timeline">
                 {result.timeline.map((f) => (
-                  <li key={f.fact_id} className={f.is_initial ? "" : "hot"}>
+                  <li key={f.fact_id} className={f.is_initial ? "" : "fresh"}>
                     <time>{hhmm(f.occurred_at)}</time>
                     <i />
                     <span>

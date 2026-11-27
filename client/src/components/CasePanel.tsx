@@ -263,7 +263,7 @@ export default function CasePanel(props: Props) {
               {timeline.map((t) => {
                 const [title, ...rest] = t.kind === "사실" ? ["", t.text] : t.text.split(" · ");
                 return (
-                  <li key={t.key} className={`k-${t.kind} ${freshKeys.has(t.key) ? "hot" : ""}`}>
+                  <li key={t.key} className={`k-${t.kind} ${freshKeys.has(t.key) ? "fresh" : ""}`}>
                     <time>{hhmm(t.time)}</time>
                     <i />
                     <span>
