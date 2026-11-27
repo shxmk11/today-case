@@ -53,6 +53,15 @@ export function onFallback(ch: CharacterRow, unlock: Unlock, history: Turn[] = [
   return shown.some((id) => triggers.includes(id)) || history.some((t) => /수영장에\s*(잠깐\s*)?(나갔|갔)/.test(t.answer));
 }
 
+/** 두 번째 이야기 중인데 버린 이야기로 돌아가거나 굳힌 시각과 어긋나는 말을 했는지 (걸린 패턴을 돌려준다) */
+export function storyViolation(ch: CharacterRow, fallback: boolean, answer: string): string | null {
+  if (!fallback || !ch.fallback_guard) return null;
+  for (const line of ch.fallback_guard.split("\n").map((x) => x.trim()).filter(Boolean)) {
+    if (new RegExp(line).test(answer)) return line;
+  }
+  return null;
+}
+
 export async function buildSystemPrompt(c: CaseRow, ch: CharacterRow, unlock: Unlock = { discovered: [] }, history: Turn[] = []): Promise<string> {
   const fallback = onFallback(ch, unlock, history);
   const relations = await query<{ other: string; relation_type: string; description: string | null }>(
@@ -287,9 +296,20 @@ async function askModel(
       : question,
   });
 
-  const text = PROVIDER === "groq" ? await askGroq(system, messages) : await askClaude(system, messages);
+  const ask = (sys: string) => (PROVIDER === "groq" ? askGroq(sys, messages) : askClaude(sys, messages));
+  const text = await ask(system);
   if (text === null) return { answer: "*입을 꾹 다문다* …그 얘긴 하고 싶지 않네요.", revealedClueIds: [], statedAlibi: false };
-  return parseOutput(text);
+  const out = parseOutput(text);
+  // 범인이 지금 입장과 어긋나는 말을 했으면 한 번만 다시 받는다
+  const fallback = onFallback(ch, unlock, history);
+  const bad = storyViolation(ch, fallback, out.answer);
+  if (!bad) return out;
+  const retry = await ask(`${system}
+
+[다시 답하기] 방금 쓴 답 "${out.answer}"은 지금 입장(물러선 이야기)과 어긋납니다. 버린 이야기로 돌아가거나, 굳힌 시각과 다른 말을 하거나, 그 시각 그 자리에 있었다고 인정하면 안 됩니다. 지금 입장 그대로 다시 답하세요.`);
+  if (retry === null) return out;
+  const second = parseOutput(retry);
+  return storyViolation(ch, fallback, second.answer) ? { ...second, answer: "*말이 막혀 잠시 입을 다문다* …저는 말씀드린 그대로예요." } : second;
 }
 
 /** 무료 티어 한도(분당 요청 수 등)에 걸렸을 때 */

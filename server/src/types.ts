@@ -35,6 +35,7 @@ export interface CharacterRow {
   /** 범인만: 처음 이야기가 깨지면 물러설 이야기와, 그리로 넘어가게 하는 단서 id (쉼표) */
   fallback_story: string | null;
   fallback_clue_ids: string | null;
+  fallback_guard: string | null;
   image_url: string | null;
   character_type: "피해자" | "용의자" | "목격자";
   is_culprit: boolean;

@@ -18,7 +18,7 @@ const wrap =
     fn(req, res).catch(next);
 
 /* 플레이어에게 보여도 되는 필드만 고른다 (범인 여부, 진상, 숨긴 사실은 제외) */
-const publicCharacter = ({ is_culprit: _c, case_id: _id, backstory: _b, cover_story: _s, fallback_story: _fs, fallback_clue_ids: _fc, ...rest }: CharacterRow) => rest;
+const publicCharacter = ({ is_culprit: _c, case_id: _id, backstory: _b, cover_story: _s, fallback_story: _fs, fallback_clue_ids: _fc, fallback_guard: _fg, ...rest }: CharacterRow) => rest;
 
 async function getPlay(playId: number) {
   const play = await one<{ play_id: number; case_id: number; status: string; participant_id: number; unlimited: number }>(
