@@ -5,6 +5,7 @@ import ChatPanel from "./ChatPanel";
 import CasePanel, { type Tab } from "./CasePanel";
 import AccuseModal from "./AccuseModal";
 import { Topline, bio } from "./Common";
+import { AutopsyModal } from "./Autopsy";
 
 interface Props {
   playId: number;
@@ -19,6 +20,23 @@ export default function Game({ playId, onHome, onFinish }: Props) {
   const [accusing, setAccusing] = useState(false);
   const [tab, setTab] = useState<Tab>("clue");
   const [toast, setToast] = useState("");
+  // 검시 기록 창: 플레이마다 처음 한 번만 띄운다
+  const seenKey = `autopsy-seen-${playId}`;
+  const [autopsyOpen, setAutopsyOpen] = useState(() => {
+    try {
+      return !localStorage.getItem(seenKey);
+    } catch {
+      return true;
+    }
+  });
+  function closeAutopsy() {
+    setAutopsyOpen(false);
+    try {
+      localStorage.setItem(seenKey, "1");
+    } catch {
+      /* 저장이 막혀 있으면 다음에 또 뜰 뿐 */
+    }
+  }
   // 마지막 행동으로 타임라인에 새로 붙은 줄 (빨간 점으로 표시)
   const [freshKeys, setFreshKeys] = useState<Set<string>>(new Set());
   const toastTimer = useRef<number>(undefined);
@@ -181,6 +199,8 @@ export default function Game({ playId, onHome, onFinish }: Props) {
           scenes={state.scenes}
           clues={state.clues}
           timeline={state.timeline}
+          autopsy={state.autopsy}
+          victim={victim?.name ?? "피해자"}
           freshKeys={freshKeys}
           deductions={state.deductions}
           deductionTotal={state.deductionTotal}
@@ -195,6 +215,10 @@ export default function Game({ playId, onHome, onFinish }: Props) {
         <div className="toast" role="status">
           {toast}
         </div>
+      )}
+
+      {autopsyOpen && state.autopsy && (
+        <AutopsyModal a={state.autopsy} victim={victim?.name ?? "피해자"} onClose={closeAutopsy} />
       )}
 
       {accusing && (

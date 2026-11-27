@@ -1,7 +1,7 @@
 import { Router, type Request, type Response, type NextFunction } from "express";
 import { query, one, insert } from "./db.js";
 import { interrogate, formatQuestion, LlmBusyError, type Evidence } from "./llm.js";
-import type { CaseRow, CharacterRow, ClueRow, FactRow } from "./types.js";
+import type { AutopsyRow, CaseRow, CharacterRow, ClueRow, FactRow } from "./types.js";
 
 export const router = Router();
 
@@ -240,6 +240,10 @@ router.get(
       playId: play.play_id,
       status: play.status,
       case: { case_id: c!.case_id, title: c!.title, genre: c!.genre, difficulty: c!.difficulty, summary: c!.summary },
+      autopsy: await one<AutopsyRow>(
+        `SELECT found_time, found_place, found_by, cause, wound, death_estimate, weapon, note FROM autopsy WHERE case_id = ?`,
+        [play.case_id],
+      ),
       characters: characters.map(publicCharacter),
       scenes: await sceneSpots(play.participant_id, play.case_id),
       investigationLimit: c!.investigation_limit,

@@ -82,10 +82,23 @@ export interface Chat {
   newClues?: string[];
 }
 
+/** 검시 기록: 게임 시작 때 공개되는 시신 정보 */
+export interface Autopsy {
+  found_time: string;
+  found_place: string;
+  found_by: string | null;
+  cause: string;
+  wound: string | null;
+  death_estimate: string | null;
+  weapon: string | null;
+  note: string | null;
+}
+
 export interface PlayState {
   playId: number;
   status: "진행중" | "종료";
   case: CaseSummary;
+  autopsy: Autopsy | null;
   characters: Character[];
   scenes: Scene[];
   facts: Fact[];

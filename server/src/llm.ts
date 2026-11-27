@@ -1,6 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { query } from "./db.js";
-import type { CaseRow, CharacterRow } from "./types.js";
+import type { AutopsyRow, CaseRow, CharacterRow } from "./types.js";
 
 /**
  * LLM 공급자 고르기. LLM_PROVIDER(groq | claude | mock)를 비워두면
@@ -55,6 +55,7 @@ export async function buildSystemPrompt(c: CaseRow, ch: CharacterRow, unlock: Un
      WHERE cf.character_id = ? ORDER BY f.occurred_at`,
     [ch.character_id],
   );
+  const [autopsy] = await query<AutopsyRow>(`SELECT * FROM autopsy WHERE case_id = ?`, [c.case_id]);
   const alibis = await query<{ claimed_time: string; place: string; statement: string; is_false: boolean }>(
     `SELECT claimed_time, place, statement, is_false FROM alibi WHERE character_id = ?`,
     [ch.character_id],
@@ -85,7 +86,11 @@ export async function buildSystemPrompt(c: CaseRow, ch: CharacterRow, unlock: Un
 
 [사건] ${c.title}
 ${c.summary}
-
+${autopsy ? `
+[검시 기록] (모두에게 공개된 내용. 시신을 본 사람이라면 아는 정도로만 말할 것)
+- 발견: ${autopsy.found_time.slice(0, 5)}, ${autopsy.found_place}${autopsy.found_by ? `, 발견자 ${autopsy.found_by}` : ""}
+- 사인: ${autopsy.cause}${autopsy.wound ? `\n- 상처: ${autopsy.wound}` : ""}${autopsy.death_estimate ? `\n- 추정 사망 시각: ${autopsy.death_estimate}` : ""}${autopsy.weapon ? `\n- 현장 흉기: ${autopsy.weapon}` : ""}${autopsy.note ? `\n- ${autopsy.note}` : ""}
+` : ""}
 [당신]
 이름: ${ch.name}, 성별: ${ch.gender === "여" ? "여성" : ch.gender === "남" ? "남성" : "비공개"}, 나이: ${ch.age ?? "비공개"}, 직업: ${ch.job ?? "비공개"}
 성격: ${ch.personality ?? "평범함"}

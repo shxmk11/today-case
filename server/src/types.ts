@@ -8,6 +8,18 @@ export interface CaseRow {
   investigation_limit: number;
 }
 
+/** 검시 기록: 게임 시작 때 모두에게 공개되는 시신 정보 */
+export interface AutopsyRow {
+  found_time: string;
+  found_place: string;
+  found_by: string | null;
+  cause: string;
+  wound: string | null;
+  death_estimate: string | null;
+  weapon: string | null;
+  note: string | null;
+}
+
 export interface CharacterRow {
   character_id: number;
   case_id: number;

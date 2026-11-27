@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { hhmm } from "../api";
-import type { Clue, Deduction, Scene, TimelineItem } from "../types";
+import type { Autopsy, Clue, Deduction, Scene, TimelineItem } from "../types";
+import { AutopsyPanel } from "./Autopsy";
 
-export type Tab = "clue" | "scene" | "deduction" | "timeline";
+export type Tab = "clue" | "scene" | "autopsy" | "deduction" | "timeline";
 
 interface Props {
   tab: Tab;
@@ -10,6 +11,8 @@ interface Props {
   scenes: Scene[];
   clues: Clue[];
   timeline: TimelineItem[];
+  autopsy: Autopsy | null;
+  victim: string;
   freshKeys: Set<string>;
   deductions: Deduction[];
   deductionTotal: number;
@@ -21,7 +24,7 @@ interface Props {
 }
 
 export default function CasePanel(props: Props) {
-  const { tab, onTab, scenes, clues, timeline, freshKeys, deductions, deductionTotal, left, limit, onInvestigate, onLink } = props;
+  const { tab, onTab, scenes, clues, timeline, autopsy, victim, freshKeys, deductions, deductionTotal, left, limit, onInvestigate, onLink } = props;
   const [busy, setBusy] = useState<number | null>(null);
   const [open, setOpen] = useState<number | null>(null);
   const [detail, setDetail] = useState<number | null>(null);
@@ -62,13 +65,18 @@ export default function CasePanel(props: Props) {
 
   return (
     <aside className="card panel">
-      <nav className="tabs">
+      <nav className={`tabs ${autopsy ? "five" : ""}`}>
         <button className={`pill ${tab === "clue" ? "white" : "outline"}`} onClick={() => onTab("clue")}>
           단서 {clues.length}
         </button>
         <button className={`pill ${tab === "scene" ? "white" : "outline"}`} onClick={() => onTab("scene")}>
           현장
         </button>
+        {autopsy && (
+          <button className={`pill ${tab === "autopsy" ? "white" : "outline"}`} onClick={() => onTab("autopsy")}>
+            검시
+          </button>
+        )}
         <button className={`pill ${tab === "deduction" ? "white" : "outline"}`} onClick={() => onTab("deduction")}>
           추론 {deductions.length}
         </button>
@@ -215,6 +223,8 @@ export default function CasePanel(props: Props) {
             )}
           </>
         )}
+
+        {tab === "autopsy" && autopsy && <AutopsyPanel a={autopsy} victim={victim} />}
 
         {tab === "timeline" && (
           <>
