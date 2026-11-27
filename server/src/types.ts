@@ -16,6 +16,7 @@ export interface CharacterRow {
   gender: "남" | "여" | null;
   job: string | null;
   personality: string | null;
+  backstory: string | null;
   character_type: "피해자" | "용의자" | "목격자";
   is_culprit: boolean;
 }
