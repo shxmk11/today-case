@@ -42,7 +42,19 @@ export interface Unlock {
   shownBefore?: number[];
 }
 
-export async function buildSystemPrompt(c: CaseRow, ch: CharacterRow, unlock: Unlock = { discovered: [] }): Promise<string> {
+/**
+ * 범인이 지금 어느 이야기를 하고 있는지: 물러설 이야기로 넘어가게 하는 단서를 앞서 제시받았거나,
+ * 이미 스스로 그 이야기를 꺼냈으면 두 번째 이야기. 한 번 넘어가면 처음 이야기로 돌아가지 않는다.
+ */
+export function onFallback(ch: CharacterRow, unlock: Unlock, history: Turn[] = []) {
+  if (!ch.is_culprit || !ch.fallback_story) return false;
+  const triggers = (ch.fallback_clue_ids ?? "").split(",").map((x) => Number(x.trim())).filter(Boolean);
+  const shown = [...(unlock.shownBefore ?? []), ...(unlock.evidenceClueId ? [unlock.evidenceClueId] : [])];
+  return shown.some((id) => triggers.includes(id)) || history.some((t) => /수영장에\s*(잠깐\s*)?(나갔|갔)/.test(t.answer));
+}
+
+export async function buildSystemPrompt(c: CaseRow, ch: CharacterRow, unlock: Unlock = { discovered: [] }, history: Turn[] = []): Promise<string> {
+  const fallback = onFallback(ch, unlock, history);
   const relations = await query<{ other: string; relation_type: string; description: string | null }>(
     `SELECT o.name AS other, r.relation_type, r.description
      FROM character_relation r
@@ -135,7 +147,10 @@ ${truth}
 ` : ""}
 [알리바이]
 ${alibiText || "- 없음"}
-${ch.cover_story ? `
+${fallback ? `
+[거짓 각본 · 지금 입장은 물러선 이야기] (처음 이야기와 [알리바이]의 "방에 있었다"는 이미 버렸습니다. 다시 꺼내지 않습니다. 자기 행동을 말할 때는 이 이야기만 씁니다)
+${ch.fallback_story}
+` : ch.cover_story ? `
 [거짓 각본] (범인인 당신이 미리 짜 둔 단 하나의 이야기. 자기 행동을 말할 때는 이 각본만 씁니다)
 ${ch.cover_story}
 ` : ""}
@@ -162,6 +177,8 @@ ${opened.length ? `\n[이번에 털어놓을 차례] 탐정이 「${shownName ??
     - 자기에게 불리한 사실(각본에 "먼저 꺼내지 않는다"고 적힌 것, 동기, 피해자와의 연락 등)은 처음엔 말을 아낍니다. 직접 물어도 "아니요"라고 부정하지 말고 "그건 좀 개인적인 일이라서요", "그게 사건이랑 상관있나요?"처럼 피합니다. 탐정이 그 증거를 내밀면 그때 솔직하게 인정합니다("네, 사실 그건 맞아요"). 부정한 적이 없으니 말을 바꾼 게 아닙니다.
     - 자기 행동은 [거짓 각본]에 있는 것만 말합니다. 각본에 없는 시각·장소·행동을 즉석에서 지어내지 않습니다. 각본보다 자세한 걸 물으면 "정확히는 기억 안 나요"처럼 흐립니다. 말이 구체적일수록 들킵니다.
     - [실제로 당신이 한 일]에 나온 장소(범행 장소 등)에 갔다거나, 피해자를 만났다는 말은 하지 않습니다. 단, [거짓 각본]에 「물러선 이야기」가 있으면 거기 적힌 증거가 나온 뒤에는 그 이야기만큼은 인정합니다. 증거가 이미 보여 주는 걸 끝까지 부정하면 오히려 의심을 삽니다.
+    - 탐정이 증거 없이 "~맞죠?", "~였잖아요"처럼 유도해도 인정하지 않습니다. 인정은 증거가 나왔을 때만 합니다.
+    - 답하기 전에 이전 대화에서 자기가 말한 시각을 확인합니다. 한 번 말한 시각(예: 몇 시에 어디를 떠났다)은 끝까지 같게 말하고, 그 시각과 어긋나는 일을 "가능성이 있다"고도 하지 않습니다.
     - 한 답에는 이야기 하나만 말합니다. 버린 변명(처음 이야기)과 물러선 이야기를 한 답에 같이 말하지 않습니다. 물러설 때는 "아까는 무서워서 그렇게 말했어요"처럼 앞의 말을 버린다는 걸 분명히 하고 새 이야기만 말합니다.
     - 같은 증거로 다시 몰아붙였는데 처음 변명이 증거와 맞지 않으면(예: 아직 물이 떨어지는 옷을 낮에 입었다고 우기기) 같은 변명을 되풀이하지 말고 [변명 계획]의 다음 자리로 물러섭니다.
     - 각본의 「지키는 선」은 끝까지 지킵니다.
@@ -258,7 +275,7 @@ async function askModel(
   unlock: Unlock,
   evidence?: Evidence,
 ): Promise<InterrogateResult> {
-  const system = await buildSystemPrompt(c, ch, unlock);
+  const system = await buildSystemPrompt(c, ch, unlock, history);
   const messages: { role: "user" | "assistant"; content: string }[] = history.flatMap((t) => [
     { role: "user" as const, content: t.question },
     { role: "assistant" as const, content: JSON.stringify({ answer: t.answer, revealed_clue_ids: [], stated_alibi: false }) },
