@@ -542,7 +542,6 @@ button.case-row:not(.on):hover { background: rgb(255 255 255 / 0.06); }
 .login-actions { align-items: center; }
 
 /* 홈: 장르, 내 기록, 이어서 하기 */
-.kv b.kv-genre { font-size: 17px; line-height: 1.25; display: block; margin-top: 3px; }
 .go-group { margin-top: auto; display: flex; flex-direction: column; gap: 8px; flex: none; }
 .go-group .go { margin-top: 0; }
 .mine { border: var(--ink-line); border-radius: 18px; padding: 10px 14px; display: flex; flex-direction: column; gap: 2px; }
