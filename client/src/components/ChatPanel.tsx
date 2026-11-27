@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import type { Character, Chat, Clue, Deduction } from "../types";
+import type { BasicTopic } from "../api";
 import { Face, Line, bio, splitEvidence } from "./Common";
 
 /** 내밀 수 있는 것: 단서 하나, 또는 추론 하나 (AI에게는 그 재료 단서 2개를 함께 내민 것으로 전해진다) */
@@ -15,10 +16,17 @@ interface Props {
   chats: Chat[];
   clues: Clue[];
   deductions: Deduction[];
-  onAsk: (question: string, evidence?: Shown) => Promise<void>;
+  onAsk: (question: string, evidence?: Shown, topic?: BasicTopic) => Promise<void>;
 }
 
-const SUGGESTIONS = ["사건이 일어났을 때 어디 계셨어요?", "피해자와는 어떤 사이였죠?", "오늘 밤 이상한 걸 보거나 듣지 못했나요?"];
+/** 기본 질문: AI 없이 바로 답한다 (횟수 제한 없음) */
+const BASIC: { topic: BasicTopic; label: string; question: string }[] = [
+  { topic: "알리바이", label: "그 시간에 어디 있었어요?", question: "그 시간에 어디 계셨어요?" },
+  { topic: "관계", label: "피해자와의 관계", question: "피해자와는 어떤 사이였죠?" },
+  { topic: "목격", label: "이상한 거 본 적 있어요?", question: "이상한 걸 보거나 듣지 못했나요?" },
+];
+/** 자유 질문은 인물마다 이만큼 */
+const FREE_LIMIT = 3;
 
 /* 증거를 제시하면 사진처럼 카드로 보낸다 */
 function EvidenceCard({ name, shown }: { name: string; shown?: Shown }) {
@@ -58,25 +66,27 @@ export default function ChatPanel({ character, chats, clues, deductions, onAsk }
     log.current?.scrollTo({ top: log.current.scrollHeight, behavior: "smooth" });
   }, [chats.length, chats.at(-1)?.pending, character.character_id]);
 
-  async function send(question: string, withEvidence?: Shown) {
+  // 자유 질문 남은 횟수 (AI가 쉬어서 피한 답은 저장되지 않으니 세지 않는다)
+  const freeLeft = Math.max(0, FREE_LIMIT - chats.filter((c) => c.kind === "자유").length);
+
+  async function send(question: string, withEvidence?: Shown, topic?: BasicTopic) {
     const ev = withEvidence ?? evidence ?? undefined;
-    const q = question.trim() || (ev ? "이건 어떻게 설명하실 건가요?" : "");
+    // 증거 제시는 말을 붙이지 않는다 (같은 증거엔 같은 답을 저장해 두고 다시 쓰기 때문)
+    const q = ev ? "이건 어떻게 설명하실 건가요?" : question.trim();
     if (!q || busy) return;
-    setInput("");
+    if (!ev && !topic && freeLeft === 0) return;
+    if (!topic && !ev) setInput("");
     setEvidence(null);
     setPicking(false);
     setError("");
     try {
-      await onAsk(q, ev);
+      await onAsk(q, ev, topic);
     } catch (e) {
       setError((e as Error).message);
-      setInput(question);
+      if (!topic && !ev) setInput(question);
       setEvidence(ev ?? null);
     }
   }
-
-  // 첫 질문 칩: 이 인물에게 이미 한 질문만 빠진다
-  const suggestions = SUGGESTIONS.filter((q) => !chats.some((c) => splitEvidence(c.question).question === q));
 
   // 이 인물에게 이미 내민 증거
   const shown = new Set(chats.map((c) => splitEvidence(c.question).evidence).filter(Boolean) as string[]);
@@ -134,6 +144,7 @@ export default function ChatPanel({ character, chats, clues, deductions, onAsk }
                   <Line text={c.answer} />
                 </div>
               )}
+              {c.notice && <span className="busy-note">{c.notice}</span>}
               {c.newClues?.map((n) => (
                 <span key={n} className="stamp-new">＋ 새 단서 · {n}</span>
               ))}
@@ -142,11 +153,11 @@ export default function ChatPanel({ character, chats, clues, deductions, onAsk }
         })}
       </div>
 
-      {suggestions.length > 0 && !picking && (
+      {!picking && !evidence && (
         <div className="suggestions">
-          {suggestions.map((s) => (
-            <button key={s} className="pill outline" onClick={() => void send(s)}>
-              {s}
+          {BASIC.map((b) => (
+            <button key={b.topic} className="pill outline" disabled={busy} onClick={() => void send(b.question, undefined, b.topic)}>
+              {b.label}
             </button>
           ))}
         </div>
@@ -154,7 +165,7 @@ export default function ChatPanel({ character, chats, clues, deductions, onAsk }
       {error && <p className="error pad">{error}</p>}
       {picking && (
         <div className="picker">
-          <p className="lbl">제시할 증거나 추론을 고르면 첨부돼요. 한마디 적어 보내거나 그냥 보내세요.</p>
+          <p className="lbl">제시할 증거나 추론을 고르고 보내기를 누르세요.</p>
           {clues.length === 0 ? (
             <p className="muted">아직 제시할 단서가 없어요. 현장을 먼저 조사해보세요.</p>
           ) : (
@@ -228,15 +239,22 @@ export default function ChatPanel({ character, chats, clues, deductions, onAsk }
         </button>
         <div className="field">
           <input
-            value={input}
+            value={evidence ? "" : input}
             maxLength={300}
-            placeholder={evidence ? `${shownName(evidence)}을(를) 제시하며 한마디 (비워 두고 보내도 돼요)` : `${character.name}에게 질문하기`}
+            disabled={!!evidence || freeLeft === 0}
+            placeholder={
+              evidence
+                ? `${shownName(evidence)} 제시하기`
+                : freeLeft === 0
+                  ? "자유 질문을 다 썼어요. 기본 질문과 증거 제시는 계속 돼요"
+                  : `${character.name}에게 자유 질문 (${freeLeft}/${FREE_LIMIT})`
+            }
             onChange={(e) => setInput(e.target.value)}
           />
           <button
             className={`send ${evidence ? "with-ev" : ""}`}
-            aria-label={evidence ? `${shownName(evidence)} 제시하며 보내기` : "보내기"}
-            disabled={busy || (!input.trim() && !evidence)}
+            aria-label={evidence ? `${shownName(evidence)} 제시하기` : "보내기"}
+            disabled={busy || (evidence ? false : !input.trim() || freeLeft === 0)}
           >
             ↑
           </button>

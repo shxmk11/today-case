@@ -36,6 +36,8 @@ export default function CasePanel(props: Props) {
   const { tab, onTab, scenes, mapUrl, clues: allClues, timeline, freshKeys, deductions, deductionTotal, left, limit, unlimited, onUnlimited, onInvestigate, onLink, onMemo } = props;
   // 추론에 다 쓰인 단서는 목록에서 빼고 추론 카드 안에서만 보여준다
   const clues = allClues.filter((c) => !c.retired);
+  // 연결 탭에는 별 쓸모없는 단서를 띄우지 않는다
+  const linkable = clues.filter((c) => !c.is_filler);
   const [busy, setBusy] = useState<number | null>(null);
   const [open, setOpen] = useState<number | null>(null);
   const [detail, setDetail] = useState<number | null>(null);
@@ -319,18 +321,18 @@ export default function CasePanel(props: Props) {
               <b>단서 연결하기</b>
               <p>함께 보면 새 사실이 드러나는 단서 2개를 이으세요. 조사 횟수는 쓰지 않아요.</p>
             </div>
-            {clues.length < 2 ? (
+            {linkable.length < 2 ? (
               <p className="muted pad">단서를 2개 이상 찾으면 연결할 수 있어요.</p>
             ) : (
               <div className="link-list" ref={listRef}>
                 {thread && <i className="link-thread" style={{ top: thread.top, height: thread.height }} />}
                 {scenes
-                  .filter((sc) => clues.some((c) => c.scene_id === sc.scene_id))
+                  .filter((sc) => linkable.some((c) => c.scene_id === sc.scene_id))
                   .flatMap((sc) => [
                     <div key={`h${sc.scene_id}`} className="link-group">
                       {sc.name}
                     </div>,
-                    ...clues
+                    ...linkable
                       .filter((c) => c.scene_id === sc.scene_id)
                       .map((c) => {
                         const order = picked.indexOf(c.clue_id);
@@ -358,7 +360,7 @@ export default function CasePanel(props: Props) {
               </div>
             )}
             {linkMsg && <p className="link-msg pad">{linkMsg}</p>}
-            {clues.length >= 2 && (
+            {linkable.length >= 2 && (
               <div className="link-bar">
                 <span>
                   {picked.length} / 2개 이음

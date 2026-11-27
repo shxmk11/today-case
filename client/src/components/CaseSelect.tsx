@@ -184,9 +184,9 @@ export default function CaseSelect({ me, onMe, onHome, onNew, onResume, onResult
                       <button className="pill red go" disabled={!!busy} onClick={() => void run("resume", () => onResume(chosen.mine!.playId))}>
                         {busy === "resume" ? "사건 파일 여는 중…" : "이어서 하기 →"}
                       </button>
-                      <small className="go-note">
-                        {chosen.mine.status === "진행중" ? "나간 곳부터 이어서 해요." : "범인을 지목하기 직전으로 돌아가요. 단서·추론·대화는 그대로예요."}
-                      </small>
+                      {chosen.mine.status !== "진행중" && (
+                        <small className="go-note">범인을 지목하기 직전으로 돌아가요. 단서·추론·대화는 그대로예요.</small>
+                      )}
                       <button className="pill outline-ink go2" disabled={!!busy} onClick={() => void run("new", () => onNew(chosen.case_id))}>
                         {busy === "new" ? "새 사건 파일 여는 중…" : "처음부터 다시 하기"}
                       </button>

@@ -151,6 +151,7 @@ button.case-row:not(.on):hover { background: rgb(255 255 255 / 0.06); }
 .ev .tag { color: var(--muted); font-weight: 700; }
 .ev b { font-size: 14px; }
 .ev .desc { color: rgb(255 255 255 / 0.8); }
+.busy-note { align-self: flex-start; margin-top: 6px; font-size: 12px; color: var(--muted); }
 .stamp-new { align-self: center; margin-top: 8px; background: var(--red); border-radius: 999px; padding: 4px 12px; font-size: 12px; font-weight: 700; }
 .suggestions, .picker { padding: 0 16px 8px; display: flex; flex-wrap: wrap; gap: 6px; }
 .picker { flex-direction: column; border-top: var(--ol); padding-top: 12px; }

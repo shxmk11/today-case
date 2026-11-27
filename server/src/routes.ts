@@ -1,6 +1,6 @@
 import { Router, type Request, type Response, type NextFunction } from "express";
 import { query, one, insert } from "./db.js";
-import { interrogate, formatQuestion, askAboutTruth, LlmBusyError, type Evidence, type Shown } from "./llm.js";
+import { interrogate, formatQuestion, askAboutTruth, LlmBusyError, characterStage, avoidLine, onFallback, type Evidence, type Shown } from "./llm.js";
 import type { AutopsyRow, CaseRow, CharacterRow, ClueRow, FactRow } from "./types.js";
 import { adoptGuestPlays, checkPassword, hashPassword, isGuestId, newGuest, newSession, tokenOf, whoAmI } from "./auth.js";
 
@@ -59,8 +59,8 @@ async function getCharacterInCase(caseId: number, characterId: number) {
  * (단서 목록·연결 목록에서는 빼고, 추론 카드 안에서만 보여준다)
  */
 async function discoveredClues(participantId: number) {
-  const rows = await query<ClueRow & { scene_name: string; found_at: string; retired: number }>(
-    `SELECT c.clue_id, c.scene_id, c.character_id, c.name, c.description, c.clue_type,
+  const rows = await query<ClueRow & { scene_name: string; found_at: string; retired: number; is_filler: number }>(
+    `SELECT c.clue_id, c.scene_id, c.character_id, c.name, c.description, c.clue_type, c.is_filler,
             s.name AS scene_name, cd.found_at,
             (EXISTS (SELECT 1 FROM deduction_clue dc WHERE dc.clue_id = c.clue_id)
              AND NOT EXISTS (
@@ -74,7 +74,7 @@ async function discoveredClues(participantId: number) {
      ORDER BY cd.found_at, c.clue_id`,
     [participantId],
   );
-  return rows.map((r) => ({ ...r, retired: !!r.retired }));
+  return rows.map((r) => ({ ...r, retired: !!r.retired, is_filler: !!r.is_filler }));
 }
 
 /** 남은 조사 횟수 = 사건의 조사 횟수 - 연 조사 지점 수 (단서 연결은 횟수를 쓰지 않는다) */
@@ -279,8 +279,8 @@ router.get(
        WHERE case_id = ? AND is_initial = TRUE ORDER BY occurred_at`,
       [play.case_id],
     );
-    const chats = await query<{ character_id: number; question: string; answer: string; asked_at: string }>(
-      `SELECT character_id, question, answer, asked_at FROM interrogation
+    const chats = await query<{ character_id: number; kind: string; question: string; answer: string; asked_at: string }>(
+      `SELECT character_id, kind, question, answer, asked_at FROM interrogation
        WHERE participant_id = ? ORDER BY asked_at, interrogation_id`,
       [play.participant_id],
     );
@@ -375,11 +375,13 @@ router.post(
       .filter((n) => Number.isInteger(n) && n > 0)
       .sort((x, y) => x - y);
     if (ids.length !== 2) throw new HttpError(400, "단서를 2개 골라주세요.");
-    const found = await query<{ clue_id: number }>(
-      `SELECT clue_id FROM clue_discovery WHERE participant_id = ? AND clue_id IN (?)`,
+    const found = await query<{ clue_id: number; is_filler: number }>(
+      `SELECT c.clue_id, c.is_filler FROM clue_discovery cd JOIN clue c ON c.clue_id = cd.clue_id
+       WHERE cd.participant_id = ? AND cd.clue_id IN (?)`,
       [play.participant_id, ids],
     );
     if (found.length !== ids.length) throw new HttpError(400, "찾은 단서만 연결할 수 있어요.");
+    if (found.some((f) => f.is_filler)) throw new HttpError(400, "그 단서는 연결에 쓸 수 없어요.");
 
     const key = ids.join(",");
     const tried = await one<{ deduction_id: number | null }>(
@@ -423,6 +425,8 @@ router.post(
       clues: await discoveredClues(play.participant_id),
       timeline: await playerTimeline(play.participant_id, play.case_id),
       investigationsLeft: await investigationsLeft(play.participant_id, play.case_id),
+      // 추론으로 열리는 조사 지점이 있으니 현장 잠금 상태도 새로 보낸다
+      scenes: await sceneSpots(play.participant_id, play.case_id),
     });
   }),
 );
@@ -464,26 +468,113 @@ router.post(
   }),
 );
 
-/* 심문: 질문을 저장하고 AI 답변을 돌려준다 */
+/** 자유 질문은 인물마다 이만큼 (기본 질문·증거 제시는 횟수 제한 없음) */
+const FREE_QUESTIONS = 3;
+
+const BASIC_QUESTIONS = {
+  알리바이: "그 시간에 어디 계셨어요?",
+  관계: "피해자와는 어떤 사이였죠?",
+  목격: "이상한 걸 보거나 듣지 못했나요?",
+} as const;
+type Topic = keyof typeof BASIC_QUESTIONS;
+
+/** 심문에 필요한 것: 이 인물과의 대화, 찾은 단서, 이 인물에게 앞서 내민 증거 */
+async function interrogationContext(play: { participant_id: number; case_id: number }, characterId: number) {
+  const ch = await getCharacterInCase(play.case_id, characterId);
+  if (ch.character_type === "피해자") throw new HttpError(400, "피해자는 심문할 수 없어요.");
+  const history = await query<{ question: string; answer: string; kind: string; answer_id: number | null }>(
+    `SELECT question, answer, kind, answer_id FROM interrogation
+     WHERE participant_id = ? AND character_id = ? ORDER BY asked_at, interrogation_id`,
+    [play.participant_id, ch.character_id],
+  );
+  const found = await discoveredClues(play.participant_id);
+  const discoveredIds = found.map((x) => x.clue_id);
+  const deductions = await foundDeductions(play.participant_id);
+  // 이 인물에게 앞서 내민 증거: 저장된 질문 앞의 [증거 제시: 이름]으로 찾는다 (추론이면 그 재료 단서들)
+  const shownTo = (name: string) => history.some((h) => h.question.startsWith(`[증거 제시: ${name}]`));
+  const shownBefore = [
+    ...found.filter((x) => shownTo(x.name)).map((x) => x.clue_id),
+    ...deductions.filter((d) => shownTo(d.name)).flatMap((d) => d.clue_ids),
+  ];
+  return { ch, history, discoveredIds, deductions, shownBefore };
+}
+
+/** 대화를 저장하고, 털어놓은 증언을 발견 처리하고, 화면에 돌려줄 것을 모은다 */
+async function saveTurn(
+  play: { participant_id: number; case_id: number },
+  ch: CharacterRow,
+  t: { kind: "기본" | "증거" | "자유"; question: string; answer: string; answerId?: number | null; revealedClueIds: number[]; statedAlibi: boolean },
+) {
+  const interrogationId = await insert(
+    `INSERT INTO interrogation (participant_id, character_id, kind, answer_id, question, answer) VALUES (?, ?, ?, ?, ?, ?)`,
+    [play.participant_id, ch.character_id, t.kind, t.answerId ?? null, t.question, t.answer],
+  );
+  // 인물이 실제로 털어놓은 증언 단서만 발견 처리 (그 인물의 증언인지 확인)
+  const before = new Set((await discoveredClues(play.participant_id)).map((x) => x.clue_id));
+  if (t.revealedClueIds.length > 0) {
+    await query(
+      `INSERT IGNORE INTO clue_discovery (participant_id, clue_id)
+       SELECT ?, clue_id FROM clue WHERE character_id = ? AND clue_id IN (?)`,
+      [play.participant_id, ch.character_id, t.revealedClueIds],
+    );
+  }
+  await addClueEntries(play.participant_id);
+  if (t.statedAlibi) await addAlibiEntries(play.participant_id, interrogationId, ch);
+  const clues = await discoveredClues(play.participant_id);
+  const newClues = clues.filter((x) => !before.has(x.clue_id)).map((x) => x.clue_id);
+  const timeline = await playerTimeline(play.participant_id, play.case_id);
+  return { answer: t.answer, question: t.question, kind: t.kind, clues, newClues, timeline };
+}
+
+const idList = (s: string | null) => (s ?? "").split(",").map((x) => Number(x.trim())).filter(Boolean);
+
+/* 기본 질문: AI를 부르지 않고 정해 둔 답을 돌려준다 (횟수 제한 없음) */
+router.post(
+  "/plays/:id/basic",
+  wrap(async (req, res) => {
+    const play = await getPlay(req);
+    assertOngoing(play);
+    const topic = String(req.body?.topic ?? "") as Topic;
+    if (!(topic in BASIC_QUESTIONS)) throw new HttpError(400, "기본 질문을 골라주세요.");
+    const { ch, history, discoveredIds, shownBefore } = await interrogationContext(play, Number(req.body?.characterId));
+    // 범인이 물러선 이야기로 넘어갔으면 그 이야기의 답을 쓴다
+    const fallback = onFallback(ch, { discovered: discoveredIds, shownBefore }, history);
+    const rows = await query<{ stage: string; answer: string; clue_ids: string | null }>(
+      `SELECT stage, answer, clue_ids FROM basic_answer WHERE character_id = ? AND topic = ?`,
+      [ch.character_id, topic],
+    );
+    const row = (fallback && rows.find((r) => r.stage === "물러섬")) || rows.find((r) => r.stage === "처음");
+    const answer = row?.answer ?? "*잠시 생각한다* 글쎄요… 그건 딱히 말씀드릴 게 없네요.";
+    res.json(
+      await saveTurn(play, ch, {
+        kind: "기본",
+        question: BASIC_QUESTIONS[topic],
+        answer,
+        revealedClueIds: idList(row?.clue_ids ?? null),
+        statedAlibi: topic === "알리바이" && row?.stage === "처음",
+      }),
+    );
+  }),
+);
+
+/** AI가 한도에 걸리거나 오류가 나면: 인물이 대화를 피하고, 저장하지 않으며 횟수도 쓰지 않는다 */
+function busyReply(res: Response, question: string, err: unknown) {
+  if (!(err instanceof LlmBusyError)) console.error(err);
+  res.json({ answer: avoidLine(), question, busy: true, notice: "조금 이따가 다시 질문해 보세요." });
+}
+
+/* 심문: 증거 제시(같은 단계면 저장한 답을 다시 쓴다) 또는 자유 질문(인물마다 3번) */
 router.post(
   "/plays/:id/interrogate",
   wrap(async (req, res) => {
     const play = await getPlay(req);
     assertOngoing(play);
-    const question = String(req.body?.question ?? "").trim();
-    if (!question || question.length > 300) throw new HttpError(400, "질문은 1~300자로 해주세요.");
-
-    const ch = await getCharacterInCase(play.case_id, Number(req.body?.characterId));
-    if (ch.character_type === "피해자") throw new HttpError(400, "피해자는 심문할 수 없어요.");
+    const { ch, history, discoveredIds, deductions, shownBefore } = await interrogationContext(play, Number(req.body?.characterId));
     const c = (await one<CaseRow>(`SELECT * FROM case_file WHERE case_id = ?`, [play.case_id]))!;
 
-    const history = await query<{ question: string; answer: string }>(
-      `SELECT question, answer FROM interrogation
-       WHERE participant_id = ? AND character_id = ? ORDER BY asked_at, interrogation_id`,
-      [play.participant_id, ch.character_id],
-    );
     // 증거 제시: 이미 발견한 단서, 또는 얻은 추론(= 그 재료 단서 2개를 함께 내민 것)만 낼 수 있다
     let evidence: Shown | undefined;
+    let evidenceKey = "";
     if (req.body?.clueId != null) {
       const clue = await one<Evidence>(
         `SELECT c.clue_id, c.name, c.description FROM clue_discovery cd JOIN clue c ON c.clue_id = cd.clue_id
@@ -492,46 +583,81 @@ router.post(
       );
       if (!clue) throw new HttpError(400, "아직 찾지 못한 단서예요.");
       evidence = { name: clue.name, clues: [clue] };
+      evidenceKey = `c${clue.clue_id}`;
     } else if (req.body?.deductionId != null) {
-      const d = (await foundDeductions(play.participant_id)).find((x) => x.deduction_id === Number(req.body.deductionId));
+      const d = deductions.find((x) => x.deduction_id === Number(req.body.deductionId));
       if (!d) throw new HttpError(400, "아직 얻지 못한 추론이에요.");
       const clues = await query<Evidence>(
         `SELECT clue_id, name, description FROM clue WHERE clue_id IN (?) ORDER BY clue_id`,
         [d.clue_ids],
       );
       evidence = { name: d.name, clues, deduction: { name: d.name, description: d.description } };
+      evidenceKey = `d${d.deduction_id}`;
     }
 
-    const found = await discoveredClues(play.participant_id);
-    const discoveredIds = found.map((x) => x.clue_id);
-    // 이 인물에게 앞서 내민 증거: 저장된 질문 앞의 [증거 제시: 이름]으로 찾는다 (추론이면 그 재료 단서들)
-    const shownTo = (name: string) => history.some((h) => h.question.startsWith(`[증거 제시: ${name}]`));
-    const shownBefore = [
-      ...found.filter((x) => shownTo(x.name)).map((x) => x.clue_id),
-      ...(await foundDeductions(play.participant_id)).filter((d) => shownTo(d.name)).flatMap((d) => d.clue_ids),
-    ];
-    const { answer, revealedClueIds, statedAlibi } = await interrogate(c, ch, history.slice(-20), question, evidence, discoveredIds, shownBefore);
-    const storedQuestion = formatQuestion(question, evidence);
-    const interrogationId = await insert(
-      `INSERT INTO interrogation (participant_id, character_id, question, answer) VALUES (?, ?, ?, ?)`,
-      [play.participant_id, ch.character_id, storedQuestion, answer],
-    );
-
-    // 인물이 실제로 털어놓은 증언 단서만 발견 처리 (그 인물의 증언인지 확인)
-    const before = new Set((await discoveredClues(play.participant_id)).map((x) => x.clue_id));
-    if (revealedClueIds.length > 0) {
-      await query(
-        `INSERT IGNORE INTO clue_discovery (participant_id, clue_id)
-         SELECT ?, clue_id FROM clue WHERE character_id = ? AND clue_id IN (?)`,
-        [play.participant_id, ch.character_id, revealedClueIds],
+    if (evidence) {
+      const question = formatQuestion("이건 어떻게 설명하실 건가요?", evidence);
+      const stage = await characterStage(ch, history, discoveredIds, shownBefore);
+      let saved = await one<{ answer_id: number; answer: string; clue_ids: string | null; stated_alibi: number }>(
+        `SELECT answer_id, answer, clue_ids, stated_alibi FROM evidence_answer WHERE character_id = ? AND evidence_key = ? AND stage = ?`,
+        [ch.character_id, evidenceKey, stage],
       );
+      // 같은 판에서 같은 단계에 같은 증거를 또 내밀면 AI 없이 짧게 되풀이한다
+      if (saved && history.some((h) => h.answer_id === saved!.answer_id)) {
+        res.json(
+          await saveTurn(play, ch, {
+            kind: "증거", question, answer: "*증거를 다시 들여다본다* 그건 아까 말씀드린 그대로예요.",
+            answerId: saved.answer_id, revealedClueIds: [], statedAlibi: false,
+          }),
+        );
+        return;
+      }
+      if (!saved) {
+        let r;
+        try {
+          r = await interrogate(c, ch, history, "이건 어떻게 설명하실 건가요?", evidence, discoveredIds, shownBefore);
+        } catch (err) {
+          busyReply(res, question, err);
+          return;
+        }
+        await query(
+          `INSERT IGNORE INTO evidence_answer (character_id, evidence_key, stage, answer, clue_ids, stated_alibi) VALUES (?, ?, ?, ?, ?, ?)`,
+          [ch.character_id, evidenceKey, stage, r.answer, r.revealedClueIds.join(",") || null, r.statedAlibi],
+        );
+        saved = (await one<{ answer_id: number; answer: string; clue_ids: string | null; stated_alibi: number }>(
+          `SELECT answer_id, answer, clue_ids, stated_alibi FROM evidence_answer WHERE character_id = ? AND evidence_key = ? AND stage = ?`,
+          [ch.character_id, evidenceKey, stage],
+        ))!;
+      }
+      // 저장된 답이 털어놓는 증언도 지금 열려 있는 것만 발견 처리한다
+      const open = new Set(
+        (await query<{ clue_id: number; unlock_clue_id: number | null }>(`SELECT clue_id, unlock_clue_id FROM clue WHERE character_id = ?`, [ch.character_id]))
+          .filter((t) => t.unlock_clue_id == null || discoveredIds.includes(t.clue_id) || shownBefore.includes(t.unlock_clue_id) ||
+            evidence!.clues.some((e) => e.clue_id === t.unlock_clue_id))
+          .map((t) => t.clue_id),
+      );
+      res.json(
+        await saveTurn(play, ch, {
+          kind: "증거", question, answer: saved.answer, answerId: saved.answer_id,
+          revealedClueIds: idList(saved.clue_ids).filter((id) => open.has(id)), statedAlibi: !!saved.stated_alibi,
+        }),
+      );
+      return;
     }
-    await addClueEntries(play.participant_id);
-    if (statedAlibi) await addAlibiEntries(play.participant_id, interrogationId, ch);
-    const clues = await discoveredClues(play.participant_id);
-    const newClues = clues.filter((x) => !before.has(x.clue_id)).map((x) => x.clue_id);
-    const timeline = await playerTimeline(play.participant_id, play.case_id);
-    res.json({ answer, question: storedQuestion, clues, newClues, timeline });
+
+    // 자유 질문
+    const question = String(req.body?.question ?? "").trim();
+    if (!question || question.length > 300) throw new HttpError(400, "질문은 1~300자로 해주세요.");
+    const used = history.filter((h) => h.kind === "자유").length;
+    if (used >= FREE_QUESTIONS) throw new HttpError(409, `자유 질문은 인물마다 ${FREE_QUESTIONS}번까지예요. 기본 질문이나 증거 제시는 계속할 수 있어요.`);
+    let r;
+    try {
+      r = await interrogate(c, ch, history, question, undefined, discoveredIds, shownBefore);
+    } catch (err) {
+      busyReply(res, question, err);
+      return;
+    }
+    res.json(await saveTurn(play, ch, { kind: "자유", question, answer: r.answer, revealedClueIds: r.revealedClueIds, statedAlibi: r.statedAlibi }));
   }),
 );
 

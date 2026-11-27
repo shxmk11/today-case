@@ -103,13 +103,19 @@ export interface Clue {
   scene_name: string;
   /** 추론에 다 쓰여서 더 쓸 데가 없는 단서 (목록에선 빼고 추론 카드 안에서만 보여줌) */
   retired?: boolean;
+  /** 별 쓸모없는 단서: 단서 탭에는 뜨지만 연결(추론)에는 쓸 수 없다 */
+  is_filler?: boolean;
 }
 
 export interface Chat {
   character_id: number;
+  /** 기본 질문 / 증거 제시 / 자유 질문 (자유 질문만 인물마다 3번) */
+  kind?: "기본" | "증거" | "자유";
   question: string;
   answer: string;
   pending?: boolean;
+  /** AI 한도에 걸려 인물이 대화를 피한 답 (저장되지 않음) */
+  notice?: string;
   newClues?: string[];
 }
 
