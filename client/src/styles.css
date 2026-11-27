@@ -333,7 +333,7 @@ button.case-row:not(.on):hover { background: rgb(255 255 255 / 0.06); }
 
 /* 얼굴 그림 */
 .face { overflow: hidden; }
-.face img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.face img { width: 100%; height: 100%; object-fit: cover; display: block; transform: scale(1.5); transform-origin: 56% 30%; }
 .suspect .face { margin-top: 2px; }
 .suspect.on .face { box-shadow: 0 0 0 2px var(--red); }
 
