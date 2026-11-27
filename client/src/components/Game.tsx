@@ -140,12 +140,15 @@ export default function Game({ playId, onHome, onFinish }: Props) {
       <section className="game-meta">
         <span>{state.case.summary}</span>
         {victim && (
-          <span>
-            피해자
-            <br />
-            <b>
-              <span className="red">{victim.name}</span> {bio(victim)}, {victim.job}
-            </b>
+          <span className="meta-victim">
+            <Face name={victim.name} src={victim.image_url} size={44} zoom />
+            <span>
+              피해자
+              <br />
+              <b>
+                <span className="red">{victim.name}</span> {bio(victim)}, {victim.job}
+              </b>
+            </span>
           </span>
         )}
         <span>
@@ -202,6 +205,7 @@ export default function Game({ playId, onHome, onFinish }: Props) {
           timeline={state.timeline}
           autopsy={state.autopsy}
           victim={victim?.name ?? "피해자"}
+          victimImg={victim?.image_url}
           freshKeys={freshKeys}
           deductions={state.deductions}
           deductionTotal={state.deductionTotal}
@@ -219,7 +223,7 @@ export default function Game({ playId, onHome, onFinish }: Props) {
       )}
 
       {autopsyOpen && state.autopsy && (
-        <AutopsyModal a={state.autopsy} victim={victim?.name ?? "피해자"} onClose={closeAutopsy} />
+        <AutopsyModal a={state.autopsy} victim={victim?.name ?? "피해자"} victimImg={victim?.image_url} onClose={closeAutopsy} />
       )}
 
       {accusing && (
