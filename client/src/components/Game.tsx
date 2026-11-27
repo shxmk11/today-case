@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { api } from "../api";
-import type { AccuseResult, Character, Clue, PlayState, TimelineItem } from "../types";
+import type { AccuseResult, Character, Clue, PlayState, Relation, TimelineItem } from "../types";
 import ChatPanel from "./ChatPanel";
 import CasePanel, { type Tab } from "./CasePanel";
 import AccuseModal from "./AccuseModal";
 import { Face, Topline, bio } from "./Common";
 import { AutopsyModal } from "./Autopsy";
+import RelationMap from "./RelationMap";
 
 interface Props {
   playId: number;
@@ -22,6 +23,8 @@ export default function Game({ playId, onHome, onFinish }: Props) {
   const [toast, setToast] = useState("");
   // 검시 기록 창: 플레이마다 처음 한 번만 띄운다
   const seenKey = `autopsy-seen-${playId}`;
+  // first = 처음 띄운 창(「수사 시작」), 그 뒤로는 피해자 정보를 눌러 다시 연다
+  const [autopsyFirst, setAutopsyFirst] = useState(true);
   const [autopsyOpen, setAutopsyOpen] = useState(() => {
     try {
       return !localStorage.getItem(seenKey);
@@ -31,6 +34,7 @@ export default function Game({ playId, onHome, onFinish }: Props) {
   });
   function closeAutopsy() {
     setAutopsyOpen(false);
+    setAutopsyFirst(false);
     try {
       localStorage.setItem(seenKey, "1");
     } catch {
@@ -50,6 +54,26 @@ export default function Game({ playId, onHome, onFinish }: Props) {
       })
       .catch((e: Error) => setError(e.message));
   }, [playId]);
+
+  // 인물 관계도: 단서·추론이 늘 때마다 다시 받아 온다. seen = 마지막으로 펼쳐 본 선들
+  const [relations, setRelations] = useState<Relation[]>([]);
+  const [seenStages, setSeenStages] = useState<Set<number> | null>(null);
+  const clueCount = state?.clues.length ?? -1;
+  const dedCount = state?.deductions.length ?? -1;
+  useEffect(() => {
+    if (clueCount < 0) return;
+    api
+      .relations(playId)
+      .then((rs) => {
+        setRelations(rs);
+        // 처음 받은 선들은 새 선으로 치지 않는다
+        setSeenStages((seen) => seen ?? new Set(rs.map((r) => r.stage_id)));
+      })
+      .catch(() => {
+        /* 관계도는 못 받아도 게임은 계속 */
+      });
+  }, [playId, clueCount, dedCount]);
+  const freshStages = new Set(relations.filter((r) => seenStages && !seenStages.has(r.stage_id)).map((r) => r.stage_id));
 
   if (error) return <p className="error page">{error}</p>;
   if (!state) return <p className="muted page">현장으로 이동 중…</p>;
@@ -114,12 +138,34 @@ export default function Game({ playId, onHome, onFinish }: Props) {
 
   async function link(clueIds: number[]): Promise<string> {
     const res = await api.link(playId, clueIds);
-    setState((s) => s && { ...s, deductions: res.deductions, investigationsLeft: res.investigationsLeft });
+    const opened = res.clues.filter((c) => res.revealed.includes(c.clue_id)).map((c) => c.name);
     if (res.deduction) {
-      showToast(`＋ 새 추론 · ${res.deduction.name}`);
-      return `새 추론 「${res.deduction.name}」을 얻었어요.`;
+      const known = new Set(state!.timeline.map((t) => t.key));
+      const added = res.timeline.filter((t) => !known.has(t.key));
+      if (added.length > 0) setFreshKeys(new Set(added.map((t) => t.key)));
     }
-    return `이어지는 게 없었어요. 조사 1회가 줄었어요. (남은 조사 ${res.investigationsLeft})`;
+    setState((s) => s && {
+      ...s,
+      deductions: res.deductions,
+      clues: res.clues,
+      timeline: res.timeline,
+      investigationsLeft: res.investigationsLeft,
+    });
+    if (res.deduction) {
+      showToast(`＋ 새 추론 · ${res.deduction.name}${opened.length > 0 ? `  ·  새 단서 · ${opened.join(", ")}` : ""}`);
+      return `새 추론 「${res.deduction.name}」을 얻었어요.${opened.length > 0 ? ` 「${opened.join(", ")}」이(가) 단서에 들어왔어요.` : ""}`;
+    }
+    return "이어지는 게 없었어요. 다른 조합을 해보세요.";
+  }
+
+  async function unlimited() {
+    try {
+      await api.unlimited(playId);
+      setState((s) => s && { ...s, unlimited: true });
+      showToast("조사 무제한을 켰어요.");
+    } catch (e) {
+      showToast((e as Error).message);
+    }
   }
 
   async function accuse(characterId: number, alibiDeductionId: number, linkDeductionId: number) {
@@ -129,7 +175,7 @@ export default function Game({ playId, onHome, onFinish }: Props) {
 
   return (
     <main className="game">
-      <Topline onHome={onHome} right={`질문 ${state.chats.length} · 조사 ${state.investigationsLeft} / ${state.investigationLimit} · 단서 ${state.clues.length} · 추론 ${state.deductions.length} / ${state.deductionTotal}`} />
+      <Topline onHome={onHome} right={`질문 ${state.chats.length} · 조사 ${state.unlimited ? "무제한" : `${state.investigationsLeft} / ${state.investigationLimit}`} · 단서 ${state.clues.length} · 추론 ${state.deductions.length} / ${state.deductionTotal}`} />
 
       <section className="game-head">
         <h1 className="display">{state.case.title}</h1>
@@ -140,16 +186,25 @@ export default function Game({ playId, onHome, onFinish }: Props) {
       <section className="game-meta">
         <span>{state.case.summary}</span>
         {victim && (
-          <span className="meta-victim">
-            <Face name={victim.name} src={victim.image_url} size={44} zoom />
+          <button
+            className="meta-victim"
+            disabled={!state.autopsy}
+            onClick={() => {
+              setAutopsyFirst(false);
+              setAutopsyOpen(true);
+            }}
+            aria-label={`피해자 ${victim.name} 검시 기록 보기`}
+          >
+            <Face name={victim.name} src={victim.image_url} size={44} />
             <span>
               피해자
               <br />
               <b>
                 <span className="red">{victim.name}</span> {bio(victim)}, {victim.job}
               </b>
+              {state.autopsy && <small className="meta-victim-more">검시 기록 보기 ›</small>}
             </span>
-          </span>
+          </button>
         )}
         <span>
           규칙
@@ -183,6 +238,12 @@ export default function Game({ playId, onHome, onFinish }: Props) {
               </button>
             );
           })}
+          <RelationMap
+            characters={state.characters}
+            relations={relations}
+            fresh={freshStages}
+            onSeen={() => setSeenStages(new Set(relations.map((r) => r.stage_id)))}
+          />
         </aside>
 
         {current ? (
@@ -203,14 +264,13 @@ export default function Game({ playId, onHome, onFinish }: Props) {
           mapUrl={state.case.map_url ?? null}
           clues={state.clues}
           timeline={state.timeline}
-          autopsy={state.autopsy}
-          victim={victim?.name ?? "피해자"}
-          victimImg={victim?.image_url}
           freshKeys={freshKeys}
           deductions={state.deductions}
           deductionTotal={state.deductionTotal}
           left={state.investigationsLeft}
           limit={state.investigationLimit}
+          unlimited={state.unlimited}
+          onUnlimited={unlimited}
           onInvestigate={investigate}
           onLink={link}
         />
@@ -223,7 +283,13 @@ export default function Game({ playId, onHome, onFinish }: Props) {
       )}
 
       {autopsyOpen && state.autopsy && (
-        <AutopsyModal a={state.autopsy} victim={victim?.name ?? "피해자"} victimImg={victim?.image_url} onClose={closeAutopsy} />
+        <AutopsyModal
+          a={state.autopsy}
+          victim={victim?.name ?? "피해자"}
+          victimImg={victim?.image_url}
+          first={autopsyFirst}
+          onClose={closeAutopsy}
+        />
       )}
 
       {accusing && (

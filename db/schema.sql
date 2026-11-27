@@ -28,7 +28,7 @@ CREATE TABLE case_file (
     difficulty ENUM('쉬움', '보통', '어려움') NOT NULL,
     summary TEXT NOT NULL,
     truth TEXT NOT NULL,
-    investigation_limit INT NOT NULL DEFAULT 12,  -- 조사 횟수 (조사 지점 열기 + 틀린 연결이 1회씩 씀)
+    investigation_limit INT NOT NULL DEFAULT 12,  -- 조사 횟수 (조사 지점 열기 + 성공한 연결이 1회씩 씀)
     map_url VARCHAR(255),                          -- 건물 단면도 그림
     PRIMARY KEY (case_id),
     CONSTRAINT chk_case_limit CHECK (investigation_limit > 0)
@@ -187,9 +187,12 @@ CREATE TABLE deduction (
     description VARCHAR(500) NOT NULL,
     proof_role ENUM('알리바이', '연결') NULL,  -- 범인 지목 근거: 알리바이를 깨는 추론 / 범인과 범행을 잇는 추론
     proof_note VARCHAR(255) NULL,            -- 결과 화면에서 이 추론이 근거로 왜 맞는지·부족한지 설명
+    reveal_clue_id INT NULL,                 -- 이 추론을 얻으면 바로 손에 들어오는 단서 (잠긴 노트북을 열면 나오는 기록 등)
     PRIMARY KEY (deduction_id),
     CONSTRAINT fk_deduction_case FOREIGN KEY (case_id)
-        REFERENCES case_file (case_id) ON DELETE CASCADE
+        REFERENCES case_file (case_id) ON DELETE CASCADE,
+    CONSTRAINT fk_deduction_reveal FOREIGN KEY (reveal_clue_id)
+        REFERENCES clue (clue_id) ON DELETE SET NULL
 );
 
 -- 추론 재료 (추론 N:M 단서)
@@ -201,6 +204,26 @@ CREATE TABLE deduction_clue (
         REFERENCES deduction (deduction_id) ON DELETE CASCADE,
     CONSTRAINT fk_dc_clue FOREIGN KEY (clue_id)
         REFERENCES clue (clue_id) ON DELETE CASCADE
+);
+
+-- 인물 관계도의 단계 (인물 관계 1:N). 어떤 단서나 추론을 찾으면 관계도 선이 생기거나 바뀐다
+CREATE TABLE relation_stage (
+    stage_id INT NOT NULL AUTO_INCREMENT,
+    character_a_id INT NOT NULL,
+    character_b_id INT NOT NULL,
+    stage_order INT NOT NULL,                -- 클수록 나중 단계 (찾은 것 중 가장 큰 단계를 그린다)
+    label VARCHAR(40) NOT NULL,              -- 선 위에 쓰는 짧은 말
+    tone ENUM('관계', '갈등', '불확실') NOT NULL,  -- 흰 선 / 빨간 선 / 점선
+    clue_id INT NULL,                        -- 이 단서를 찾으면 보인다
+    deduction_id INT NULL,                   -- 이 추론을 얻으면 보인다 (둘 다 NULL이면 처음부터)
+    PRIMARY KEY (stage_id),
+    UNIQUE KEY uq_relation_stage (character_a_id, character_b_id, stage_order),
+    CONSTRAINT fk_rs_relation FOREIGN KEY (character_a_id, character_b_id)
+        REFERENCES character_relation (character_a_id, character_b_id) ON DELETE CASCADE,
+    CONSTRAINT fk_rs_clue FOREIGN KEY (clue_id)
+        REFERENCES clue (clue_id) ON DELETE CASCADE,
+    CONSTRAINT fk_rs_deduction FOREIGN KEY (deduction_id)
+        REFERENCES deduction (deduction_id) ON DELETE CASCADE
 );
 
 -- 힌트 (범인 역할 플레이어용 / AI 범인의 변명 계획)
@@ -237,6 +260,7 @@ CREATE TABLE participant (
     member_id VARCHAR(20) NULL,
     character_id INT NULL,
     role ENUM('탐정', '용의자') NOT NULL,
+    unlimited BOOLEAN NOT NULL DEFAULT FALSE,  -- 조사 횟수를 다 쓴 뒤 「조사 무제한」을 켰는지
     PRIMARY KEY (participant_id),
     CONSTRAINT fk_participant_play FOREIGN KEY (play_id)
         REFERENCES play (play_id) ON DELETE CASCADE,
@@ -581,7 +605,7 @@ INSERT INTO clue (clue_id, scene_id, spot_id, character_id, name, description, c
 (107, 7, 107, NULL, '환불 요청자 명단', '시우 노트북의 엑셀 파일 "환불 요청자". 투자자 이름과 금액이 수십 줄 적혀 있고, 맨 위는 "한지영 - 1억 2천"이다.', '기록', FALSE, NULL),
 (108, 7, 108, NULL, '떨어진 출입증', '침대 밑에 떨어진 제작진 출입증. 이름 칸에 "작가 이채원"이라고 적혀 있다.', '물증', FALSE, NULL),
 (109, 8, 109, NULL, '휴대폰 촬영 기록', '삼각대에 꽂힌 지아 휴대폰의 앨범. 오늘 밤 영상은 두 개다. 하나는 21시 20분에 시작해 21시 50분에 끝난 30분짜리, 하나는 22시 30분부터 8분 동안 찍힌 라이브 녹화본이다. 라이브 속 지아는 머리를 하나로 묶었고 귀걸이는 오른쪽에만 있다.', '기록', TRUE, '21:50:00'),
-(110, 8, 110, NULL, '채널 업로드 기록', '노트북의 채널 관리 화면. 영상 「제주 마지막 밤」은 21시 57분에 업로드가 끝났고, 22시에 최초 공개되었다. 길이는 30분이다. 영상 속 지아는 머리를 풀었고 꽃 모양 귀걸이를 양쪽에 하고 있다.', '기록', TRUE, '21:57:00'),
+(110, 8, NULL, NULL, '채널 업로드 기록', '지아 노트북의 채널 관리 화면. 영상 「제주 마지막 밤」은 21시 57분에 업로드가 끝났고, 22시에 최초 공개되었다. 길이는 30분이다. 영상 속 지아는 머리를 풀었고 꽃 모양 귀걸이를 양쪽에 하고 있다.', '기록', TRUE, '21:57:00'),
 (111, 8, 111, NULL, '젖은 원피스', '욕실 바구니 속 원피스. 아직 물기가 뚝뚝 떨어지고, 수영장 소독약 냄새가 난다.', '물증', FALSE, NULL),
 (112, 8, 112, NULL, '가족 사진', '화장대 거울에 끼운 사진. 지아가 닮은 얼굴의 여자와 어깨동무를 하고 있다. 뒷면에 "지영 언니랑, 2024 봄"이라고 적혀 있다.', '물증', FALSE, NULL),
 (113, 9, 114, NULL, '작가실 창문', '작가실 창문을 열면 수영장 데크가 바로 내려다보인다.', '물증', FALSE, NULL),
@@ -597,7 +621,6 @@ INSERT INTO clue (clue_id, scene_id, spot_id, character_id, name, description, c
 (123, 11, NULL, 8, '거실 몸싸움', '출연자 백도현의 증언. 21시 30분 거실에서 시우의 멱살을 잡고 밀쳤다. 시우는 일어나며 "나한테 원한 있는 사람이 여기 또 있다"고 비웃었다.', '증언', FALSE, '21:30:00'),
 (124, 10, NULL, 10, '맨발의 그림자', '촬영감독 주경민의 증언. 22시 15분쯤 장비실 창밖으로 맨발로 본관 쪽에 뛰어가는 작은 그림자를 봤다. 술에 취해 누군지는 모른다.', '증언', FALSE, '22:15:00');
 
-UPDATE spot SET unlock_clue_id = 109 WHERE spot_id = 110;  -- 지아 노트북 백업 ← 브이로그 촬영 기록 (다시 찍은 영상이 있다는 걸 알게 됨)
 UPDATE clue SET unlock_clue_id = 113 WHERE clue_id = 121;  -- 수영장의 여자 목소리 ← 작가실 창문
 UPDATE clue SET unlock_clue_id = 119 WHERE clue_id = 123;  -- 거실 몸싸움 ← 깨진 액자
 
@@ -836,14 +859,61 @@ INSERT INTO spot (spot_id, scene_id, name) VALUES
 
 INSERT INTO clue (clue_id, scene_id, spot_id, character_id, name, description, clue_type, is_key, event_time) VALUES
 (131, 6, 124, NULL, '샴페인 잔 두 개', '선베드 테이블 위의 샴페인 병과 잔 두 개. 한 잔에는 샴페인이 조금 남았고 바닥에 하얀 가루 찌꺼기가 가라앉아 있다. 다른 잔은 물로 헹군 듯 물기만 있다.', '물증', TRUE, NULL),
-(132, 8, 113, NULL, '수면제 약 봉투', '옷장 속 파우치의 약 봉투. "환자: 한지영 / 수면제 10mg, 14정"이라고 적혀 있고, 4정이 비어 있다.', '물증', TRUE, NULL),
-(133, 6, 105, NULL, '어깨의 멍', '시우의 양쪽 어깨 앞쪽에 손가락 모양 멍이 네 개씩 나란히 있다. 멍은 아직 붉다.', '물증', FALSE, NULL);
+(132, 8, 113, NULL, '수면제 약 봉투', '옷장 속 파우치의 약 봉투. "환자: 한지영 (1996.04.12) / 수면제 10mg, 14정"이라고 적혀 있고, 4정이 비어 있다.', '물증', TRUE, NULL),
+(133, 6, 105, NULL, '어깨의 멍', '시우의 양쪽 어깨 앞쪽에 손가락 모양 멍이 네 개씩 나란히 있다. 멍은 아직 붉다.', '물증', FALSE, NULL),
+(134, 8, 110, NULL, '잠긴 노트북', '책상 위 지아의 노트북. 잠금 화면에 비밀번호 6자리를 넣는 칸이 있고, 힌트에 "언니 생일"이라고 적혀 있다.', '물증', FALSE, NULL);
+
+-- 잠긴 노트북은 추론으로 연다: 잠금 힌트 + 약 봉투의 생년월일 → 노트북 속 채널 업로드 기록이 바로 손에 들어온다
+INSERT INTO deduction (deduction_id, case_id, name, description, proof_role, proof_note, reveal_clue_id) VALUES
+(116, 2, '언니 생일', '노트북 비밀번호 힌트는 "언니 생일"이다. 약 봉투의 환자 한지영은 1996년 4월 12일생이다. 960412를 넣자 지아의 노트북이 열렸다.', NULL,
+ '지아의 노트북을 여는 열쇠예요. 범행과 바로 이어지지는 않아요.', 110);
 
 INSERT INTO deduction_clue (deduction_id, clue_id) VALUES
 (108, 103), (108, 131), (108, 133),
-(115, 112), (115, 131), (115, 132);
+(115, 112), (115, 131), (115, 132),
+(116, 132), (116, 134);
 
 UPDATE case_file SET investigation_limit = 17 WHERE case_id = 2;
+
+-- 인물 관계도: 플레이어 화면에 그리는 선. 단서·추론을 찾을 때마다 선이 생기거나 바뀐다
+-- 짝마다 찾은 단계 중 stage_order가 가장 큰 것을 그린다. clue_id·deduction_id가 둘 다 NULL이면 처음부터 보인다
+-- (character_relation.description은 AI만 읽는 진짜 관계, 여기 label은 플레이어가 지금까지 알아낸 만큼)
+INSERT INTO relation_stage (character_a_id, character_b_id, stage_order, label, tone, clue_id, deduction_id) VALUES
+-- 사건 1
+(2, 1, 0, '조카', '관계', NULL, NULL),
+(2, 1, 1, '상속인 → 재단?', '불확실', 14, NULL),
+(2, 1, 2, '유언장에서 빠질 처지', '갈등', NULL, 3),
+(3, 1, 0, '정원사', '관계', NULL, NULL),
+(3, 1, 1, '옛 공동대표', '관계', 22, NULL),
+(3, 1, 2, '20년 전 일로 고함', '갈등', 26, NULL),
+(3, 1, 3, '회사를 빼앗긴 동업자', '갈등', NULL, 9),
+(4, 1, 0, '가정부', '관계', NULL, NULL),
+(4, 1, 1, '친자 99.9%', '관계', 23, NULL),
+(4, 1, 2, '인정받지 못한 딸', '갈등', NULL, 10),
+(5, 1, 0, '고문 변호사', '관계', NULL, NULL),
+(5, 1, 1, '신탁 계좌 확인?', '불확실', 15, NULL),
+(5, 1, 2, '감사 연기 거절', '갈등', 25, NULL),
+(5, 1, 3, '감추려던 장부', '갈등', NULL, 11),
+(4, 3, 0, '동료', '관계', NULL, NULL),
+(4, 3, 1, '비밀을 아는 사이', '관계', 28, NULL),
+(5, 2, 1, '유언장 귀띔', '관계', 27, NULL),
+(4, 2, 1, '사촌', '관계', NULL, 10),
+-- 사건 2
+(7, 6, 0, '러브라인', '관계', NULL, NULL),
+(7, 6, 1, '10시 수영장 약속', '불확실', 128, NULL),
+(7, 6, 2, '언니 돈 1억 2천', '갈등', NULL, 104),
+(8, 6, 0, '출연자', '관계', NULL, NULL),
+(8, 6, 1, '거실 몸싸움', '갈등', 123, NULL),
+(8, 6, 2, '동료가 다친 화재', '갈등', 125, NULL),
+(9, 6, 0, '담당 작가', '관계', NULL, NULL),
+(9, 6, 1, '몰래 연애?', '불확실', 108, NULL),
+(9, 6, 2, '숨긴 연애', '갈등', NULL, 112),
+(10, 6, 0, '촬영감독', '관계', NULL, NULL),
+(10, 6, 1, '5천만 원 떼임', '갈등', 107, NULL),
+(10, 6, 2, '돈 얘기로 조롱', '갈등', 127, NULL),
+(8, 7, 0, '도현의 호감', '관계', NULL, NULL),
+(10, 8, 1, '술친구?', '불확실', 117, NULL),
+(9, 7, 1, '시우의 메시지를 봄', '관계', 128, NULL);
 
 -- 검시 기록: 범인이 꾸민 겉모습 그대로 적는다 (사실만, 결론은 없음)
 INSERT INTO autopsy (case_id, found_time, found_place, found_by, cause, wound, death_estimate, weapon, note) VALUES
@@ -851,8 +921,8 @@ INSERT INTO autopsy (case_id, found_time, found_place, found_by, cause, wound, d
  '뒷머리 오른쪽 한 곳, 길이 3cm', '21:30~22:30 · 시신이 아직 따뜻하다', '머리맡에 떨어진 청동 흉상(약 4kg), 피가 묻어 있다',
  '22:10 서재 쪽에서 "쿵" 하는 큰 소리가 났다'),
 (2, '22:50:00', '수영장, 엎드린 채 물에 떠 있음', '백도현', '익사',
- '뒷머리 가운데 한 곳, 길이 4cm · 데크 모서리에 핏자국', '22:11 · 스마트워치 심박이 끊긴 시각', '뚜렷한 흉기 없음 · 입에서 술 냄새가 난다',
- '데크에 샴페인 병과 잔 두 개가 놓여 있었다');
+ '뒷머리 가운데 한 곳, 길이 4cm · 데크 모서리에 핏자국', '22:11 · 스마트워치 심박이 끊긴 시각', '뚜렷한 흉기 없음',
+ '입에서 술 냄새가 난다');
 
 -- 범인의 거짓 각본: 범인이 미리 짜 둔 단 하나의 이야기 (AI만 읽음)
 -- 「지키는 선」은 끝까지 지키고, 나머지는 증거가 나오면 [변명 계획]대로 한 걸음씩 물러선다

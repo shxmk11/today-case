@@ -1,4 +1,4 @@
-import type { AccuseResult, CaseSummary, Clue, Deduction, PlayState, Scene, TimelineItem } from "./types";
+import type { AccuseResult, CaseSummary, Clue, Deduction, PlayState, Relation, Scene, TimelineItem } from "./types";
 
 async function request<T>(path: string, body?: unknown): Promise<T> {
   const res = await fetch(`/api${path}`, {
@@ -22,7 +22,12 @@ export const api = {
   investigate: (playId: number, spotId: number) =>
     request<{ clues: Clue[]; timeline: TimelineItem[]; scenes: Scene[]; investigationsLeft: number }>(`/plays/${playId}/investigate`, { spotId }),
   link: (playId: number, clueIds: number[]) =>
-    request<{ ok: boolean; deduction: Deduction | null; deductions: Deduction[]; investigationsLeft: number }>(`/plays/${playId}/link`, { clueIds }),
+    request<{
+      ok: boolean; deduction: Deduction | null; deductions: Deduction[]; revealed: number[];
+      clues: Clue[]; timeline: TimelineItem[]; investigationsLeft: number;
+    }>(`/plays/${playId}/link`, { clueIds }),
+  relations: (playId: number) => request<Relation[]>(`/plays/${playId}/relations`),
+  unlimited: (playId: number) => request<{ unlimited: true }>(`/plays/${playId}/unlimited`, {}),
   interrogate: (playId: number, characterId: number, question: string, clueId?: number) =>
     request<{ answer: string; question: string; clues: Clue[]; newClues: number[]; timeline: TimelineItem[] }>(`/plays/${playId}/interrogate`, {
       characterId,

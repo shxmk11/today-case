@@ -82,6 +82,8 @@ export interface Clue {
   description: string | null;
   clue_type: "물증" | "증언" | "기록";
   scene_name: string;
+  /** 추론에 다 쓰여서 더 쓸 데가 없는 단서 (목록에선 빼고 추론 카드 안에서만 보여줌) */
+  retired?: boolean;
 }
 
 export interface Chat {
@@ -90,6 +92,15 @@ export interface Chat {
   answer: string;
   pending?: boolean;
   newClues?: string[];
+}
+
+/** 인물 관계도의 선 하나 (짝마다 지금까지 밝혀진 가장 나중 단계) */
+export interface Relation {
+  stage_id: number;
+  a: number;
+  b: number;
+  label: string;
+  tone: "관계" | "갈등" | "불확실";
 }
 
 /** 검시 기록: 게임 시작 때 공개되는 시신 정보 */
@@ -117,6 +128,8 @@ export interface PlayState {
   clueTotal: number;
   investigationLimit: number;
   investigationsLeft: number;
+  /** 조사 횟수를 다 쓴 뒤 「조사 무제한」을 켰는지 */
+  unlimited: boolean;
   deductions: Deduction[];
   deductionTotal: number;
   chats: Chat[];

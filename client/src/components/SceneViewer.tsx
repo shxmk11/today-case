@@ -9,6 +9,8 @@ interface Props {
   onScene: (id: number | null) => void;
   left: number;
   limit: number;
+  unlimited: boolean;
+  onUnlimited: () => void;
   busy: number | null;
   onInvestigate: (spotId: number) => void;
   onClose: () => void;
@@ -18,7 +20,7 @@ const remaining = (s: Scene) => s.spots.filter((p) => !p.searched).length;
 
 /* 현장 조사 창: 단면도 지도에서 방을 고르고, 현장 그림 위 조사 지점을 눌러 조사한다 */
 export default function SceneViewer(props: Props) {
-  const { scenes, mapUrl, sceneId, onScene, left, limit, busy, onInvestigate, onClose } = props;
+  const { scenes, mapUrl, sceneId, onScene, left, limit, unlimited, onUnlimited, busy, onInvestigate, onClose } = props;
   const scene = scenes.find((s) => s.scene_id === sceneId) ?? null;
 
   useEffect(() => {
@@ -27,7 +29,7 @@ export default function SceneViewer(props: Props) {
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  const canOpen = (searched: boolean, locked: boolean) => !searched && !locked && left > 0 && busy === null;
+  const canOpen = (searched: boolean, locked: boolean) => !searched && !locked && (unlimited || left > 0) && busy === null;
 
   return (
     <div className="modal-back" onClick={onClose}>
@@ -43,9 +45,18 @@ export default function SceneViewer(props: Props) {
             {scene?.description && <span className="viewer-desc">{scene.description}</span>}
           </div>
           <div className="viewer-right">
-            <span className="viewer-left">
-              남은 조사 <b className={left <= 3 ? "red" : ""}>{left}</b> / {limit}
-            </span>
+            {unlimited ? (
+              <span className="viewer-left">조사 무제한</span>
+            ) : (
+              <span className="viewer-left">
+                남은 조사 <b className={left <= 3 ? "red" : ""}>{left}</b> / {limit}
+              </span>
+            )}
+            {!unlimited && left <= 0 && (
+              <button className="pill outline" onClick={onUnlimited}>
+                조사 무제한 켜기
+              </button>
+            )}
             <button className="pill white" onClick={onClose} aria-label="닫기">
               닫기
             </button>
