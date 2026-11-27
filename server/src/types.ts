@@ -30,6 +30,8 @@ export interface CharacterRow {
   job: string | null;
   personality: string | null;
   backstory: string | null;
+  /** 범인만: 미리 짜 둔 거짓 이야기 */
+  cover_story: string | null;
   image_url: string | null;
   character_type: "피해자" | "용의자" | "목격자";
   is_culprit: boolean;
