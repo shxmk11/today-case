@@ -897,55 +897,55 @@ UPDATE scene SET map_x = 43.50, map_y = 60.48, map_w = 12.50, map_h = 29.52 WHER
 UPDATE scene SET map_x = 56.50, map_y = 60.48, map_w = 12.50, map_h = 29.52 WHERE scene_id = 10;
 UPDATE scene SET map_x = 18.00, map_y = 60.48, map_w = 25.00, map_h = 29.52 WHERE scene_id = 11;
 
-UPDATE spot SET pos_x = 49.75, pos_y = 51.56 WHERE spot_id = 1;  -- 책상 위
-UPDATE spot SET pos_x = 41.25, pos_y = 70.67 WHERE spot_id = 2;  -- 책상 아래
-UPDATE spot SET pos_x = 74.25, pos_y = 31.11 WHERE spot_id = 3;  -- 책장
-UPDATE spot SET pos_x = 52.50, pos_y = 82.67 WHERE spot_id = 4;  -- 바닥
-UPDATE spot SET pos_x = 23.12, pos_y = 23.11 WHERE spot_id = 5;  -- 창문
-UPDATE spot SET pos_x = 41.25, pos_y = 44.44 WHERE spot_id = 6;  -- 개수대
-UPDATE spot SET pos_x = 71.50, pos_y = 41.33 WHERE spot_id = 7;  -- 충전기
-UPDATE spot SET pos_x = 56.25, pos_y = 33.33 WHERE spot_id = 8;  -- 칼꽂이
-UPDATE spot SET pos_x = 23.12, pos_y = 61.33 WHERE spot_id = 9;  -- 작업대 아래
-UPDATE spot SET pos_x = 80.00, pos_y = 85.33 WHERE spot_id = 10;  -- 문 앞 눈길
-UPDATE spot SET pos_x = 52.50, pos_y = 28.44 WHERE spot_id = 11;  -- 장갑 걸이
-UPDATE spot SET pos_x = 26.75, pos_y = 33.33 WHERE spot_id = 12;  -- 노트북
-UPDATE spot SET pos_x = 72.00, pos_y = 78.67 WHERE spot_id = 14;  -- 침대 밑
-UPDATE spot SET pos_x = 42.00, pos_y = 62.67 WHERE spot_id = 15;  -- 휴지통
-UPDATE spot SET pos_x = 54.38, pos_y = 31.11 WHERE spot_id = 16;  -- 옷장
-UPDATE spot SET pos_x = 35.50, pos_y = 47.56 WHERE spot_id = 17;  -- 책상
-UPDATE spot SET pos_x = 51.50, pos_y = 33.33 WHERE spot_id = 18;  -- 노트북
-UPDATE spot SET pos_x = 67.75, pos_y = 67.11 WHERE spot_id = 19;  -- 서류가방
-UPDATE spot SET pos_x = 30.00, pos_y = 47.56 WHERE spot_id = 20;  -- 작업대 서랍
-UPDATE spot SET pos_x = 4.75, pos_y = 37.78 WHERE spot_id = 21;  -- 앞치마
-UPDATE spot SET pos_x = 25.25, pos_y = 66.67 WHERE spot_id = 22;  -- 휴지통
-UPDATE spot SET pos_x = 57.75, pos_y = 45.78 WHERE spot_id = 23;  -- 탁상 달력
-UPDATE spot SET pos_x = 81.25, pos_y = 82.67 WHERE spot_id = 24;  -- 시신 곁
-UPDATE spot SET pos_x = 23.12, pos_y = 58.22 WHERE spot_id = 25;  -- 난방기
-UPDATE spot SET pos_x = 82.00, pos_y = 18.67 WHERE spot_id = 26;  -- 책장 맨 윗칸
-UPDATE spot SET pos_x = 32.25, pos_y = 42.67 WHERE spot_id = 101;  -- 수영장 필터
-UPDATE spot SET pos_x = 77.50, pos_y = 60.44 WHERE spot_id = 102;  -- 데크 바닥
-UPDATE spot SET pos_x = 87.50, pos_y = 82.22 WHERE spot_id = 103;  -- 데크 모서리
-UPDATE spot SET pos_x = 87.50, pos_y = 38.67 WHERE spot_id = 104;  -- 흡연 구역
-UPDATE spot SET pos_x = 52.50, pos_y = 61.33 WHERE spot_id = 105;  -- 시신 곁
-UPDATE spot SET pos_x = 70.00, pos_y = 44.00 WHERE spot_id = 106;  -- 휴대폰
-UPDATE spot SET pos_x = 23.50, pos_y = 33.33 WHERE spot_id = 107;  -- 노트북
-UPDATE spot SET pos_x = 85.00, pos_y = 60.44 WHERE spot_id = 108;  -- 침대
-UPDATE spot SET pos_x = 58.75, pos_y = 31.11 WHERE spot_id = 109;  -- 삼각대 휴대폰
-UPDATE spot SET pos_x = 78.75, pos_y = 53.33 WHERE spot_id = 110;  -- 노트북
-UPDATE spot SET pos_x = 17.50, pos_y = 62.22 WHERE spot_id = 111;  -- 욕실 바구니
-UPDATE spot SET pos_x = 95.50, pos_y = 24.89 WHERE spot_id = 112;  -- 화장대
-UPDATE spot SET pos_x = 28.12, pos_y = 31.11 WHERE spot_id = 113;  -- 옷장
-UPDATE spot SET pos_x = 23.12, pos_y = 27.56 WHERE spot_id = 114;  -- 창문
-UPDATE spot SET pos_x = 36.25, pos_y = 45.78 WHERE spot_id = 115;  -- 책상
-UPDATE spot SET pos_x = 68.00, pos_y = 40.00 WHERE spot_id = 116;  -- 원고 더미
-UPDATE spot SET pos_x = 26.25, pos_y = 32.89 WHERE spot_id = 117;  -- 녹화기
-UPDATE spot SET pos_x = 56.25, pos_y = 24.44 WHERE spot_id = 118;  -- 화이트보드
-UPDATE spot SET pos_x = 91.00, pos_y = 79.11 WHERE spot_id = 119;  -- 구석
-UPDATE spot SET pos_x = 79.75, pos_y = 24.00 WHERE spot_id = 120;  -- 출입 태그 모니터
-UPDATE spot SET pos_x = 63.00, pos_y = 85.78 WHERE spot_id = 121;  -- 바닥
-UPDATE spot SET pos_x = 81.25, pos_y = 66.67 WHERE spot_id = 122;  -- 쓰레기통
-UPDATE spot SET pos_x = 47.50, pos_y = 53.33 WHERE spot_id = 123;  -- 소파
-UPDATE spot SET pos_x = 21.25, pos_y = 50.22 WHERE spot_id = 124;  -- 선베드 테이블
+UPDATE spot SET pos_x = 46.60, pos_y = 56.90 WHERE spot_id = 1;  -- 책상 위
+UPDATE spot SET pos_x = 52.40, pos_y = 77.30 WHERE spot_id = 2;  -- 책상 아래
+UPDATE spot SET pos_x = 75.60, pos_y = 36.90 WHERE spot_id = 3;  -- 책장
+UPDATE spot SET pos_x = 43.30, pos_y = 91.10 WHERE spot_id = 4;  -- 바닥
+UPDATE spot SET pos_x = 25.00, pos_y = 26.70 WHERE spot_id = 5;  -- 창문
+UPDATE spot SET pos_x = 31.45, pos_y = 53.84 WHERE spot_id = 6;  -- 개수대
+UPDATE spot SET pos_x = 72.35, pos_y = 53.18 WHERE spot_id = 7;  -- 충전기
+UPDATE spot SET pos_x = 54.55, pos_y = 47.48 WHERE spot_id = 8;  -- 칼꽂이
+UPDATE spot SET pos_x = 36.73, pos_y = 74.49 WHERE spot_id = 9;  -- 작업대 아래
+UPDATE spot SET pos_x = 71.00, pos_y = 65.78 WHERE spot_id = 10;  -- 문 앞 눈길
+UPDATE spot SET pos_x = 55.00, pos_y = 30.67 WHERE spot_id = 11;  -- 장갑 걸이
+UPDATE spot SET pos_x = 46.06, pos_y = 47.53 WHERE spot_id = 12;  -- 노트북
+UPDATE spot SET pos_x = 75.03, pos_y = 82.91 WHERE spot_id = 14;  -- 침대 밑
+UPDATE spot SET pos_x = 64.75, pos_y = 68.28 WHERE spot_id = 15;  -- 휴지통
+UPDATE spot SET pos_x = 14.38, pos_y = 35.87 WHERE spot_id = 16;  -- 옷장
+UPDATE spot SET pos_x = 41.26, pos_y = 53.35 WHERE spot_id = 17;  -- 책상
+UPDATE spot SET pos_x = 51.99, pos_y = 46.15 WHERE spot_id = 18;  -- 노트북
+UPDATE spot SET pos_x = 86.83, pos_y = 77.24 WHERE spot_id = 19;  -- 서류가방
+UPDATE spot SET pos_x = 21.74, pos_y = 64.60 WHERE spot_id = 20;  -- 작업대 서랍
+UPDATE spot SET pos_x = 17.12, pos_y = 33.33 WHERE spot_id = 21;  -- 앞치마
+UPDATE spot SET pos_x = 25.75, pos_y = 76.00 WHERE spot_id = 22;  -- 휴지통
+UPDATE spot SET pos_x = 57.50, pos_y = 55.60 WHERE spot_id = 23;  -- 탁상 달력
+UPDATE spot SET pos_x = 81.25, pos_y = 87.10 WHERE spot_id = 24;  -- 시신 곁
+UPDATE spot SET pos_x = 25.10, pos_y = 56.20 WHERE spot_id = 25;  -- 난방기
+UPDATE spot SET pos_x = 82.00, pos_y = 21.30 WHERE spot_id = 26;  -- 책장 맨 윗칸
+UPDATE spot SET pos_x = 31.27, pos_y = 60.61 WHERE spot_id = 101;  -- 수영장 필터
+UPDATE spot SET pos_x = 41.88, pos_y = 41.96 WHERE spot_id = 102;  -- 데크 바닥
+UPDATE spot SET pos_x = 87.89, pos_y = 84.76 WHERE spot_id = 103;  -- 데크 모서리
+UPDATE spot SET pos_x = 86.25, pos_y = 43.72 WHERE spot_id = 104;  -- 흡연 구역
+UPDATE spot SET pos_x = 56.11, pos_y = 62.28 WHERE spot_id = 105;  -- 시신 곁
+UPDATE spot SET pos_x = 65.14, pos_y = 52.80 WHERE spot_id = 106;  -- 휴대폰
+UPDATE spot SET pos_x = 21.26, pos_y = 47.53 WHERE spot_id = 107;  -- 노트북
+UPDATE spot SET pos_x = 77.50, pos_y = 87.67 WHERE spot_id = 108;  -- 침대
+UPDATE spot SET pos_x = 44.75, pos_y = 32.00 WHERE spot_id = 109;  -- 삼각대 휴대폰
+UPDATE spot SET pos_x = 69.95, pos_y = 64.62 WHERE spot_id = 110;  -- 노트북
+UPDATE spot SET pos_x = 5.60, pos_y = 79.73 WHERE spot_id = 111;  -- 욕실 바구니
+UPDATE spot SET pos_x = 95.68, pos_y = 41.80 WHERE spot_id = 112;  -- 화장대
+UPDATE spot SET pos_x = 27.04, pos_y = 30.84 WHERE spot_id = 113;  -- 옷장
+UPDATE spot SET pos_x = 26.25, pos_y = 26.67 WHERE spot_id = 114;  -- 창문
+UPDATE spot SET pos_x = 46.70, pos_y = 53.40 WHERE spot_id = 115;  -- 책상
+UPDATE spot SET pos_x = 86.63, pos_y = 73.23 WHERE spot_id = 116;  -- 원고 더미
+UPDATE spot SET pos_x = 18.03, pos_y = 35.98 WHERE spot_id = 117;  -- 녹화기
+UPDATE spot SET pos_x = 51.25, pos_y = 26.22 WHERE spot_id = 118;  -- 화이트보드
+UPDATE spot SET pos_x = 86.75, pos_y = 76.00 WHERE spot_id = 119;  -- 구석
+UPDATE spot SET pos_x = 69.00, pos_y = 32.22 WHERE spot_id = 120;  -- 출입 태그 모니터
+UPDATE spot SET pos_x = 82.43, pos_y = 89.76 WHERE spot_id = 121;  -- 바닥
+UPDATE spot SET pos_x = 92.25, pos_y = 70.13 WHERE spot_id = 122;  -- 쓰레기통
+UPDATE spot SET pos_x = 57.00, pos_y = 62.31 WHERE spot_id = 123;  -- 소파
+UPDATE spot SET pos_x = 18.95, pos_y = 62.78 WHERE spot_id = 124;  -- 선베드 테이블
 
 -- 사실을 사건별, 시각 순으로 자주 조회
 CREATE INDEX ix_fact_time ON fact(case_id, occurred_at);

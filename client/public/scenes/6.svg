@@ -1,57 +1,92 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450">
-<style>.w{fill:none;stroke:#fff;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}.t{fill:none;stroke:#fff;stroke-width:1.5;stroke-linejoin:round;stroke-linecap:round}.g{fill:none;stroke:#636366;stroke-width:1.5;stroke-linecap:round}.k{fill:#000;stroke:#fff;stroke-width:2;stroke-linejoin:round}.f{fill:#fff}.r{fill:none;stroke:#C1121F;stroke-width:2.5;stroke-dasharray:7 5;stroke-linejoin:round}</style>
+<style>.w{fill:none;stroke:#fff;stroke-width:1.6;stroke-linejoin:round;stroke-linecap:round}.t{fill:none;stroke:#fff;stroke-width:1;stroke-linejoin:round;stroke-linecap:round}.g{fill:none;stroke:#636366;stroke-width:1;stroke-linejoin:round;stroke-linecap:round}.k{fill:#000;stroke:#fff;stroke-width:1.6;stroke-linejoin:round;stroke-linecap:round}.kt{fill:#000;stroke:#fff;stroke-width:1;stroke-linejoin:round;stroke-linecap:round}.b{fill:#000;stroke:#C1121F;stroke-width:1.6;stroke-linejoin:round;stroke-linecap:round}.r{fill:none;stroke:#C1121F;stroke-width:1;stroke-linecap:round;stroke-linejoin:round}.gd{fill:#636366}</style>
 <rect width="800" height="450" fill="#000"/>
 <!-- 하늘, 달 -->
-<circle class="w" cx="690" cy="50" r="18"/>
-<g class="f" opacity=".6"><circle cx="120" cy="40" r="1.4"/><circle cx="300" cy="24" r="1.2"/><circle cx="460" cy="50" r="1.4"/><circle cx="580" cy="30" r="1.2"/><circle cx="760" cy="96" r="1.4"/></g>
+<circle class="t" cx="110" cy="52" r="16"/><path class="g" d="M101 45 q4 -3 8 0"/>
+<circle class="gd" cx="60" cy="90" r="1"/>
+<circle class="gd" cx="190" cy="30" r="1"/>
+<circle class="gd" cx="250" cy="70" r="1"/>
+<circle class="gd" cx="700" cy="40" r="1"/>
+<circle class="gd" cx="760" cy="96" r="1"/>
+<circle class="gd" cx="600" cy="22" r="1"/>
 <!-- 숙소 건물 -->
-<path class="w" d="M60 180 V90 H420 V180"/>
-<path class="w" d="M40 92 H440"/>
-<g class="t"><rect x="90" y="110" width="50" height="40"/><rect x="170" y="110" width="50" height="40"/><rect x="300" y="110" width="90" height="60"/><path d="M345 110 V170"/></g>
-<rect x="180" y="118" width="30" height="24" fill="#fff" opacity=".25"/>
-<!-- 나무 -->
-<path class="w" d="M500 180 V110 M500 130 Q470 100 476 70 M500 120 Q530 90 522 60 M500 150 Q540 130 556 104"/>
-<path class="g" d="M0 180 H800"/>
-<!-- 데크 -->
-<path class="g" d="M0 180 L0 450 M100 180 L40 450 M200 180 L160 450 M300 180 L280 450 M400 180 L400 450 M500 180 L520 450 M600 180 L640 450 M700 180 L760 450"/>
-<path class="g" d="M0 240 H800 M0 320 H800 M0 410 H800"/>
-<!-- 수영장 -->
-<path class="k" d="M220 220 H600 L680 400 H140 Z"/>
-<path class="g" d="M250 250 Q300 244 350 252 T450 250 T560 252 M200 300 Q270 292 340 302 T480 300 T620 302 M170 360 Q260 352 350 362 T530 360 T660 362" stroke="#AEAEB2"/>
-<path class="w" d="M590 222 V200 M610 222 V196 M590 210 H610"/>
-<!-- 수영장 필터 -->
-<rect class="k" x="236" y="208" width="44" height="16" rx="3"/>
-<path class="t" d="M244 216 H272"/>
-<!-- 물에 뜬 시신 -->
-<g transform="translate(318 280) scale(0.95 0.85)">
-<g fill="#000" stroke="#fff" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round">
-<path d="M158 16 Q172 4 196 6 Q201 9 196 11 Q177 11 165 23 Z"/>
-<path d="M72 22 L12 19 Q3 19 3 25 Q4 30 11 30 L72 32 Z"/>
-<path d="M72 34 L16 40 Q7 42 7 46 Q9 50 15 49 L74 43 Z"/>
-<path d="M166 18 Q150 11 120 14 L82 18 Q68 20 68 30 Q68 41 82 43 L120 46 Q150 49 166 42 Q172 30 166 18 Z"/>
-<path d="M158 43 Q142 57 118 57 Q110 57 111 52 Q114 49 120 50 Q138 50 150 38 Z"/>
-<ellipse cx="182" cy="30" rx="14" ry="12"/>
-</g>
-<circle cx="190" cy="23" r="4" fill="#C1121F"/>
-</g>
-<!-- 선베드와 테이블 -->
-<path class="k" d="M20 300 L110 290 L150 330 L60 344 Z"/>
-<path class="w" d="M20 300 L6 260 L90 250 L110 290 M30 344 V370 M140 334 V360"/>
-<ellipse class="k" cx="160" cy="300" rx="26" ry="8"/>
-<path class="w" d="M160 308 V350 M146 350 H174"/>
-<g class="w"><path d="M148 296 L146 274 M146 274 Q140 266 146 258 H154 Q160 266 154 274 L152 296"/><path d="M166 298 L166 276 M166 276 Q160 268 164 260 H172 Q178 268 172 276 L170 298"/></g>
-<path class="w" d="M180 298 V264 Q180 256 186 254 V242 H192 V254 Q198 256 198 264 V298 Z"/>
+<path class="w" d="M150 175 V70 H650 V175"/>
+<path class="w" d="M140 70 H660"/>
+<rect class="t" x="180" y="88" width="34" height="26"/>
+<rect class="t" x="250" y="88" width="34" height="26"/>
+<rect class="t" x="520" y="88" width="34" height="26"/>
+<rect class="t" x="590" y="88" width="34" height="26"/>
+<rect class="t" x="200" y="128" width="60" height="36"/><path class="t" d="M230 128 V164"/>
+<rect class="w" x="372" y="110" width="56" height="65"/><path class="t" d="M400 110 V175"/>
+<rect class="t" x="540" y="128" width="60" height="36"/>
+<path class="w" d="M0.0 175.0 L800.0 175.0"/>
 <!-- 카메라 기둥 -->
-<path class="w" d="M720 400 V170 M708 400 H732"/>
-<rect class="k" x="696" y="150" width="40" height="22" rx="3"/>
-<circle class="t" cx="700" cy="161" r="6"/>
-<circle class="f" cx="730" cy="156" r="2.5"/>
+<path class="w" d="M640 175 V92"/>
+<rect class="k" x="630" y="80" width="22" height="13" rx="2"/><path class="t" d="M630 86 h-6"/>
+<!-- 수영장 -->
+<path class="w" d="M291.4 195.7 L532.2 195.7 L709.1 377.4 L146.1 377.4 Z"/>
+<path class="w" d="M309.0 209.5 L517.0 209.5 L635.8 361.3 L216.6 361.3 Z"/>
+<path class="g" d="M309.0 209.5 L315.0 219.5"/>
+<path class="g" d="M517.0 209.5 L511.0 219.5"/>
+<path class="g" d="M315.0 219.5 L511.0 219.5"/>
+<path class="g" d="M322.5 238.2 q12 -3 24 0 t24 0"/>
+<path class="g" d="M453.0 238.2 q10 -3 20 0"/>
+<path class="g" d="M332.5 284.2 q12 -3 24 0 t24 0"/>
+<path class="g" d="M507.0 284.2 q10 -3 20 0"/>
+<path class="g" d="M262.5 330.2 q12 -3 24 0 t24 0"/>
+<path class="g" d="M481.0 330.2 q10 -3 20 0"/>
+<!-- 물에 뜬 시신 -->
+<ellipse class="g" cx="442.9" cy="286.2" rx="96" ry="16"/>
+<g transform="translate(442.9 284.25) rotate(-4) scale(0.78) translate(-627 -393)" fill="#000" stroke="#C1121F" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M612 379 Q590 378 572 381 Q552 383 537 383 Q529 381 525 384 Q523 389 530 391 Q536 391 540 389 Q556 390 574 391 Q594 394 612 395 Z" vector-effect="non-scaling-stroke"/>
+<path d="M612 391 Q592 395 574 399 Q556 404 540 407 Q532 409 532 413 Q534 417 541 415 Q558 412 576 409 Q596 407 614 406 Z" vector-effect="non-scaling-stroke"/>
+<path d="M676 380 Q690 372 704 369 L722 366 Q729 365 729 370 Q728 374 722 374 L706 377 Q694 381 684 388 Z" vector-effect="non-scaling-stroke"/>
+<path d="M610 380 Q640 375 664 377 Q682 379 686 391 Q683 404 664 406 Q640 408 610 405 Q602 392 610 380 Z" vector-effect="non-scaling-stroke"/>
+<path d="M674 401 Q664 414 650 418 L636 420 Q630 421 630 417 Q631 413 636 413 L648 411 Q660 407 666 397 Z" vector-effect="non-scaling-stroke"/>
+<ellipse cx="699" cy="391" rx="14" ry="11.5" vector-effect="non-scaling-stroke"/></g>
+<!-- 수영장 필터 -->
+<path class="kt" d="M246.9 257.8 L272.7 257.8 L253.5 287.7 L223.8 287.7 Z"/>
+<path class="g" d="M242.0 266.8 L264.9 266.8"/>
+<path class="g" d="M237.4 272.8 L261.1 272.8"/>
+<path class="g" d="M232.7 278.7 L257.3 278.7"/>
+<!-- 데크의 맨발 자국 (뒷문 쪽) -->
+<ellipse class="t" cx="303.3" cy="202.6" rx="2.7" ry="1.4"/>
+<circle cx="302.4" cy="200.3" r="0.7" fill="#fff"/>
+<ellipse class="t" cx="320.8" cy="198.0" rx="2.5" ry="1.3"/>
+<circle cx="320.0" cy="195.9" r="0.6" fill="#fff"/>
+<ellipse class="t" cx="318.8" cy="193.4" rx="2.3" ry="1.2"/>
+<circle cx="318.0" cy="191.5" r="0.6" fill="#fff"/>
+<ellipse class="t" cx="335.6" cy="189.9" rx="2.1" ry="1.1"/>
+<circle cx="334.9" cy="188.2" r="0.5" fill="#fff"/>
+<ellipse class="t" cx="334.0" cy="186.5" rx="2.0" ry="1.0"/>
+<circle cx="333.3" cy="184.8" r="0.5" fill="#fff"/>
+<ellipse class="t" cx="350.8" cy="183.1" rx="1.8" ry="0.9"/>
+<circle cx="350.2" cy="181.5" r="0.5" fill="#fff"/>
+<ellipse class="t" cx="349.8" cy="180.2" rx="1.7" ry="0.8"/>
+<circle cx="349.3" cy="178.8" r="0.5" fill="#fff"/>
+<ellipse class="t" cx="365.3" cy="177.3" rx="1.5" ry="0.8"/>
+<circle cx="364.8" cy="176.0" r="0.5" fill="#fff"/>
+<!-- 데크 모서리 (혈흔) -->
+<path class="r" d="M695.1 375.4 q6 -6 12 -3 q4 4 -2 7 q-6 2 -10 -4"/>
+<path class="r" d="M703.1 379.4 v6 M699.1 378.4 v4"/>
 <!-- 흡연 구역 -->
-<path class="w" d="M680 230 V200 Q680 194 690 194 H712 Q720 194 720 200 V230 Z M670 236 H730"/>
-<path class="t" d="M690 194 Q694 184 698 194 M704 194 Q708 182 712 192"/>
-<path class="g" d="M760 220 Q764 200 756 184" stroke="#AEAEB2"/>
-<g class="t"><ellipse cx="650" cy="262" rx="5" ry="2.5"/><ellipse cx="636" cy="244" rx="5" ry="2.5"/><ellipse cx="628" cy="224" rx="4" ry="2"/><ellipse cx="612" cy="208" rx="4" ry="2"/><ellipse cx="600" cy="192" rx="3.5" ry="1.8"/></g>
-<!-- 데크 모서리 (젖은 자국) -->
-<path class="w" d="M670 392 Q690 378 716 386 Q730 398 706 404 Q676 406 670 392 Z"/>
-<path class="g" d="M650 400 Q660 392 668 396" stroke="#AEAEB2"/>
+<path class="w" d="M678.0 226.8 h24 M690.0 226.8 V180.8"/>
+<ellipse class="k" cx="690.0" cy="178.8" rx="13" ry="4"/>
+<path class="k" d="M677.0 178.8 v8 q13 5 26 0 v-8"/>
+<path class="w" d="M687.0 176.8 l9 -3"/>
+<rect class="kt" x="718.0" y="229.5" width="10" height="5" rx="1" transform="rotate(-15 718.0 232.5)"/>
+<!-- 선베드와 테이블 -->
+<path class="w" d="M135.4 215.2 L135.4 206.2"/>
+<path class="w" d="M208.3 215.2 L208.3 206.2"/>
+<path class="w" d="M17.8 284.2 L17.8 275.2"/>
+<path class="w" d="M123.1 284.2 L123.1 275.2"/>
+<path class="k" d="M100.0 223.5 L193.0 223.5 L124.0 281.0 L0.0 281.0 Z"/>
+<path class="k" d="M100.0 223.5 L193.0 223.5 L203.0 193.5 L114.0 193.5 Z"/>
+<path class="g" d="M65.0 243.6 L168.8 243.6"/>
+<path class="g" d="M30.0 263.8 L144.7 263.8"/>
+<path class="w" d="M151.6 324.5 V298.5 M141.6 324.5 h20"/>
+<ellipse class="k" cx="151.6" cy="297.5" rx="22" ry="5"/>
+<path class="k" d="M139.6 296.5 V276.5 Q139.6 270.5 142.1 267.5 V260.5 H145.1 V267.5 Q147.6 270.5 147.6 276.5 V296.5 Z"/>
+<path class="t" d="M152.6 295.5 h6 M155.6 295.5 v-7 M152.6 279.5 h6 l-1 9 h-4 Z"/>
+<path class="t" d="M161.6 295.5 h6 M164.6 295.5 v-7 M161.6 279.5 h6 l-1 9 h-4 Z"/>
+<path class="g" d="M154.1 285.5 h3"/>
 </svg>
