@@ -6,6 +6,7 @@ export interface CaseRow {
   summary: string;
   truth: string;
   investigation_limit: number;
+  map_url: string | null;
 }
 
 /** 검시 기록: 게임 시작 때 모두에게 공개되는 시신 정보 */
@@ -29,6 +30,7 @@ export interface CharacterRow {
   job: string | null;
   personality: string | null;
   backstory: string | null;
+  image_url: string | null;
   character_type: "피해자" | "용의자" | "목격자";
   is_culprit: boolean;
 }

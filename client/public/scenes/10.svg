@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450">
+<style>.w{fill:none;stroke:#fff;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}.t{fill:none;stroke:#fff;stroke-width:1.5;stroke-linejoin:round;stroke-linecap:round}.g{fill:none;stroke:#636366;stroke-width:1.5;stroke-linecap:round}.k{fill:#000;stroke:#fff;stroke-width:2;stroke-linejoin:round}.f{fill:#fff}</style>
+<rect width="800" height="450" fill="#000"/>
+<path class="g" d="M160 300 L100 450 M240 300 L200 450 M320 300 L300 450 M400 300 L400 450 M480 300 L500 450 M560 300 L600 450 M640 300 L700 450"/>
+<path class="w" d="M0 0 L80 30 L720 30 L800 0 M80 30 V300 H720 V30 M80 300 L0 450 M720 300 L800 450"/>
+<!-- 장비 선반 (녹화기, 모니터) -->
+<rect class="k" x="110" y="60" width="200" height="240"/>
+<path class="w" d="M110 130 H310 M110 200 H310"/>
+<g class="k"><rect x="122" y="74" width="80" height="50" rx="3"/><rect x="212" y="74" width="86" height="50" rx="3"/></g>
+<path class="t" d="M132 90 L150 104 L166 94 L192 112 M222 110 H288 M222 96 H270"/>
+<rect class="k" x="122" y="148" width="176" height="40" rx="3"/>
+<g class="f"><circle cx="136" cy="168" r="3"/></g>
+<path class="t" d="M150 162 H220 M150 172 H200 M240 160 V176 M254 160 V176 M268 160 V176 M282 160 V176"/>
+<text x="196" y="182" font-family="-apple-system,system-ui,sans-serif" font-size="8" font-weight="800" fill="#fff">REC</text>
+<g class="t"><rect x="124" y="214" width="40" height="70" rx="3"/><rect x="172" y="214" width="40" height="70" rx="3"/><rect x="220" y="214" width="40" height="70" rx="3"/><path d="M144 226 V236 M192 226 V236 M240 226 V236"/></g>
+<!-- 화이트보드 -->
+<rect class="w" x="350" y="56" width="200" height="110" rx="3"/>
+<path class="w" d="M360 170 H540"/>
+<path class="t" d="M366 76 H460 M366 96 H430 M366 116 H480 M366 136 H420 M500 80 L520 100 L500 120"/>
+<!-- 출입문과 태그 모니터 -->
+<rect class="k" x="580" y="80" width="110" height="220"/>
+<circle class="f" cx="600" cy="196" r="3"/>
+<rect class="k" x="610" y="120" width="56" height="38" rx="3"/>
+<path class="t" d="M618 132 H656 M618 142 H646"/>
+<circle class="f" cx="658" cy="150" r="2"/>
+<!-- 작업 테이블 -->
+<path class="k" d="M340 230 H540 L556 250 H324 Z"/>
+<path class="w" d="M330 250 V330 M550 250 V330 M324 250 H556 V262 H324"/>
+<g class="t"><rect x="360" y="212" width="50" height="18" rx="3"/><rect x="420" y="214" width="30" height="16" rx="2"/><path d="M470 228 Q490 210 510 226"/></g>
+<!-- 충전기 줄 -->
+<path class="t" d="M460 262 Q470 300 430 320 Q400 336 420 360"/>
+<!-- 구석 상자 -->
+<g class="k"><path d="M650 330 H760 L770 410 H640 Z"/><path d="M670 280 H750 L756 330 H664 Z"/></g>
+<path class="t" d="M656 360 H764 M676 300 H744"/>
+<g class="w"><rect x="700" y="396" width="14" height="24" rx="3"/><rect x="718" y="396" width="14" height="24" rx="3"/><rect x="736" y="398" width="14" height="22" rx="3"/><rect x="709" y="372" width="14" height="24" rx="3"/><path d="M756 420 L780 410 L784 418 L760 428 Z"/></g>
+<!-- 삼각대 기대어 둠 -->
+<path class="w" d="M610 410 L640 250 M630 410 L640 250 M650 410 L640 250"/>
+</svg>

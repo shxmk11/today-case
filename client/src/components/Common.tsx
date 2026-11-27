@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 
 /* 맨 위 한 줄: 왼쪽 로고, 가운데 소개, 오른쪽은 화면마다 다른 정보 */
 export function Topline({ right, onHome }: { right?: ReactNode; onHome?: () => void }) {
@@ -13,12 +13,13 @@ export function Topline({ right, onHome }: { right?: ReactNode; onHome?: () => v
   );
 }
 
-/* 이름 첫 글자를 뺀 두 글자(서진, 유나)로 만든 동그란 얼굴 */
-export function Face({ name, size = 44 }: { name: string; size?: number }) {
+/* 얼굴 그림. 그림이 없거나 못 불러오면 이름 첫 글자를 뺀 두 글자(서진, 유나)로 */
+export function Face({ name, src, size = 44 }: { name: string; src?: string | null; size?: number }) {
+  const [broken, setBroken] = useState(false);
   const label = name.length >= 3 ? name.slice(1, 3) : name;
   return (
     <span className="face" style={{ width: size, height: size, fontSize: Math.round(size * 0.3) }}>
-      {label}
+      {src && !broken ? <img src={src} alt="" onError={() => setBroken(true)} draggable={false} /> : label}
     </span>
   );
 }

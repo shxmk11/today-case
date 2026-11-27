@@ -71,12 +71,17 @@ async function investigationsLeft(participantId: number, caseId: number) {
 
 /** 장소별 조사 지점: 조사했는지, 아직 잠겼는지 (잠금을 여는 단서는 알려주지 않음) */
 async function sceneSpots(participantId: number, caseId: number) {
-  const scenes = await query<{ scene_id: number; name: string; description: string | null }>(
-    `SELECT scene_id, name, description FROM scene WHERE case_id = ? ORDER BY scene_id`,
+  const scenes = await query<{
+    scene_id: number; name: string; description: string | null; image_url: string | null;
+    map_x: string | null; map_y: string | null; map_w: string | null; map_h: string | null;
+  }>(
+    `SELECT scene_id, name, description, image_url, map_x, map_y, map_w, map_h FROM scene WHERE case_id = ? ORDER BY scene_id`,
     [caseId],
   );
-  const spots = await query<{ spot_id: number; scene_id: number; name: string; searched: number; locked: number }>(
-    `SELECT sp.spot_id, sp.scene_id, sp.name,
+  const spots = await query<{
+    spot_id: number; scene_id: number; name: string; searched: number; locked: number; pos_x: string | null; pos_y: string | null;
+  }>(
+    `SELECT sp.spot_id, sp.scene_id, sp.name, sp.pos_x, sp.pos_y,
             EXISTS (SELECT 1 FROM spot_search ss WHERE ss.participant_id = ? AND ss.spot_id = sp.spot_id) AS searched,
             (sp.unlock_clue_id IS NOT NULL AND NOT EXISTS (
                SELECT 1 FROM clue_discovery cd WHERE cd.participant_id = ? AND cd.clue_id = sp.unlock_clue_id)) AS locked
@@ -84,11 +89,17 @@ async function sceneSpots(participantId: number, caseId: number) {
      WHERE s.case_id = ? ORDER BY sp.spot_id`,
     [participantId, participantId, caseId],
   );
-  return scenes.map((sc) => {
+  // DECIMAL 은 문자열로 오므로 숫자로 바꾼다
+  const num = (v: string | null) => (v == null ? null : Number(v));
+  return scenes.map(({ map_x, map_y, map_w, map_h, ...sc }) => {
     const own = spots
       .filter((x) => x.scene_id === sc.scene_id)
-      .map((x) => ({ spot_id: x.spot_id, name: x.name, searched: !!x.searched, locked: !!x.locked }));
-    return { ...sc, spots: own, investigated: own.length > 0 && own.every((x) => x.searched) };
+      .map((x) => ({
+        spot_id: x.spot_id, name: x.name, searched: !!x.searched, locked: !!x.locked,
+        x: num(x.pos_x), y: num(x.pos_y),
+      }));
+    const map = map_x == null ? null : { x: num(map_x)!, y: num(map_y)!, w: num(map_w)!, h: num(map_h)! };
+    return { ...sc, map, spots: own, investigated: own.length > 0 && own.every((x) => x.searched) };
   });
 }
 
@@ -186,14 +197,14 @@ router.get(
                WHERE p.case_id = c.case_id AND p.status = '종료') AS solve_rate
        FROM case_file c ORDER BY c.case_id`,
     );
-    const suspects = await query<{ case_id: number; name: string; job: string | null; gender: string | null }>(
-      `SELECT case_id, name, job, gender FROM game_character WHERE character_type = '용의자' ORDER BY character_id`,
+    const suspects = await query<{ case_id: number; name: string; job: string | null; gender: string | null; image_url: string | null }>(
+      `SELECT case_id, name, job, gender, image_url FROM game_character WHERE character_type = '용의자' ORDER BY character_id`,
     );
     res.json(
       cases.map((c) => ({
         ...c,
         solve_rate: c.solve_rate == null ? null : Number(c.solve_rate),
-        suspects: suspects.filter((s) => s.case_id === c.case_id).map(({ name, job, gender }) => ({ name, job, gender })),
+        suspects: suspects.filter((s) => s.case_id === c.case_id).map(({ name, job, gender, image_url }) => ({ name, job, gender, image_url })),
       })),
     );
   }),
@@ -239,7 +250,7 @@ router.get(
     res.json({
       playId: play.play_id,
       status: play.status,
-      case: { case_id: c!.case_id, title: c!.title, genre: c!.genre, difficulty: c!.difficulty, summary: c!.summary },
+      case: { case_id: c!.case_id, title: c!.title, genre: c!.genre, difficulty: c!.difficulty, summary: c!.summary, map_url: c!.map_url },
       autopsy: await one<AutopsyRow>(
         `SELECT found_time, found_place, found_by, cause, wound, death_estimate, weapon, note FROM autopsy WHERE case_id = ?`,
         [play.case_id],

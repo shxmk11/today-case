@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450">
+<style>.w{fill:none;stroke:#fff;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}.t{fill:none;stroke:#fff;stroke-width:1.5;stroke-linejoin:round;stroke-linecap:round}.g{fill:none;stroke:#636366;stroke-width:1.5;stroke-linecap:round}.k{fill:#000;stroke:#fff;stroke-width:2;stroke-linejoin:round}.f{fill:#fff}</style>
+<rect width="800" height="450" fill="#000"/>
+<path class="g" d="M80 300 L0 330 M720 300 L800 330 M40 315 H760 M0 360 H800 M0 405 H800 M200 300 L160 450 M320 300 L300 450 M440 300 L440 450 M560 300 L580 450"/>
+<path class="w" d="M0 0 L80 30 L720 30 L800 0 M80 30 V300 H720 V30 M80 300 L0 450 M720 300 L800 450"/>
+<!-- 타일 벽 -->
+<path class="g" d="M110 150 H690 M110 170 H690 M110 190 H690"/>
+<!-- 위 수납장 -->
+<g class="k"><rect x="110" y="50" width="120" height="80" rx="3"/><rect x="236" y="50" width="120" height="80" rx="3"/><rect x="420" y="50" width="120" height="80" rx="3"/><rect x="546" y="50" width="120" height="80" rx="3"/></g>
+<path class="t" d="M216 100 V112 M250 100 V112 M526 100 V112 M560 100 V112"/>
+<!-- 창 (개수대 위) -->
+<rect class="w" x="370" y="58" width="36" height="64" rx="2"/>
+<!-- 조리대 -->
+<path class="k" d="M100 210 H700 L712 228 H88 Z"/>
+<rect class="k" x="88" y="228" width="624" height="72"/>
+<path class="t" d="M190 236 V292 M300 236 V292 M440 236 V292 M560 236 V292 M640 236 V292"/>
+<path class="t" d="M176 258 V270 M204 258 V270 M426 258 V270 M454 258 V270"/>
+<!-- 개수대 -->
+<path class="w" d="M280 214 H380 L386 224 H274 Z"/>
+<path class="w" d="M330 214 V186 Q330 176 342 176 H352 M352 176 V184"/>
+<g class="t"><ellipse cx="300" cy="212" rx="14" ry="4"/><ellipse cx="312" cy="208" rx="14" ry="4"/><path d="M350 214 L366 196 M356 214 L374 200"/></g>
+<!-- 칼꽂이 -->
+<path class="w" d="M430 210 L436 182 H464 L468 210 Z"/>
+<path class="t" d="M442 182 L440 166 M450 182 L450 162 M458 182 L460 168"/>
+<!-- 충전기와 휴대폰 -->
+<rect class="k" x="548" y="192" width="18" height="30" rx="3" transform="rotate(-8 557 207)"/>
+<path class="t" d="M560 222 Q590 236 600 200 V180"/>
+<rect class="t" x="594" y="172" width="12" height="10" rx="2"/>
+<!-- 주전자 -->
+<path class="w" d="M180 210 Q176 180 200 178 Q224 180 220 210 Z M198 178 V172 M220 192 L236 184"/>
+<!-- 냉장고 (오른쪽 벽) -->
+<path class="k" d="M730 60 L790 40 V420 L730 380 Z"/>
+<path class="t" d="M730 190 L790 180 M740 120 V150 M740 220 V260"/>
+<!-- 문과 앞치마 (왼쪽 벽) -->
+<path class="k" d="M18 60 L60 76 V330 L18 352 Z"/>
+<circle class="f" cx="52" cy="210" r="2.5"/>
+<path class="t" d="M30 120 L34 118"/>
+<path class="w" d="M32 118 Q24 140 28 150 L22 220 Q36 232 52 222 L48 152 Q52 138 40 116"/>
+<path class="t" d="M26 180 H48 M30 196 H44"/>
+<!-- 식탁과 찻잔 -->
+<path class="k" d="M250 360 H550 L580 392 H220 Z"/>
+<path class="w" d="M232 392 V446 M568 392 V446"/>
+<g class="w"><path d="M320 362 V378 Q320 384 330 384 H342 Q352 384 352 378 V362 Z M352 366 Q362 368 352 376"/><path d="M430 364 V380 Q430 386 440 386 H452 Q462 386 462 380 V364 Z M462 368 Q472 370 462 378"/></g>
+<path class="g" d="M330 352 Q334 344 330 336 M442 354 Q446 346 442 338" stroke="#AEAEB2"/>
+</svg>

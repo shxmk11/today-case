@@ -10,7 +10,9 @@ export interface CaseSummary {
   scene_count?: number;
   clue_count?: number;
   solve_rate?: number | null;
-  suspects?: { name: string; job: string | null; gender: "남" | "여" | null }[];
+  suspects?: { name: string; job: string | null; gender: "남" | "여" | null; image_url?: string | null }[];
+  /** 건물 단면도 그림 */
+  map_url?: string | null;
 }
 
 export interface Character {
@@ -21,6 +23,7 @@ export interface Character {
   job: string | null;
   personality: string | null;
   character_type: "피해자" | "용의자" | "목격자";
+  image_url?: string | null;
 }
 
 /** 장소 안의 조사 지점. 열 때마다 조사 1회. locked면 다른 단서를 찾아야 열림 (2차 조사) */
@@ -29,6 +32,9 @@ export interface Spot {
   name: string;
   searched: boolean;
   locked: boolean;
+  /** 현장 그림 위 위치 (%) */
+  x: number | null;
+  y: number | null;
 }
 
 export interface Scene {
@@ -37,6 +43,10 @@ export interface Scene {
   description: string | null;
   investigated: boolean;
   spots: Spot[];
+  /** 현장 그림 */
+  image_url: string | null;
+  /** 단면도에서 이 장소가 차지하는 칸 (%) */
+  map: { x: number; y: number; w: number; h: number } | null;
 }
 
 /** 단서 2~3개를 연결해서 얻은 사실. 범인 지목 근거로는 추론만 낼 수 있다 */

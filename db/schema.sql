@@ -29,6 +29,7 @@ CREATE TABLE case_file (
     summary TEXT NOT NULL,
     truth TEXT NOT NULL,
     investigation_limit INT NOT NULL DEFAULT 12,  -- 조사 횟수 (조사 지점 열기 + 틀린 연결이 1회씩 씀)
+    map_url VARCHAR(255),                          -- 건물 단면도 그림
     PRIMARY KEY (case_id),
     CONSTRAINT chk_case_limit CHECK (investigation_limit > 0)
 );
@@ -55,7 +56,11 @@ CREATE TABLE scene (
     case_id INT NOT NULL,
     name VARCHAR(50) NOT NULL,
     description TEXT,
-    image_url VARCHAR(255),
+    image_url VARCHAR(255),          -- 현장 그림 (조사 지점을 그 위에 찍는다)
+    map_x DECIMAL(5,2),              -- 단면도에서 이 장소가 차지하는 칸 (그림 크기 대비 %)
+    map_y DECIMAL(5,2),
+    map_w DECIMAL(5,2),
+    map_h DECIMAL(5,2),
     PRIMARY KEY (scene_id),
     CONSTRAINT fk_scene_case FOREIGN KEY (case_id)
         REFERENCES case_file (case_id) ON DELETE CASCADE
@@ -71,6 +76,7 @@ CREATE TABLE game_character (
     job VARCHAR(30),
     personality VARCHAR(100),
     backstory TEXT,  -- 숨겨진 과거와 동기 (AI만 읽음)
+    image_url VARCHAR(255),  -- 얼굴 그림 (없으면 이름 글자로 표시)
     character_type ENUM('피해자', '용의자', '목격자') NOT NULL,
     is_culprit BOOLEAN NOT NULL DEFAULT FALSE,
     PRIMARY KEY (character_id),
@@ -138,6 +144,8 @@ CREATE TABLE spot (
     scene_id INT NOT NULL,
     name VARCHAR(50) NOT NULL,
     unlock_clue_id INT NULL,                 -- 2차 조사: 이 단서를 찾아야 열 수 있음
+    pos_x DECIMAL(5,2),                      -- 현장 그림 위 위치 (가로 %, 세로 %)
+    pos_y DECIMAL(5,2),
     PRIMARY KEY (spot_id),
     CONSTRAINT fk_spot_scene FOREIGN KEY (scene_id)
         REFERENCES scene (scene_id) ON DELETE CASCADE
@@ -867,6 +875,77 @@ GROUP BY p.member_id;
 
 
 /* 4. 인덱스 */
+
+
+-- ---------------------------------------------------------------
+-- 현장 그림, 단면도 지도, 얼굴 그림 (client/public 아래 파일)
+-- 좌표는 그림 크기 대비 % 라서 화면 크기가 바뀌어도 같은 자리에 찍힌다
+-- ---------------------------------------------------------------
+UPDATE case_file SET map_url = CONCAT('/maps/case-', case_id, '.svg');
+UPDATE scene SET image_url = CONCAT('/scenes/', scene_id, '.svg');
+UPDATE game_character SET image_url = CONCAT('/faces/', character_id, '.png');
+
+UPDATE scene SET map_x = 5.00, map_y = 32.38, map_w = 17.50, map_h = 26.67 WHERE scene_id = 1;
+UPDATE scene SET map_x = 40.50, map_y = 60.48, map_w = 29.50, map_h = 29.52 WHERE scene_id = 2;
+UPDATE scene SET map_x = 81.50, map_y = 71.43, map_w = 13.25, map_h = 18.10 WHERE scene_id = 3;
+UPDATE scene SET map_x = 40.50, map_y = 32.38, map_w = 14.50, map_h = 26.67 WHERE scene_id = 4;
+UPDATE scene SET map_x = 55.50, map_y = 32.38, map_w = 14.50, map_h = 26.67 WHERE scene_id = 5;
+UPDATE scene SET map_x = 71.50, map_y = 59.52, map_w = 27.50, map_h = 39.52 WHERE scene_id = 6;
+UPDATE scene SET map_x = 33.00, map_y = 32.38, map_w = 17.50, map_h = 26.67 WHERE scene_id = 7;
+UPDATE scene SET map_x = 51.00, map_y = 32.38, map_w = 18.00, map_h = 26.67 WHERE scene_id = 8;
+UPDATE scene SET map_x = 43.50, map_y = 60.48, map_w = 12.50, map_h = 29.52 WHERE scene_id = 9;
+UPDATE scene SET map_x = 56.50, map_y = 60.48, map_w = 12.50, map_h = 29.52 WHERE scene_id = 10;
+UPDATE scene SET map_x = 18.00, map_y = 60.48, map_w = 25.00, map_h = 29.52 WHERE scene_id = 11;
+
+UPDATE spot SET pos_x = 49.75, pos_y = 51.56 WHERE spot_id = 1;  -- 책상 위
+UPDATE spot SET pos_x = 41.25, pos_y = 70.67 WHERE spot_id = 2;  -- 책상 아래
+UPDATE spot SET pos_x = 74.25, pos_y = 31.11 WHERE spot_id = 3;  -- 책장
+UPDATE spot SET pos_x = 52.50, pos_y = 82.67 WHERE spot_id = 4;  -- 바닥
+UPDATE spot SET pos_x = 23.12, pos_y = 23.11 WHERE spot_id = 5;  -- 창문
+UPDATE spot SET pos_x = 41.25, pos_y = 44.44 WHERE spot_id = 6;  -- 개수대
+UPDATE spot SET pos_x = 71.50, pos_y = 41.33 WHERE spot_id = 7;  -- 충전기
+UPDATE spot SET pos_x = 56.25, pos_y = 33.33 WHERE spot_id = 8;  -- 칼꽂이
+UPDATE spot SET pos_x = 23.12, pos_y = 61.33 WHERE spot_id = 9;  -- 작업대 아래
+UPDATE spot SET pos_x = 80.00, pos_y = 85.33 WHERE spot_id = 10;  -- 문 앞 눈길
+UPDATE spot SET pos_x = 52.50, pos_y = 28.44 WHERE spot_id = 11;  -- 장갑 걸이
+UPDATE spot SET pos_x = 26.75, pos_y = 33.33 WHERE spot_id = 12;  -- 노트북
+UPDATE spot SET pos_x = 72.00, pos_y = 78.67 WHERE spot_id = 14;  -- 침대 밑
+UPDATE spot SET pos_x = 42.00, pos_y = 62.67 WHERE spot_id = 15;  -- 휴지통
+UPDATE spot SET pos_x = 54.38, pos_y = 31.11 WHERE spot_id = 16;  -- 옷장
+UPDATE spot SET pos_x = 35.50, pos_y = 47.56 WHERE spot_id = 17;  -- 책상
+UPDATE spot SET pos_x = 51.50, pos_y = 33.33 WHERE spot_id = 18;  -- 노트북
+UPDATE spot SET pos_x = 67.75, pos_y = 67.11 WHERE spot_id = 19;  -- 서류가방
+UPDATE spot SET pos_x = 30.00, pos_y = 47.56 WHERE spot_id = 20;  -- 작업대 서랍
+UPDATE spot SET pos_x = 4.75, pos_y = 37.78 WHERE spot_id = 21;  -- 앞치마
+UPDATE spot SET pos_x = 25.25, pos_y = 66.67 WHERE spot_id = 22;  -- 휴지통
+UPDATE spot SET pos_x = 57.75, pos_y = 45.78 WHERE spot_id = 23;  -- 탁상 달력
+UPDATE spot SET pos_x = 81.25, pos_y = 82.67 WHERE spot_id = 24;  -- 시신 곁
+UPDATE spot SET pos_x = 23.12, pos_y = 58.22 WHERE spot_id = 25;  -- 난방기
+UPDATE spot SET pos_x = 82.00, pos_y = 18.67 WHERE spot_id = 26;  -- 책장 맨 윗칸
+UPDATE spot SET pos_x = 32.25, pos_y = 42.67 WHERE spot_id = 101;  -- 수영장 필터
+UPDATE spot SET pos_x = 77.50, pos_y = 60.44 WHERE spot_id = 102;  -- 데크 바닥
+UPDATE spot SET pos_x = 87.50, pos_y = 82.22 WHERE spot_id = 103;  -- 데크 모서리
+UPDATE spot SET pos_x = 87.50, pos_y = 38.67 WHERE spot_id = 104;  -- 흡연 구역
+UPDATE spot SET pos_x = 52.50, pos_y = 61.33 WHERE spot_id = 105;  -- 시신 곁
+UPDATE spot SET pos_x = 70.00, pos_y = 44.00 WHERE spot_id = 106;  -- 휴대폰
+UPDATE spot SET pos_x = 23.50, pos_y = 33.33 WHERE spot_id = 107;  -- 노트북
+UPDATE spot SET pos_x = 85.00, pos_y = 60.44 WHERE spot_id = 108;  -- 침대
+UPDATE spot SET pos_x = 58.75, pos_y = 31.11 WHERE spot_id = 109;  -- 삼각대 휴대폰
+UPDATE spot SET pos_x = 78.75, pos_y = 53.33 WHERE spot_id = 110;  -- 노트북
+UPDATE spot SET pos_x = 17.50, pos_y = 62.22 WHERE spot_id = 111;  -- 욕실 바구니
+UPDATE spot SET pos_x = 95.50, pos_y = 24.89 WHERE spot_id = 112;  -- 화장대
+UPDATE spot SET pos_x = 28.12, pos_y = 31.11 WHERE spot_id = 113;  -- 옷장
+UPDATE spot SET pos_x = 23.12, pos_y = 27.56 WHERE spot_id = 114;  -- 창문
+UPDATE spot SET pos_x = 36.25, pos_y = 45.78 WHERE spot_id = 115;  -- 책상
+UPDATE spot SET pos_x = 68.00, pos_y = 40.00 WHERE spot_id = 116;  -- 원고 더미
+UPDATE spot SET pos_x = 26.25, pos_y = 32.89 WHERE spot_id = 117;  -- 녹화기
+UPDATE spot SET pos_x = 56.25, pos_y = 24.44 WHERE spot_id = 118;  -- 화이트보드
+UPDATE spot SET pos_x = 91.00, pos_y = 79.11 WHERE spot_id = 119;  -- 구석
+UPDATE spot SET pos_x = 79.75, pos_y = 24.00 WHERE spot_id = 120;  -- 출입 태그 모니터
+UPDATE spot SET pos_x = 63.00, pos_y = 85.78 WHERE spot_id = 121;  -- 바닥
+UPDATE spot SET pos_x = 81.25, pos_y = 66.67 WHERE spot_id = 122;  -- 쓰레기통
+UPDATE spot SET pos_x = 47.50, pos_y = 53.33 WHERE spot_id = 123;  -- 소파
+UPDATE spot SET pos_x = 21.25, pos_y = 50.22 WHERE spot_id = 124;  -- 선베드 테이블
 
 -- 사실을 사건별, 시각 순으로 자주 조회
 CREATE INDEX ix_fact_time ON fact(case_id, occurred_at);

@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450">
+<style>.w{fill:none;stroke:#fff;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}.t{fill:none;stroke:#fff;stroke-width:1.5;stroke-linejoin:round;stroke-linecap:round}.g{fill:none;stroke:#636366;stroke-width:1.5;stroke-linecap:round}.k{fill:#000;stroke:#fff;stroke-width:2;stroke-linejoin:round}.f{fill:#fff}</style>
+<rect width="800" height="450" fill="#000"/>
+<path class="g" d="M160 300 L100 450 M240 300 L200 450 M320 300 L300 450 M400 300 L400 450 M480 300 L500 450 M560 300 L600 450 M640 300 L700 450"/>
+<path class="w" d="M0 0 L80 30 L720 30 L800 0 M80 30 V300 H720 V30 M80 300 L0 450 M720 300 L800 450"/>
+<!-- 창문 (수영장 쪽) -->
+<rect class="w" x="110" y="64" width="150" height="120" rx="2"/>
+<path class="w" d="M185 64 V184 M102 188 H268"/>
+<path class="g" d="M120 160 H176 M194 160 H250 M126 168 Q150 164 170 170" stroke="#AEAEB2"/>
+<path class="t" d="M206 140 V108 M206 116 Q194 100 200 88 M206 112 Q218 98 216 86"/>
+<!-- 촬영 일정표 -->
+<rect class="w" x="310" y="56" width="250" height="130" rx="3"/>
+<path class="t" d="M310 80 H560 M372 56 V186 M434 56 V186 M496 56 V186 M310 108 H560 M310 134 H560 M310 160 H560"/>
+<g class="f"><rect x="320" y="88" width="40" height="12" rx="2"/><rect x="442" y="114" width="44" height="12" rx="2"/><rect x="382" y="140" width="40" height="12" rx="2"/></g>
+<g class="t"><rect x="504" y="88" width="46" height="12" rx="2"/><rect x="320" y="166" width="42" height="12" rx="2"/></g>
+<!-- 메모 붙임 -->
+<g class="t"><rect x="590" y="70" width="34" height="34" transform="rotate(-6 607 87)"/><rect x="636" y="80" width="34" height="34" transform="rotate(5 653 97)"/><rect x="606" y="120" width="34" height="34" transform="rotate(3 623 137)"/></g>
+<!-- 책상 -->
+<path class="k" d="M240 220 H600 L626 248 H214 Z"/>
+<path class="k" d="M214 248 H626 V266 H214 Z"/>
+<path class="w" d="M224 266 V350 M616 266 V350"/>
+<!-- 모니터 -->
+<rect class="k" x="330" y="160" width="110" height="64" rx="3"/>
+<path class="w" d="M385 224 V232 M366 234 H404"/>
+<path class="t" d="M342 176 H420 M342 188 H400 M342 200 H410"/>
+<!-- 머그, 키보드 -->
+<path class="w" d="M300 236 V220 H318 V236 Q309 242 300 236 Z M318 224 Q326 228 318 232"/>
+<path class="t" d="M350 240 H430 L434 246 H346 Z"/>
+<!-- 원고 더미 -->
+<g class="k"><path d="M500 242 H580 L584 230 H504 Z"/><path d="M502 230 H582 L586 218 H506 Z"/><path d="M500 218 H580 L586 204 H506 Z"/></g>
+<path class="t" d="M512 200 L520 186 L580 190 L574 204"/>
+<!-- 의자 -->
+<path class="k" d="M380 330 V272 Q420 264 460 272 V330"/>
+<path class="w" d="M420 330 V370 M396 380 L420 370 L444 380"/>
+<!-- 바닥 원고 -->
+<path class="w" d="M140 380 L196 372 L204 400 L148 408 Z M600 392 L650 386 L654 410 L604 416 Z"/>
+<path class="t" d="M154 386 H190 M156 394 H186"/>
+</svg>
