@@ -3,15 +3,49 @@
 
 SET NAMES utf8mb4;
 
-DROP DATABASE IF EXISTS today_case;
-CREATE DATABASE today_case DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+-- 다시 실행해도 회원 계정과 로그인은 남는다 (member, login_session은 지우지 않음).
+-- 사건 데이터와 플레이 기록은 지우고 새로 만든다.
+CREATE DATABASE IF NOT EXISTS today_case DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE today_case;
+
+SET FOREIGN_KEY_CHECKS = 0;
+DROP VIEW IF EXISTS vw_Suspect, vw_Record;
+DROP TABLE IF EXISTS
+    truth_question,
+    suspect_mark,
+    accusation_evidence,
+    accusation,
+    timeline_entry,
+    memo,
+    link_attempt,
+    spot_search,
+    clue_discovery,
+    interrogation,
+    evidence_answer,
+    basic_answer,
+    participant,
+    play,
+    hint,
+    relation_stage,
+    deduction_clue,
+    deduction,
+    clue,
+    spot,
+    alibi,
+    character_fact,
+    fact,
+    character_relation,
+    game_character,
+    scene,
+    autopsy,
+    case_file;
+SET FOREIGN_KEY_CHECKS = 1;
 
 
 /* 1. 테이블 생성 */
 
 -- 회원
-CREATE TABLE member (
+CREATE TABLE IF NOT EXISTS member (
     member_id VARCHAR(20) NOT NULL,
     password VARCHAR(255) NOT NULL,
     nickname VARCHAR(30) NOT NULL,
@@ -424,7 +458,7 @@ CREATE TABLE accusation_evidence (
 );
 
 -- 로그인 세션 (게스트도 브라우저마다 게스트 회원 + 세션을 하나 받는다)
-CREATE TABLE login_session (
+CREATE TABLE IF NOT EXISTS login_session (
     token CHAR(64) NOT NULL,
     member_id VARCHAR(20) NOT NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
