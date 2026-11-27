@@ -28,7 +28,7 @@ CREATE TABLE case_file (
     difficulty ENUM('쉬움', '보통', '어려움') NOT NULL,
     summary TEXT NOT NULL,
     truth TEXT NOT NULL,
-    investigation_limit INT NOT NULL DEFAULT 12,  -- 조사 횟수 (조사 지점 열기 + 틀린 연결이 1회씩 씀)
+    investigation_limit INT NOT NULL DEFAULT 12,  -- 조사 횟수 (조사 지점을 열 때마다 1회. 단서 연결은 무료)
     map_url VARCHAR(255),                          -- 건물 단면도 그림
     PRIMARY KEY (case_id),
     CONSTRAINT chk_case_limit CHECK (investigation_limit > 0)
@@ -179,7 +179,7 @@ CREATE TABLE clue (
 ALTER TABLE spot ADD CONSTRAINT fk_spot_unlock FOREIGN KEY (unlock_clue_id)
     REFERENCES clue (clue_id) ON DELETE SET NULL;
 
--- 추론 (단서 2~3개를 연결해야 얻는 사실)
+-- 추론 (단서 2개를 연결해야 얻는 사실)
 CREATE TABLE deduction (
     deduction_id INT NOT NULL AUTO_INCREMENT,
     case_id INT NOT NULL,
@@ -187,9 +187,12 @@ CREATE TABLE deduction (
     description VARCHAR(500) NOT NULL,
     proof_role ENUM('알리바이', '연결') NULL,  -- 범인 지목 근거: 알리바이를 깨는 추론 / 범인과 범행을 잇는 추론
     proof_note VARCHAR(255) NULL,            -- 결과 화면에서 이 추론이 근거로 왜 맞는지·부족한지 설명
+    reveal_clue_id INT NULL,                 -- 이 추론을 얻으면 바로 손에 들어오는 단서 (잠긴 노트북을 열면 나오는 기록 등)
     PRIMARY KEY (deduction_id),
     CONSTRAINT fk_deduction_case FOREIGN KEY (case_id)
-        REFERENCES case_file (case_id) ON DELETE CASCADE
+        REFERENCES case_file (case_id) ON DELETE CASCADE,
+    CONSTRAINT fk_deduction_reveal FOREIGN KEY (reveal_clue_id)
+        REFERENCES clue (clue_id) ON DELETE SET NULL
 );
 
 -- 추론 재료 (추론 N:M 단서)
@@ -201,6 +204,26 @@ CREATE TABLE deduction_clue (
         REFERENCES deduction (deduction_id) ON DELETE CASCADE,
     CONSTRAINT fk_dc_clue FOREIGN KEY (clue_id)
         REFERENCES clue (clue_id) ON DELETE CASCADE
+);
+
+-- 인물 관계도의 단계 (인물 관계 1:N). 어떤 단서나 추론을 찾으면 관계도 선이 생기거나 바뀐다
+CREATE TABLE relation_stage (
+    stage_id INT NOT NULL AUTO_INCREMENT,
+    character_a_id INT NOT NULL,
+    character_b_id INT NOT NULL,
+    stage_order INT NOT NULL,                -- 클수록 나중 단계 (찾은 것 중 가장 큰 단계를 그린다)
+    label VARCHAR(40) NOT NULL,              -- 선 위에 쓰는 짧은 말
+    tone ENUM('관계', '갈등', '불확실') NOT NULL,  -- 흰 선 / 빨간 선 / 점선
+    clue_id INT NULL,                        -- 이 단서를 찾으면 보인다
+    deduction_id INT NULL,                   -- 이 추론을 얻으면 보인다 (둘 다 NULL이면 처음부터)
+    PRIMARY KEY (stage_id),
+    UNIQUE KEY uq_relation_stage (character_a_id, character_b_id, stage_order),
+    CONSTRAINT fk_rs_relation FOREIGN KEY (character_a_id, character_b_id)
+        REFERENCES character_relation (character_a_id, character_b_id) ON DELETE CASCADE,
+    CONSTRAINT fk_rs_clue FOREIGN KEY (clue_id)
+        REFERENCES clue (clue_id) ON DELETE CASCADE,
+    CONSTRAINT fk_rs_deduction FOREIGN KEY (deduction_id)
+        REFERENCES deduction (deduction_id) ON DELETE CASCADE
 );
 
 -- 힌트 (범인 역할 플레이어용 / AI 범인의 변명 계획)
@@ -237,6 +260,7 @@ CREATE TABLE participant (
     member_id VARCHAR(20) NULL,
     character_id INT NULL,
     role ENUM('탐정', '용의자') NOT NULL,
+    unlimited BOOLEAN NOT NULL DEFAULT FALSE,  -- 조사 횟수를 다 쓴 뒤 「조사 무제한」을 켰는지
     PRIMARY KEY (participant_id),
     CONSTRAINT fk_participant_play FOREIGN KEY (play_id)
         REFERENCES play (play_id) ON DELETE CASCADE,
@@ -285,7 +309,7 @@ CREATE TABLE spot_search (
         REFERENCES spot (spot_id) ON DELETE CASCADE
 );
 
--- 단서 연결 시도 (deduction_id가 NULL이면 틀린 연결 = 조사 1회 차감)
+-- 단서 연결 시도 (deduction_id가 NULL이면 틀린 연결. 연결은 조사 횟수를 쓰지 않는다)
 CREATE TABLE link_attempt (
     attempt_id INT NOT NULL AUTO_INCREMENT,
     participant_id INT NOT NULL,
@@ -456,7 +480,7 @@ UPDATE spot SET unlock_clue_id = 4 WHERE spot_id = 19;   -- 서류가방 ← 빈
 -- 숨은 증언: 관련 증거를 내밀어야만 털어놓는다
 UPDATE clue SET unlock_clue_id = 6 WHERE clue_id = 19;   -- 서재의 언쟁 ← 반쯤 한 설거지
 
--- 추론: 단서 2~3개를 연결해야 얻는 사실. 범인 지목 근거로는 추론만 낼 수 있다.
+-- 추론: 단서 2개를 연결해야 얻는 사실. 범인 지목 근거로는 추론만 낼 수 있다.
 INSERT INTO deduction (deduction_id, case_id, name, description, proof_role, proof_note) VALUES
 (1, 1, '녹은 눈 시한장치', '책장 맨 윗칸 끝은 물에 젖어 부풀었고 그 위엔 아무것도 없다. 머리맡의 청동 흉상은 4kg짜리로 받침이 둥글다. 평소 꺼 두던 서재 난방기는 30도로 맞춰져 있었다.', '알리바이',
  '흉상은 맨 윗칸 끝에 눈덩이로 괴어 둔 것이 난방에 녹으면서 22시 10분에 저절로 떨어졌어요. "쿵" 소리는 범행 시각이 아니에요. 그 시각 부엌에 있었다는 서진의 알리바이는 아무것도 증명하지 못해요.'),
@@ -538,7 +562,7 @@ INSERT INTO fact (case_id, occurred_at, place, content, is_initial) VALUES
 (2, '21:30:00', '거실', '백도현과 윤시우가 거실에서 몸싸움을 벌였다. 시우는 넘어졌다가 웃으며 일어났다.', FALSE),
 (2, '21:40:00', '지아의 방', '윤시우가 한지아에게 "10시에 수영장에서 보자"는 메시지를 보냈다.', FALSE),
 (2, '21:57:00', '지아의 방', '한지아가 미리 찍어 둔 브이로그를 채널에 올려 22시 최초 공개로 걸어 두고, 언니의 수면제 4알을 녹인 샴페인을 챙겨 방을 나섰다.', FALSE),
-(2, '22:00:00', '시우의 방', '이채원이 시우의 방에 몰래 들어가 둘이 주고받은 메시지를 지웠다.', FALSE),
+(2, '22:00:00', '시우의 방', '이채원이 시우의 방에 몰래 들어가 둘이 주고받은 메시지를 지웠다. 이때 목에 걸고 있던 자기 출입증을 시우의 침대 밑에 떨어뜨렸다.', FALSE),
 (2, '22:05:00', '수영장 데크', '수영장 카메라가 배터리 방전으로 녹화를 멈췄다.', FALSE),
 (2, '22:10:00', '수영장 데크', '한지아가 비틀거리는 윤시우와 언니 돈 문제로 다투다 밀쳤다. 시우는 데크 모서리에 뒷머리를 부딪치고 물에 빠졌고, 지아는 물에 들어가 시우의 양 어깨를 눌러 떠오르지 못하게 했다. 이때 왼쪽 귀걸이가 빠졌다.', FALSE),
 (2, '22:12:00', '작가실', '이채원이 작가실 창문 너머로 수영장 쪽 여자 목소리를 들었다.', FALSE),
@@ -580,8 +604,8 @@ INSERT INTO clue (clue_id, scene_id, spot_id, character_id, name, description, c
 (106, 7, 106, NULL, '비워진 대화방', '시우 휴대폰의 대화방 하나가 22시에 통째로 삭제되었다.', '기록', FALSE, '22:00:00'),
 (107, 7, 107, NULL, '환불 요청자 명단', '시우 노트북의 엑셀 파일 "환불 요청자". 투자자 이름과 금액이 수십 줄 적혀 있고, 맨 위는 "한지영 - 1억 2천"이다.', '기록', FALSE, NULL),
 (108, 7, 108, NULL, '떨어진 출입증', '침대 밑에 떨어진 제작진 출입증. 이름 칸에 "작가 이채원"이라고 적혀 있다.', '물증', FALSE, NULL),
-(109, 8, 109, NULL, '휴대폰 촬영 기록', '삼각대에 꽂힌 지아 휴대폰의 앨범. 오늘 밤 영상은 두 개다. 하나는 21시 20분에 시작해 21시 50분에 끝난 30분짜리, 하나는 22시 30분부터 8분 동안 찍힌 라이브 녹화본이다. 라이브 속 지아는 머리를 하나로 묶었고 귀걸이는 오른쪽에만 있다.', '기록', TRUE, '21:50:00'),
-(110, 8, 110, NULL, '채널 업로드 기록', '노트북의 채널 관리 화면. 영상 「제주 마지막 밤」은 21시 57분에 업로드가 끝났고, 22시에 최초 공개되었다. 길이는 30분이다. 영상 속 지아는 머리를 풀었고 꽃 모양 귀걸이를 양쪽에 하고 있다.', '기록', TRUE, '21:57:00'),
+(109, 8, 109, NULL, '휴대폰 촬영 기록', '삼각대에 꽂힌 지아 휴대폰의 앨범. 오늘 밤 영상은 두 개다. 하나는 21시 20분에 시작해 21시 50분에 끝난 30분짜리로, 지아는 머리를 풀었고 꽃 모양 귀걸이를 양쪽에 하고 있다. 하나는 22시 30분부터 8분 동안 찍힌 라이브 녹화본으로, 지아는 머리를 하나로 묶었고 귀걸이는 오른쪽에만 있다.', '기록', TRUE, '21:50:00'),
+(110, 8, NULL, NULL, '채널 업로드 기록', '지아 노트북의 채널 관리 화면. 영상 「제주 마지막 밤」은 21시 57분에 업로드가 끝났고, 22시에 최초 공개되었다. 길이는 30분이다. 영상 속 지아는 머리를 풀었고 꽃 모양 귀걸이를 양쪽에 하고 있다.', '기록', TRUE, '21:57:00'),
 (111, 8, 111, NULL, '젖은 원피스', '욕실 바구니 속 원피스. 아직 물기가 뚝뚝 떨어지고, 수영장 소독약 냄새가 난다.', '물증', FALSE, NULL),
 (112, 8, 112, NULL, '가족 사진', '화장대 거울에 끼운 사진. 지아가 닮은 얼굴의 여자와 어깨동무를 하고 있다. 뒷면에 "지영 언니랑, 2024 봄"이라고 적혀 있다.', '물증', FALSE, NULL),
 (113, 9, 114, NULL, '작가실 창문', '작가실 창문을 열면 수영장 데크가 바로 내려다보인다.', '물증', FALSE, NULL),
@@ -597,7 +621,6 @@ INSERT INTO clue (clue_id, scene_id, spot_id, character_id, name, description, c
 (123, 11, NULL, 8, '거실 몸싸움', '출연자 백도현의 증언. 21시 30분 거실에서 시우의 멱살을 잡고 밀쳤다. 시우는 일어나며 "나한테 원한 있는 사람이 여기 또 있다"고 비웃었다.', '증언', FALSE, '21:30:00'),
 (124, 10, NULL, 10, '맨발의 그림자', '촬영감독 주경민의 증언. 22시 15분쯤 장비실 창밖으로 맨발로 본관 쪽에 뛰어가는 작은 그림자를 봤다. 술에 취해 누군지는 모른다.', '증언', FALSE, '22:15:00');
 
-UPDATE spot SET unlock_clue_id = 109 WHERE spot_id = 110;  -- 지아 노트북 백업 ← 브이로그 촬영 기록 (다시 찍은 영상이 있다는 걸 알게 됨)
 UPDATE clue SET unlock_clue_id = 113 WHERE clue_id = 121;  -- 수영장의 여자 목소리 ← 작가실 창문
 UPDATE clue SET unlock_clue_id = 119 WHERE clue_id = 123;  -- 거실 몸싸움 ← 깨진 액자
 
@@ -625,7 +648,7 @@ INSERT INTO deduction (deduction_id, case_id, name, description, proof_role, pro
 
 INSERT INTO deduction_clue (deduction_id, clue_id) VALUES
 (101, 109), (101, 110),
-(102, 101), (102, 109), (102, 110),
+(102, 101), (102, 109),
 (103, 111), (103, 122),
 (104, 121), (104, 107), (104, 112),
 (105, 106), (105, 108), (105, 114),
@@ -637,14 +660,14 @@ INSERT INTO deduction_clue (deduction_id, clue_id) VALUES
 INSERT INTO hint (character_id, content, reveal_order) VALUES
 (7, '알리바이를 물으면: 10시엔 방에서 자기 영상 최초 공개를 보며 댓글을 달았다고 한다. 영상을 언제 찍었는지 물으면 9시 20분부터 50분까지 찍어 57분에 올렸다고 처음부터 사실대로 말한다.', 1),
 (7, '촬영·업로드 기록을 들이밀면: 이미 말한 그대로라며 말을 바꾸지 않는다. 미리 찍어 최초 공개로 거는 건 늘 쓰는 방식이라고 한다. 영상이 알리바이가 못 된다고 하면 "혼자 방에 있었으니 증명할 사람이 없는 건 어쩔 수 없죠"라고 한다.', 2),
-(7, '젖은 머리 얘기가 나오면: 22시 10분쯤부터 샤워했고, 끝나고 물 가지러 복도에 나갔다가 작가님을 마주쳤다고 한다.', 3),
-(7, '젖은 원피스 얘기가 나오면: 낮 수영장 촬영 때 입은 옷을 바구니에 넣어 둔 거라고 한다. 아직 물이 떨어진다는 걸 짚으면 더 설명하지 않고 "글쎄요, 저도 신경 안 썼어요"라며 말을 아낀다.', 4),
-(7, '귀걸이 얘기가 나오면: 샤워하려고 뺐는데 한 짝이 안 보인다고 한다. 필터에서 나왔다면 낮 촬영 때 빠졌을 거라고 한다. 21시 50분까지 영상에 양쪽이 다 있다는 걸 들이밀면 할 말이 없어 입을 다문다.', 5),
+(7, '젖은 머리 얘기가 나오면: 샤워하고 물 가지러 복도에 나갔다가 작가님을 마주쳤다고 한다. 수영장에 간 걸 인정한 뒤라면, 수영장에서 돌아와 샤워한 거라고 한다.', 3),
+(7, '젖은 원피스 얘기가 나오면: 처음 한 번은 낮 수영장 촬영 때 젖은 옷이라고 한다. 아직 물이 떨어진다는 걸 짚으면 우기지 않는다. 잠깐 말을 멈춘 뒤 "사실… 10시쯤 수영장에 잠깐 나갔어요"라며 [물러선 이야기]로 물러선다: 시우가 장난으로 물을 끼얹어 젖었고, 22시 5분쯤 화가 나서 먼저 들어왔으며 그때 시우는 멀쩡했다. 의심받을까 봐 무서워서 숨겼다고 한다.', 4),
+(7, '귀걸이 얘기가 나오면: 샤워하려고 뺐는데 한 짝이 안 보인다고 한다. 필터에서 나왔다면 낮 촬영 때 빠졌을 거라고 한다. 21시 50분까지 영상에 양쪽이 다 있다는 걸 들이밀면, 물에는 들어가지 않았으니 모르겠다며 말이 막혀 입을 다문다.', 5),
 (7, '샴페인 잔이나 수면제 얘기가 나오면: 언니 약은 입원한 언니 짐을 챙기다 가져온 것이고 요즘 잠이 안 와서 자기가 먹었다고 한다. 잔의 가루를 들이밀면 대답을 피한다.', 6),
 (7, '어깨의 멍 얘기가 나오면: 시우가 저녁에 도현과 거실에서 몸싸움을 했다는 걸 짚는다. 도현은 멱살만 잡았다는 말이 나오면 말을 돌린다.', 7),
-(7, '맨발 자국이나 여자 목소리 얘기가 나오면: 여자는 자기만 있는 게 아니라며, 이채원 작가와 시우가 몰래 가까웠다는 걸 흘려 의심을 돌린다.', 8),
+(7, '맨발 자국 얘기가 나오면: 아직 수영장에 간 걸 인정하기 전이면 여기서 [물러선 이야기]로 물러선다. 22시 12분 여자 목소리나 22시 15분 맨발 그림자 얘기가 나오면: 자기는 22시 5분에 들어왔다며 지키는 선을 지키고, 이채원 작가와 시우가 몰래 가까웠다는 걸 흘려 의심을 돌린다.', 8),
 (7, '술에 취한 사고 아니냐는 말이 나오면: "시우 씨 원래 술 좋아했어요"라며 사고 쪽으로 슬쩍 거든다.', 9),
-(7, '가족 사진이나 환불 명단의 한지영 얘기가 나오면: 언니인 건 인정한다. 방송 끝나고 따로 얘기하려 했을 뿐 오늘 밤 시우를 만나진 않았다고 한다.', 10);
+(7, '가족 사진이나 환불 명단의 한지영 얘기가 나오면: 언니인 건 인정한다. 수영장에 간 걸 인정하기 전이면 방송 끝나고 따로 얘기하려 했다고만 한다. 인정한 뒤라면 수영장에서 언니 돈 얘기를 꺼냈다가 비웃음만 샀다고 한다.', 10);
 
 
 -- 범인이 아닌 사람들의 수상한 정황 (사실 31~33)
@@ -784,7 +807,7 @@ INSERT INTO deduction_clue (deduction_id, clue_id) VALUES
 (114, 109), (114, 128);
 
 INSERT INTO hint (character_id, content, reveal_order) VALUES
-(7, '"10시에 수영장에서 보자" 메시지를 들이밀면: 받은 건 인정한다. 답장도 안 했고 나가지도 않았다고 한다. 시우가 늘 그렇게 불러내서 귀찮았다고 한다.', 11),
+(7, '"10시에 수영장에서 보자" 메시지를 들이밀면: 받은 건 인정한다. 이것만 나왔을 때는 답장은 안 했다고만 하고 나갔는지는 말을 아낀다. 젖은 원피스나 맨발 자국까지 함께 나오면 [물러선 이야기]로 수영장에 간 걸 인정한다.', 11),
 (7, '도현이나 경민, 채원의 속사정이 드러나면: "그 사람들이 시우 씨를 더 미워했을 거예요"라며 의심을 그쪽으로 돌린다.', 12);
 
 
@@ -836,14 +859,81 @@ INSERT INTO spot (spot_id, scene_id, name) VALUES
 
 INSERT INTO clue (clue_id, scene_id, spot_id, character_id, name, description, clue_type, is_key, event_time) VALUES
 (131, 6, 124, NULL, '샴페인 잔 두 개', '선베드 테이블 위의 샴페인 병과 잔 두 개. 한 잔에는 샴페인이 조금 남았고 바닥에 하얀 가루 찌꺼기가 가라앉아 있다. 다른 잔은 물로 헹군 듯 물기만 있다.', '물증', TRUE, NULL),
-(132, 8, 113, NULL, '수면제 약 봉투', '옷장 속 파우치의 약 봉투. "환자: 한지영 / 수면제 10mg, 14정"이라고 적혀 있고, 4정이 비어 있다.', '물증', TRUE, NULL),
-(133, 6, 105, NULL, '어깨의 멍', '시우의 양쪽 어깨 앞쪽에 손가락 모양 멍이 네 개씩 나란히 있다. 멍은 아직 붉다.', '물증', FALSE, NULL);
+(132, 8, 113, NULL, '수면제 약 봉투', '옷장 속 파우치의 약 봉투. "환자: 한지영 (1996.04.12) / 수면제 10mg, 14정"이라고 적혀 있고, 4정이 비어 있다.', '물증', TRUE, NULL),
+(133, 6, 105, NULL, '어깨의 멍', '시우의 양쪽 어깨 앞쪽에 손가락 모양 멍이 네 개씩 나란히 있다. 멍은 아직 붉다.', '물증', FALSE, NULL),
+(134, 8, 110, NULL, '잠긴 노트북', '책상 위 지아의 노트북. 잠금 화면에 비밀번호 6자리를 넣는 칸이 있고, 힌트에 "언니 생일"이라고 적혀 있다.', '물증', FALSE, NULL);
+
+-- 잠긴 노트북은 추론으로 연다: 잠금 힌트 + 약 봉투의 생년월일 → 노트북 속 채널 업로드 기록이 바로 손에 들어온다
+INSERT INTO deduction (deduction_id, case_id, name, description, proof_role, proof_note, reveal_clue_id) VALUES
+(116, 2, '언니 생일', '노트북 비밀번호 힌트는 "언니 생일"이다. 약 봉투의 환자 한지영은 1996년 4월 12일생이다. 960412를 넣자 지아의 노트북이 열렸다.', NULL,
+ '지아의 노트북을 여는 열쇠예요. 범행과 바로 이어지지는 않아요.', 110);
 
 INSERT INTO deduction_clue (deduction_id, clue_id) VALUES
 (108, 103), (108, 131), (108, 133),
-(115, 112), (115, 131), (115, 132);
+(115, 112), (115, 131), (115, 132),
+(116, 132), (116, 134);
 
 UPDATE case_file SET investigation_limit = 17 WHERE case_id = 2;
+
+-- 단서 연결은 모두 2개로 통일: 재료가 3개였던 추론에서 하나씩 뺀다 (뺀 단서의 내용은 남은 단서나 추론 설명에 녹인다)
+DELETE FROM deduction_clue WHERE (deduction_id, clue_id) IN (
+  (1, 29), (3, 14), (6, 15), (8, 29), (9, 20),
+  (104, 121), (105, 114), (107, 117), (108, 131), (110, 120), (115, 112)
+);
+UPDATE clue SET description = '책장 맨 윗칸 끝의 나무가 물에 젖어 부풀었다. 윗칸 끝에는 아무것도 놓여 있지 않고, 바로 아래 카펫도 축축하다. 그 바로 아래 바닥에 청동 흉상이 떨어져 있다.' WHERE clue_id = 32;
+UPDATE deduction SET description = '책장 맨 윗칸 끝은 물에 젖어 부풀었고 그 위엔 아무것도 없다. 바로 아래에 청동 흉상이 떨어져 있다. 평소 꺼 두던 서재 난방기는 30도로 맞춰져 있었다.' WHERE deduction_id = 1;
+UPDATE deduction SET description = '피해자는 내일 유언장을 고쳐 상속인을 조카에서 재단으로 바꾸려 했다. 21시 35분 서재에서는 "유언장" 얘기로 언쟁이 있었다.' WHERE deduction_id = 3;
+UPDATE deduction SET description = '변호사의 회의 카메라와 마이크는 21시 38분부터 꺼져 있었고, 변호사의 신탁 계좌 장부에는 잉크가 아직 번지는 새 숫자가 덧쓰여 있다.' WHERE deduction_id = 6;
+UPDATE deduction SET description = '뒷머리 상처는 길이 3cm의 곧은 일자로 패어 있고 둥근 자국은 없다. 책장의 직육면체 문진은 모서리가 각졌고, 혼자 닦여 있으며 틈에 붉은 얼룩이 남았다.' WHERE deduction_id = 8;
+UPDATE deduction SET description = '정원사 박정호는 20년 전 한도윤과 회사를 함께 차린 공동대표였다. 오늘 20시 15분 서재에서 "20년 전에 나한테 한 짓"이라며 소리쳤다.' WHERE deduction_id = 9;
+UPDATE deduction SET name = '언니의 돈', description = '시우의 환불 요청자 명단 맨 위는 "한지영 - 1억 2천"이다. 지아의 사진 뒷면에는 "지영 언니"라고 적혀 있다.',
+  proof_note = '시우에게 1억 2천을 떼인 한지영은 지아의 언니예요. 지아에게는 시우를 미워할 이유가 있었어요.' WHERE deduction_id = 104;
+UPDATE deduction SET description = '시우 휴대폰의 대화방 하나가 22시에 지워졌고, 시우 방 침대 밑에서 이채원의 출입증이 나왔다.' WHERE deduction_id = 105;
+UPDATE deduction SET description = '수영장 카메라는 22시 5분 배터리 방전으로 꺼졌다. 장비실 화이트보드에는 배터리 교체를 내일 아침으로 미룬 메모가 있다.' WHERE deduction_id = 107;
+UPDATE deduction SET description = '데크 모서리의 핏자국 높이는 시우의 머리 상처와 맞는다. 그런데 시우의 양 어깨 앞쪽에는 손가락 모양 멍이 네 개씩 있다.',
+  proof_note = '미끄러져 빠진 사고라면 어깨를 움켜쥐고 누른 멍이 생길 수 없어요. 누군가 시우를 물속에 눌렀어요. 누가 했는지는 아직 몰라요.' WHERE deduction_id = 108;
+UPDATE deduction SET description = '21시 30분 거실에서 도현과 시우가 몸싸움을 했고, 거실 바닥에는 세게 부딪혀 깨진 액자가 있다.' WHERE deduction_id = 110;
+UPDATE deduction SET description = '지아의 옷장 속 약 봉투는 "환자: 한지영" 앞으로 처방된 수면제이고 4정이 비었다. 데크의 샴페인 잔 하나에는 하얀 가루 찌꺼기가 가라앉아 있다.' WHERE deduction_id = 115;
+
+-- 인물 관계도: 플레이어 화면에 그리는 선. 단서·추론을 찾을 때마다 선이 생기거나 바뀐다
+-- 짝마다 찾은 단계 중 stage_order가 가장 큰 것을 그린다. clue_id·deduction_id가 둘 다 NULL이면 처음부터 보인다
+-- (character_relation.description은 AI만 읽는 진짜 관계, 여기 label은 플레이어가 지금까지 알아낸 만큼)
+INSERT INTO relation_stage (character_a_id, character_b_id, stage_order, label, tone, clue_id, deduction_id) VALUES
+-- 사건 1
+(2, 1, 0, '조카', '관계', NULL, NULL),
+(2, 1, 1, '상속인 → 재단?', '불확실', 14, NULL),
+(2, 1, 2, '유언장에서 빠질 처지', '갈등', NULL, 3),
+(3, 1, 0, '정원사', '관계', NULL, NULL),
+(3, 1, 1, '옛 공동대표', '관계', 22, NULL),
+(3, 1, 2, '20년 전 일로 고함', '갈등', 26, NULL),
+(3, 1, 3, '회사를 빼앗긴 동업자', '갈등', NULL, 9),
+(4, 1, 0, '가정부', '관계', NULL, NULL),
+(4, 1, 1, '친자 99.9%', '관계', 23, NULL),
+(4, 1, 2, '인정받지 못한 딸', '갈등', NULL, 10),
+(5, 1, 0, '고문 변호사', '관계', NULL, NULL),
+(5, 1, 1, '신탁 계좌 확인?', '불확실', 15, NULL),
+(5, 1, 2, '감사 연기 거절', '갈등', 25, NULL),
+(5, 1, 3, '감추려던 장부', '갈등', NULL, 11),
+(4, 3, 0, '동료', '관계', NULL, NULL),
+(4, 3, 1, '비밀을 아는 사이', '관계', 28, NULL),
+(5, 2, 1, '유언장 귀띔', '관계', 27, NULL),
+(4, 2, 1, '사촌', '관계', NULL, 10),
+-- 사건 2
+(7, 6, 0, '러브라인', '관계', NULL, NULL),
+(7, 6, 1, '10시 수영장 약속', '불확실', 128, NULL),
+(7, 6, 2, '언니 돈 1억 2천', '갈등', NULL, 104),
+(8, 6, 0, '출연자', '관계', NULL, NULL),
+(8, 6, 1, '거실 몸싸움', '갈등', 123, NULL),
+(8, 6, 2, '동료가 다친 화재', '갈등', 125, NULL),
+(9, 6, 0, '담당 작가', '관계', NULL, NULL),
+(9, 6, 1, '몰래 연애?', '불확실', 108, NULL),
+(9, 6, 2, '숨긴 연애', '갈등', NULL, 112),
+(10, 6, 0, '촬영감독', '관계', NULL, NULL),
+(10, 6, 1, '5천만 원 떼임', '갈등', 107, NULL),
+(10, 6, 2, '돈 얘기로 조롱', '갈등', 127, NULL),
+(8, 7, 0, '도현의 호감', '관계', NULL, NULL),
+(10, 8, 1, '술친구?', '불확실', 117, NULL),
+(9, 7, 1, '시우의 메시지를 봄', '관계', 128, NULL);
 
 -- 검시 기록: 범인이 꾸민 겉모습 그대로 적는다 (사실만, 결론은 없음)
 INSERT INTO autopsy (case_id, found_time, found_place, found_by, cause, wound, death_estimate, weapon, note) VALUES
@@ -851,8 +941,8 @@ INSERT INTO autopsy (case_id, found_time, found_place, found_by, cause, wound, d
  '뒷머리 오른쪽 한 곳, 길이 3cm', '21:30~22:30 · 시신이 아직 따뜻하다', '머리맡에 떨어진 청동 흉상(약 4kg), 피가 묻어 있다',
  '22:10 서재 쪽에서 "쿵" 하는 큰 소리가 났다'),
 (2, '22:50:00', '수영장, 엎드린 채 물에 떠 있음', '백도현', '익사',
- '뒷머리 가운데 한 곳, 길이 4cm · 데크 모서리에 핏자국', '22:11 · 스마트워치 심박이 끊긴 시각', '뚜렷한 흉기 없음 · 입에서 술 냄새가 난다',
- '데크에 샴페인 병과 잔 두 개가 놓여 있었다');
+ '뒷머리 가운데 한 곳, 길이 4cm · 데크 모서리에 핏자국', '22:11 · 스마트워치 심박이 끊긴 시각', '뚜렷한 흉기 없음',
+ '입에서 술 냄새가 난다');
 
 -- 범인의 거짓 각본: 범인이 미리 짜 둔 단 하나의 이야기 (AI만 읽음)
 -- 「지키는 선」은 끝까지 지키고, 나머지는 증거가 나오면 [변명 계획]대로 한 걸음씩 물러선다
@@ -863,14 +953,16 @@ UPDATE game_character SET cover_story = '거짓말은 단 하나: 21시 30분쯤
 - 10시 조금 전에 머리 식히러 뒷문 밖에 잠깐 나갔다가 들어왔다. (나간 건 사실, 창고에 간 건 숨긴다. 젖은 실내화나 발자국 얘기가 나오기 전에는 먼저 꺼내지 않는다)
 - 22시에 부엌에 내려가 유나에게 차를 부탁하고 22시 20분까지 같이 있었다. 22시 10분 쿵 소리를 유나와 같이 들었다.
 - 22시 30분 유나가 서재에서 삼촌을 발견했다는 걸 알고 서재로 갔다.' WHERE character_id = 2;
-UPDATE game_character SET cover_story = '거짓말은 단 하나: 21시 57분 영상을 올린 뒤 22시 30분 라이브까지 방에서 나가지 않았다. 나머지는 모두 사실대로 말하고, 기록으로 확인될 수 있는 시각은 처음부터 정확히 말한다.
-- 저녁을 먹고 21시쯤 방에 올라왔다. 수영장은 낮 촬영 때만 갔다.
+UPDATE game_character SET cover_story = '지키는 선 (끝까지): 시우를 해치지 않았다. 22시 5분쯤 수영장을 떠날 때 시우는 데크에서 혼자 술을 마시며 멀쩡히 살아 있었다. 물에는 들어가지 않았다.
+처음 이야기: 21시 57분 영상을 올린 뒤 22시 30분 라이브까지 방에서 나가지 않았다. (거짓)
+물러선 이야기: 젖은 원피스, 10시 메시지, 맨발 자국처럼 수영장에 간 흔적을 들이밀면 "방에만 있었다"를 버리고 수영장에 간 건 솔직히 인정한다. 의심받을 게 무서워서 말 못 했다고 한다. 그 뒤로는 물러선 이야기만 유지하고 처음 이야기로 돌아가지 않는다.
+- 저녁을 먹고 21시쯤 방에 올라왔다. (사실)
 - 21시 20분~50분 방에서 브이로그 「제주 마지막 밤」을 찍었다. (사실)
-- 21시 40분쯤 촬영 중에 시우에게 "10시에 수영장에서 보자"는 메시지를 받았다. (사실. 먼저 꺼내지 않고, 시우와 연락했냐고 물어도 부정하지 말고 말을 피한다. 메시지를 들이밀면 받은 건 솔직히 인정하고, 답장하지 않았고 나가지도 않았다고 한다)
+- 21시 40분쯤 촬영 중에 시우에게 "10시에 수영장에서 보자"는 메시지를 받았다. (사실. 먼저 꺼내지 않고, 시우와 연락했냐고 물어도 부정하지 말고 말을 피한다)
 - 21시 57분 영상을 올려 22시 최초 공개로 걸었다. (사실)
-- 22시부터 방에서 최초 공개를 보며 댓글을 달았다. (거짓)
-- 22시 10분쯤부터 샤워를 했다. (거짓)
-- 22시 25분쯤 머리가 젖은 채 물을 가지러 복도에 나갔다가 이채원 작가와 마주쳤다. (마주친 건 사실)
+- [처음 이야기] 22시부터 방에서 최초 공개를 보며 댓글을 달았고, 22시 10분쯤부터 샤워를 했다. (거짓)
+- [물러선 이야기] 22시쯤 시우를 만나러 수영장에 잠깐 나갔다. 시우는 샴페인을 마시고 있었다. 언니 돈 얘기를 꺼냈더니 시우가 비웃으며 장난으로 수영장 물을 잔뜩 끼얹어 원피스가 젖었다. 화가 나서 22시 5분쯤 혼자 방으로 돌아와 샤워했다. 샴페인은 자기가 가져간 게 아니라 시우가 마시던 것이라고 한다. (거짓. 수영장에 간 것과 원피스가 젖은 것만 사실)
+- 22시 25분쯤 머리가 젖은 채 물을 가지러 복도에 나갔다가 이채원 작가와 마주쳤다. (사실)
 - 22시 30분 방에서 라이브를 켜고 마무리 인사를 했다. (사실)' WHERE character_id = 7;
 
 

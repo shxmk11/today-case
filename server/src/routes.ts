@@ -21,8 +21,8 @@ const wrap =
 const publicCharacter = ({ is_culprit: _c, case_id: _id, backstory: _b, cover_story: _s, ...rest }: CharacterRow) => rest;
 
 async function getPlay(playId: number) {
-  const play = await one<{ play_id: number; case_id: number; status: string; participant_id: number }>(
-    `SELECT pl.play_id, pl.case_id, pl.status, p.participant_id
+  const play = await one<{ play_id: number; case_id: number; status: string; participant_id: number; unlimited: number }>(
+    `SELECT pl.play_id, pl.case_id, pl.status, p.participant_id, p.unlimited
      FROM play pl JOIN participant p ON p.play_id = pl.play_id AND p.role = '탐정'
      WHERE pl.play_id = ?`,
     [playId],
@@ -44,10 +44,19 @@ async function getCharacterInCase(caseId: number, characterId: number) {
   return ch;
 }
 
+/**
+ * 찾은 단서. retired = 추론에 쓰였고, 이 단서를 재료로 하는 추론을 모두 찾아서 더 쓸 데가 없음
+ * (단서 목록·연결 목록에서는 빼고, 추론 카드 안에서만 보여준다)
+ */
 async function discoveredClues(participantId: number) {
-  return query<ClueRow & { scene_name: string; found_at: string }>(
+  const rows = await query<ClueRow & { scene_name: string; found_at: string; retired: number }>(
     `SELECT c.clue_id, c.scene_id, c.character_id, c.name, c.description, c.clue_type,
-            s.name AS scene_name, cd.found_at
+            s.name AS scene_name, cd.found_at,
+            (EXISTS (SELECT 1 FROM deduction_clue dc WHERE dc.clue_id = c.clue_id)
+             AND NOT EXISTS (
+               SELECT 1 FROM deduction_clue dc WHERE dc.clue_id = c.clue_id
+                 AND NOT EXISTS (SELECT 1 FROM link_attempt la
+                                 WHERE la.participant_id = cd.participant_id AND la.deduction_id = dc.deduction_id))) AS retired
      FROM clue_discovery cd
      JOIN clue c ON c.clue_id = cd.clue_id
      JOIN scene s ON s.scene_id = c.scene_id
@@ -55,16 +64,16 @@ async function discoveredClues(participantId: number) {
      ORDER BY cd.found_at, c.clue_id`,
     [participantId],
   );
+  return rows.map((r) => ({ ...r, retired: !!r.retired }));
 }
 
-/** 남은 조사 횟수 = 사건의 조사 횟수 - 연 조사 지점 수 - 틀린 연결 수 */
+/** 남은 조사 횟수 = 사건의 조사 횟수 - 연 조사 지점 수 (단서 연결은 횟수를 쓰지 않는다) */
 async function investigationsLeft(participantId: number, caseId: number) {
   const r = await one<{ n: number }>(
     `SELECT c.investigation_limit
-            - (SELECT COUNT(*) FROM spot_search ss WHERE ss.participant_id = ?)
-            - (SELECT COUNT(*) FROM link_attempt la WHERE la.participant_id = ? AND la.deduction_id IS NULL) AS n
+            - (SELECT COUNT(*) FROM spot_search ss WHERE ss.participant_id = ?) AS n
      FROM case_file c WHERE c.case_id = ?`,
-    [participantId, participantId, caseId],
+    [participantId, caseId],
   );
   return Math.max(0, Number(r?.n ?? 0));
 }
@@ -258,6 +267,7 @@ router.get(
       characters: characters.map(publicCharacter),
       scenes: await sceneSpots(play.participant_id, play.case_id),
       investigationLimit: c!.investigation_limit,
+      unlimited: !!play.unlimited,
       investigationsLeft: await investigationsLeft(play.participant_id, play.case_id),
       deductions: await foundDeductions(play.participant_id),
       deductionTotal: await deductionTotal(play.case_id),
@@ -293,8 +303,8 @@ router.post(
         !(await one(`SELECT 1 FROM clue_discovery WHERE participant_id = ? AND clue_id = ?`, [play.participant_id, spot.unlock_clue_id]))) {
       throw new HttpError(409, "아직 열 수 없어요. 다른 단서가 필요해요.");
     }
-    if ((await investigationsLeft(play.participant_id, play.case_id)) <= 0) {
-      throw new HttpError(409, "조사 횟수를 다 썼어요. 심문과 연결로 추리해보세요.");
+    if (!play.unlimited && (await investigationsLeft(play.participant_id, play.case_id)) <= 0) {
+      throw new HttpError(409, "조사 횟수를 다 썼어요. 「조사 무제한」을 켜거나 심문으로 추리해보세요.");
     }
 
     await query(`INSERT INTO spot_search (participant_id, spot_id) VALUES (?, ?)`, [play.participant_id, spotId]);
@@ -313,7 +323,7 @@ router.post(
   }),
 );
 
-/* 단서 연결: 찾은 단서 2~3개가 어떤 추론의 재료와 정확히 같으면 추론을 얻는다. 틀리면 조사 1회 차감 */
+/* 단서 연결: 찾은 단서 2개가 어떤 추론의 재료와 정확히 같으면 추론을 얻는다. 조사 횟수는 쓰지 않는다 */
 router.post(
   "/plays/:id/link",
   wrap(async (req, res) => {
@@ -323,7 +333,7 @@ router.post(
     const ids = [...new Set(raw.map(Number))]
       .filter((n) => Number.isInteger(n) && n > 0)
       .sort((x, y) => x - y);
-    if (ids.length < 2 || ids.length > 3) throw new HttpError(400, "단서를 2~3개 골라주세요.");
+    if (ids.length !== 2) throw new HttpError(400, "단서를 2개 골라주세요.");
     const found = await query<{ clue_id: number }>(
       `SELECT clue_id FROM clue_discovery WHERE participant_id = ? AND clue_id IN (?)`,
       [play.participant_id, ids],
@@ -345,25 +355,71 @@ router.post(
       [play.case_id],
     );
     const match = recipes.find((r) => r.clue_key === key);
-    if (match) {
-      if (await one(`SELECT 1 FROM link_attempt WHERE participant_id = ? AND deduction_id = ?`, [play.participant_id, match.deduction_id])) {
-        throw new HttpError(409, "이미 찾은 추론이에요.");
-      }
-    } else if ((await investigationsLeft(play.participant_id, play.case_id)) <= 0) {
-      throw new HttpError(409, "조사 횟수를 다 써서 더 연결해볼 수 없어요.");
+    if (match && (await one(`SELECT 1 FROM link_attempt WHERE participant_id = ? AND deduction_id = ?`, [play.participant_id, match.deduction_id]))) {
+      throw new HttpError(409, "이미 찾은 추론이에요.");
     }
     await query(`INSERT INTO link_attempt (participant_id, clue_key, deduction_id) VALUES (?, ?, ?)`, [
       play.participant_id,
       key,
       match?.deduction_id ?? null,
     ]);
+    // 잠긴 노트북처럼, 추론을 얻으면 바로 손에 들어오는 단서
+    let revealed: number[] = [];
+    if (match) {
+      const r = await one<{ reveal_clue_id: number | null }>(`SELECT reveal_clue_id FROM deduction WHERE deduction_id = ?`, [match.deduction_id]);
+      if (r?.reveal_clue_id != null) {
+        await query(`INSERT IGNORE INTO clue_discovery (participant_id, clue_id) VALUES (?, ?)`, [play.participant_id, r.reveal_clue_id]);
+        await addClueEntries(play.participant_id);
+        revealed = [r.reveal_clue_id];
+      }
+    }
     const deductions = await foundDeductions(play.participant_id);
     res.json({
       ok: !!match,
       deduction: match ? deductions.find((d) => d.deduction_id === match.deduction_id) : null,
       deductions,
+      revealed,
+      clues: await discoveredClues(play.participant_id),
+      timeline: await playerTimeline(play.participant_id, play.case_id),
       investigationsLeft: await investigationsLeft(play.participant_id, play.case_id),
     });
+  }),
+);
+
+/* 인물 관계도: 짝마다 지금까지 찾은 단서·추론으로 열린 단계 중 가장 나중 단계 하나 */
+router.get(
+  "/plays/:id/relations",
+  wrap(async (req, res) => {
+    const play = await getPlay(Number(req.params.id));
+    const rows = await query<{ stage_id: number; a: number; b: number; stage_order: number; label: string; tone: string }>(
+      `SELECT rs.stage_id, rs.character_a_id AS a, rs.character_b_id AS b, rs.stage_order, rs.label, rs.tone
+       FROM relation_stage rs
+       JOIN game_character g ON g.character_id = rs.character_a_id
+       WHERE g.case_id = ?
+         AND (rs.clue_id IS NULL OR EXISTS (
+               SELECT 1 FROM clue_discovery cd WHERE cd.participant_id = ? AND cd.clue_id = rs.clue_id))
+         AND (rs.deduction_id IS NULL OR EXISTS (
+               SELECT 1 FROM link_attempt la WHERE la.participant_id = ? AND la.deduction_id = rs.deduction_id))
+       ORDER BY rs.character_a_id, rs.character_b_id, rs.stage_order`,
+      [play.case_id, play.participant_id, play.participant_id],
+    );
+    const latest = new Map<string, (typeof rows)[number]>();
+    for (const r of rows) latest.set(`${r.a}-${r.b}`, r); // stage_order 오름차순이라 마지막이 가장 나중 단계
+    res.json([...latest.values()].map(({ stage_order: _o, ...r }) => r));
+  }),
+);
+
+/* 조사 무제한: 조사 횟수를 다 쓴 뒤에만 켤 수 있다 (켜면 끝날 때까지 횟수 제한 없음) */
+router.post(
+  "/plays/:id/unlimited",
+  wrap(async (req, res) => {
+    const play = await getPlay(Number(req.params.id));
+    assertOngoing(play);
+    if (!play.unlimited && (await investigationsLeft(play.participant_id, play.case_id)) > 0) {
+      throw new HttpError(409, "조사 횟수가 남아 있어요. 다 쓰고 나면 켤 수 있어요.");
+    }
+    await query(`UPDATE participant SET unlimited = TRUE WHERE participant_id = ?`, [play.participant_id]);
+    res.json({ unlimited: true });
   }),
 );
 
@@ -396,8 +452,13 @@ router.post(
       if (!evidence) throw new HttpError(400, "아직 찾지 못한 단서예요.");
     }
 
-    const discoveredIds = (await discoveredClues(play.participant_id)).map((x) => x.clue_id);
-    const { answer, revealedClueIds, statedAlibi } = await interrogate(c, ch, history.slice(-20), question, evidence, discoveredIds);
+    const found = await discoveredClues(play.participant_id);
+    const discoveredIds = found.map((x) => x.clue_id);
+    // 이 인물에게 앞서 내민 증거: 저장된 질문 앞의 [증거 제시: 이름]으로 찾는다
+    const shownBefore = found
+      .filter((x) => history.some((h) => h.question.startsWith(`[증거 제시: ${x.name}]`)))
+      .map((x) => x.clue_id);
+    const { answer, revealedClueIds, statedAlibi } = await interrogate(c, ch, history.slice(-20), question, evidence, discoveredIds, shownBefore);
     const storedQuestion = formatQuestion(question, evidence);
     const interrogationId = await insert(
       `INSERT INTO interrogation (participant_id, character_id, question, answer) VALUES (?, ?, ?, ?)`,
