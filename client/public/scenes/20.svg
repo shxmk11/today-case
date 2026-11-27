@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450">
+<style>.w{fill:none;stroke:#fff;stroke-width:1.6;stroke-linejoin:round;stroke-linecap:round}.t{fill:none;stroke:#fff;stroke-width:1;stroke-linejoin:round;stroke-linecap:round}.g{fill:none;stroke:#636366;stroke-width:1;stroke-linejoin:round;stroke-linecap:round}.k{fill:#000;stroke:#fff;stroke-width:1.6;stroke-linejoin:round;stroke-linecap:round}.kt{fill:#000;stroke:#fff;stroke-width:1;stroke-linejoin:round;stroke-linecap:round}.b{fill:#000;stroke:#C1121F;stroke-width:1.6;stroke-linejoin:round;stroke-linecap:round}.r{fill:none;stroke:#C1121F;stroke-width:1;stroke-linecap:round;stroke-linejoin:round}.gd{fill:#636366}</style>
+<rect width="800" height="450" fill="#000"/>
+<!-- 건물 뒷벽 (실외): 바닥선과 벽만 -->
+<path class="w" d="M110.0 40.0 L690.0 40.0 L690.0 300.0 L110.0 300.0 Z"/>
+<path class="w" d="M110.0 300.0 L-470.0 680.0"/>
+<path class="w" d="M690.0 300.0 L1270.0 680.0"/>
+<!-- 별 -->
+<g fill="#fff" opacity=".5"><circle cx="60" cy="40" r="1.3"/><circle cx="740" cy="30" r="1.2"/><circle cx="770" cy="90" r="1.1"/></g>
+<!-- 뒷문 (가운데) -->
+<rect class="w" x="350" y="110" width="100" height="190"/><rect class="t" x="356" y="116" width="88" height="184"/><path class="w" d="M432 206 h8"/>
+<!-- 뒷문 카메라 (문 위 오른쪽) -->
+<path class="w" d="M470 90 h14 v10 h-14 Z M484 95 l18 8 l-4 8 l-16 -6"/>
+<circle class="r" cx="498" cy="106" r="1.8"/>
+<!-- 계단 (왼쪽, 아래로) -->
+<path class="w" d="M130.0 230.0 L280.0 230.0"/>
+<path class="w" d="M144.0 242.0 L294.0 242.0"/>
+<path class="w" d="M158.0 254.0 L308.0 254.0"/>
+<path class="w" d="M172.0 266.0 L322.0 266.0"/>
+<path class="w" d="M186.0 278.0 L336.0 278.0"/>
+<path class="w" d="M200.0 290.0 L350.0 290.0"/>
+<path class="t" d="M130.0 230.0 L200.0 300.0"/>
+<path class="t" d="M280.0 230.0 L350.0 300.0"/>
+<path class="w" d="M140 190 L210 262"/>
+<path class="t" d="M140 190 v40 M175 225 v40 M210 262 v38"/>
+<!-- 흡연 구역 재떨이 스탠드 (오른쪽) -->
+<path class="w" d="M544.0 338.0 v-70 M530.0 268.0 h28 v-8 h-28 Z M532.0 338.0 h24"/>
+<!-- 재활용 수거함 (오른쪽 앞, 잠금) -->
+<path class="k" d="M608.0 227.0 L640.0 245.0 L640.0 395.0 L608.0 357.0 Z"/>
+<path class="k" d="M608.0 227.0 L725.0 227.0 L775.0 245.0 L640.0 245.0 Z"/>
+<path class="k" d="M640.0 245.0 L775.0 245.0 L775.0 395.0 L640.0 395.0 Z"/>
+<path class="t" d="M667.0 276.0 l6 -10 l6 10 M689.0 276.0 h16"/>
+</svg>
