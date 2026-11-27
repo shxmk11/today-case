@@ -236,8 +236,8 @@ export default function CasePanel(props: Props) {
               )}
               <p>
                 {unlimited
-                  ? "조사 무제한을 켰어요. 횟수 걱정 없이 조사하고 연결할 수 있어요."
-                  : "조사할 곳을 하나 열 때마다 1회, 연결에 성공하면 1회를 써요. 틀린 연결은 횟수를 쓰지 않아요."}
+                  ? "조사 무제한을 켰어요. 횟수 걱정 없이 조사할 수 있어요."
+                  : "조사할 곳을 하나 열 때마다 1회를 써요. 단서 연결은 횟수를 쓰지 않아요."}
               </p>
               {out && (
                 <>
@@ -271,8 +271,7 @@ export default function CasePanel(props: Props) {
           <>
             <div className="link-head">
               <b>단서 연결하기</b>
-              <p>함께 보면 새 사실이 드러나는 단서 2개를 이으세요. 틀려도 괜찮고, 맞히면 조사 1회를 써요.</p>
-              {out && unlimitedButton}
+              <p>함께 보면 새 사실이 드러나는 단서 2개를 이으세요. 조사 횟수는 쓰지 않아요.</p>
             </div>
             {clues.length < 2 ? (
               <p className="muted pad">단서를 2개 이상 찾으면 연결할 수 있어요.</p>
@@ -305,9 +304,9 @@ export default function CasePanel(props: Props) {
             {clues.length >= 2 && (
               <div className="link-bar">
                 <span>
-                  {picked.length}개 이음 <small>· {unlimited ? "조사 무제한" : `남은 조사 ${left}`}</small>
+                  {picked.length} / 2개 이음
                 </span>
-                <button className="pill red" disabled={picked.length < 2 || linking || out} onClick={() => void link()}>
+                <button className="pill red" disabled={picked.length < 2 || linking} onClick={() => void link()}>
                   {linking ? "맞춰보는 중…" : "연결하기"}
                 </button>
               </div>

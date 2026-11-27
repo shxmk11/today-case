@@ -67,14 +67,13 @@ async function discoveredClues(participantId: number) {
   return rows.map((r) => ({ ...r, retired: !!r.retired }));
 }
 
-/** 남은 조사 횟수 = 사건의 조사 횟수 - 연 조사 지점 수 - 성공한 연결 수 (틀린 연결은 무료) */
+/** 남은 조사 횟수 = 사건의 조사 횟수 - 연 조사 지점 수 (단서 연결은 횟수를 쓰지 않는다) */
 async function investigationsLeft(participantId: number, caseId: number) {
   const r = await one<{ n: number }>(
     `SELECT c.investigation_limit
-            - (SELECT COUNT(*) FROM spot_search ss WHERE ss.participant_id = ?)
-            - (SELECT COUNT(*) FROM link_attempt la WHERE la.participant_id = ? AND la.deduction_id IS NOT NULL) AS n
+            - (SELECT COUNT(*) FROM spot_search ss WHERE ss.participant_id = ?) AS n
      FROM case_file c WHERE c.case_id = ?`,
-    [participantId, participantId, caseId],
+    [participantId, caseId],
   );
   return Math.max(0, Number(r?.n ?? 0));
 }
@@ -324,7 +323,7 @@ router.post(
   }),
 );
 
-/* 단서 연결: 찾은 단서 2개가 어떤 추론의 재료와 정확히 같으면 추론을 얻고 조사 1회를 쓴다. 틀리면 무료 */
+/* 단서 연결: 찾은 단서 2개가 어떤 추론의 재료와 정확히 같으면 추론을 얻는다. 조사 횟수는 쓰지 않는다 */
 router.post(
   "/plays/:id/link",
   wrap(async (req, res) => {
@@ -340,10 +339,6 @@ router.post(
       [play.participant_id, ids],
     );
     if (found.length !== ids.length) throw new HttpError(400, "찾은 단서만 연결할 수 있어요.");
-    // 맞든 틀리든 먼저 막는다 (막는 이유로 정답 여부가 새지 않게)
-    if (!play.unlimited && (await investigationsLeft(play.participant_id, play.case_id)) <= 0) {
-      throw new HttpError(409, "조사 횟수를 다 써서 연결할 수 없어요. 「조사 무제한」을 켜면 계속할 수 있어요.");
-    }
 
     const key = ids.join(",");
     const tried = await one<{ deduction_id: number | null }>(

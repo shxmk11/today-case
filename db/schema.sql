@@ -28,7 +28,7 @@ CREATE TABLE case_file (
     difficulty ENUM('쉬움', '보통', '어려움') NOT NULL,
     summary TEXT NOT NULL,
     truth TEXT NOT NULL,
-    investigation_limit INT NOT NULL DEFAULT 12,  -- 조사 횟수 (조사 지점 열기 + 성공한 연결이 1회씩 씀)
+    investigation_limit INT NOT NULL DEFAULT 12,  -- 조사 횟수 (조사 지점을 열 때마다 1회. 단서 연결은 무료)
     map_url VARCHAR(255),                          -- 건물 단면도 그림
     PRIMARY KEY (case_id),
     CONSTRAINT chk_case_limit CHECK (investigation_limit > 0)
@@ -309,7 +309,7 @@ CREATE TABLE spot_search (
         REFERENCES spot (spot_id) ON DELETE CASCADE
 );
 
--- 단서 연결 시도 (deduction_id가 NULL이면 틀린 연결 = 조사 1회 차감)
+-- 단서 연결 시도 (deduction_id가 NULL이면 틀린 연결. 연결은 조사 횟수를 쓰지 않는다)
 CREATE TABLE link_attempt (
     attempt_id INT NOT NULL AUTO_INCREMENT,
     participant_id INT NOT NULL,
