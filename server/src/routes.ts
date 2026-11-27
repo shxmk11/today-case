@@ -18,7 +18,7 @@ const wrap =
     fn(req, res).catch(next);
 
 /* 플레이어에게 보여도 되는 필드만 고른다 (범인 여부, 진상, 숨긴 사실은 제외) */
-const publicCharacter = ({ is_culprit: _c, case_id: _id, backstory: _b, cover_story: _s, fallback_story: _fs, fallback_clue_ids: _fc, fallback_guard: _fg, ...rest }: CharacterRow) => rest;
+const publicCharacter = ({ is_culprit: _c, case_id: _id, backstory: _b, cover_story: _s, fallback_story: _fs, fallback_clue_ids: _fc, fallback_guard: _fg, fallback_admit: _fa, ...rest }: CharacterRow) => rest;
 
 async function getPlay(playId: number) {
   const play = await one<{ play_id: number; case_id: number; status: string; participant_id: number; unlimited: number }>(
@@ -92,11 +92,13 @@ async function sceneSpots(participantId: number, caseId: number) {
   }>(
     `SELECT sp.spot_id, sp.scene_id, sp.name, sp.pos_x, sp.pos_y,
             EXISTS (SELECT 1 FROM spot_search ss WHERE ss.participant_id = ? AND ss.spot_id = sp.spot_id) AS searched,
-            (sp.unlock_clue_id IS NOT NULL AND NOT EXISTS (
-               SELECT 1 FROM clue_discovery cd WHERE cd.participant_id = ? AND cd.clue_id = sp.unlock_clue_id)) AS locked
+            ((sp.unlock_clue_id IS NOT NULL AND NOT EXISTS (
+               SELECT 1 FROM clue_discovery cd WHERE cd.participant_id = ? AND cd.clue_id = sp.unlock_clue_id))
+             OR (sp.unlock_deduction_id IS NOT NULL AND NOT EXISTS (
+               SELECT 1 FROM link_attempt la WHERE la.participant_id = ? AND la.deduction_id = sp.unlock_deduction_id))) AS locked
      FROM spot sp JOIN scene s ON s.scene_id = sp.scene_id
      WHERE s.case_id = ? ORDER BY sp.spot_id`,
-    [participantId, participantId, caseId],
+    [participantId, participantId, participantId, caseId],
   );
   // DECIMAL 은 문자열로 오므로 숫자로 바꾼다
   const num = (v: string | null) => (v == null ? null : Number(v));
@@ -290,8 +292,8 @@ router.post(
     const play = await getPlay(Number(req.params.id));
     assertOngoing(play);
     const spotId = Number(req.body?.spotId);
-    const spot = await one<{ spot_id: number; name: string; unlock_clue_id: number | null }>(
-      `SELECT sp.spot_id, sp.name, sp.unlock_clue_id FROM spot sp JOIN scene s ON s.scene_id = sp.scene_id
+    const spot = await one<{ spot_id: number; name: string; unlock_clue_id: number | null; unlock_deduction_id: number | null }>(
+      `SELECT sp.spot_id, sp.name, sp.unlock_clue_id, sp.unlock_deduction_id FROM spot sp JOIN scene s ON s.scene_id = sp.scene_id
        WHERE sp.spot_id = ? AND s.case_id = ?`,
       [spotId, play.case_id],
     );
@@ -302,6 +304,10 @@ router.post(
     if (spot.unlock_clue_id != null &&
         !(await one(`SELECT 1 FROM clue_discovery WHERE participant_id = ? AND clue_id = ?`, [play.participant_id, spot.unlock_clue_id]))) {
       throw new HttpError(409, "아직 열 수 없어요. 다른 단서가 필요해요.");
+    }
+    if (spot.unlock_deduction_id != null &&
+        !(await one(`SELECT 1 FROM link_attempt WHERE participant_id = ? AND deduction_id = ?`, [play.participant_id, spot.unlock_deduction_id]))) {
+      throw new HttpError(409, "아직 열 수 없어요. 단서를 이어 추론해야 해요.");
     }
     if (!play.unlimited && (await investigationsLeft(play.participant_id, play.case_id)) <= 0) {
       throw new HttpError(409, "조사 횟수를 다 썼어요. 「조사 무제한」을 켜거나 심문으로 추리해보세요.");

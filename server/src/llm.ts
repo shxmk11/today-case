@@ -50,7 +50,8 @@ export function onFallback(ch: CharacterRow, unlock: Unlock, history: Turn[] = [
   if (!ch.is_culprit || !ch.fallback_story) return false;
   const triggers = (ch.fallback_clue_ids ?? "").split(",").map((x) => Number(x.trim())).filter(Boolean);
   const shown = [...(unlock.shownBefore ?? []), ...(unlock.evidenceClueId ? [unlock.evidenceClueId] : [])];
-  return shown.some((id) => triggers.includes(id)) || history.some((t) => /수영장에\s*(잠깐\s*)?(나갔|갔)/.test(t.answer));
+  const admit = ch.fallback_admit ? new RegExp(ch.fallback_admit) : null;
+  return shown.some((id) => triggers.includes(id)) || (!!admit && history.some((t) => admit.test(t.answer)));
 }
 
 /** 두 번째 이야기 중인데 버린 이야기로 돌아가거나 굳힌 시각과 어긋나는 말을 했는지 (걸린 패턴을 돌려준다) */

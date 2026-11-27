@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 420">
+<style>.w{fill:none;stroke:#fff;stroke-width:1.2;stroke-linejoin:round;stroke-linecap:round}.t{fill:none;stroke:#AEAEB2;stroke-width:1;stroke-linecap:round}.g{fill:none;stroke:#636366;stroke-width:1.1;stroke-linejoin:round}.room{fill:none;stroke:#636366;stroke-width:1;stroke-dasharray:3 4}.lbl{font-family:-apple-system,'Apple SD Gothic Neo',system-ui,sans-serif;font-size:13px;font-weight:700;fill:#8E8E93}.fl{font-family:-apple-system,system-ui,sans-serif;font-size:11px;font-weight:800;fill:#8E8E93}</style>
+<rect width="800" height="420" fill="#000"/>
+<g fill="#fff" opacity=".5"><circle cx="620" cy="40" r="1.4"/><circle cx="700" cy="84" r="1.2"/><circle cx="90" cy="60" r="1.4"/><circle cx="300" cy="30" r="1.2"/></g>
+<!-- 지붕과 외벽 -->
+<path class="w" d="M28 124 H772 M36 124 V382 M764 124 V382"/>
+<path class="w" d="M300 124 L400 76 L500 124"/>
+<circle class="t" cx="400" cy="104" r="9"/><path class="t" d="M400 98 v6 l4 3"/>
+<!-- 2층: 계단 -->
+<rect class="room" x="40" y="136" width="80" height="112" rx="10"/>
+<text class="lbl" x="80" y="162" text-anchor="middle">계단</text>
+<path class="g" d="M52 240 H64 V228 H76 V216 H88 V204 H100 V192 H112"/>
+<!-- 1층: 로비 -->
+<rect class="room" x="40" y="254" width="120" height="124" rx="10"/>
+<text class="lbl" x="100" y="282" text-anchor="middle">로비</text>
+<path class="g" d="M60 376 V346 H140 V376"/>
+<!-- 장소 방 -->
+<g fill="none" stroke="#fff" stroke-width="1" stroke-opacity=".85"><rect x="124" y="136" width="176" height="112" rx="10"/><rect x="304" y="136" width="136" height="112" rx="10"/><rect x="164" y="254" width="136" height="124" rx="10"/><rect x="304" y="254" width="136" height="124" rx="10"/><rect x="444" y="136" width="316" height="242" rx="10"/></g>
+<g class="g">
+<!-- 신부 대기실: 화장대, 행거 -->
+<ellipse cx="190" cy="214" rx="14" ry="16"/><rect x="168" y="230" width="46" height="16" rx="3"/><path d="M240 246 V204 H284 V246"/>
+<!-- 조정실: 콘솔, 홀 쪽 창 -->
+<rect x="320" y="226" width="104" height="20" rx="3"/><path d="M440 170 V214"/>
+<!-- 신랑 대기실: 화장대, 소파 -->
+<rect x="176" y="356" width="54" height="20" rx="3"/><rect x="250" y="346" width="40" height="30" rx="4"/>
+<!-- 복도·의상실: 데스크, 걸이 -->
+<rect x="330" y="350" width="60" height="26" rx="3"/><path d="M404 376 V318 H430 V376"/>
+<!-- 피로연장: 무대와 트러스, 원탁 -->
+<path d="M454 376 V346 H590 V376"/><path d="M458 346 V250 H586 V346"/>
+<ellipse cx="640" cy="366" rx="26" ry="6"/><ellipse cx="712" cy="366" rx="26" ry="6"/>
+</g>
+<!-- 대기실 뒷문 → 복도 -->
+<path class="t" d="M300 320 V376"/>
+<!-- 바닥판 -->
+<path d="M36 382 H764" stroke="#fff" stroke-width="1.2"/>
+<path d="M28 250 H444" stroke="#636366" stroke-width="1"/>
+<!-- 시신 위치 (신랑 대기실) -->
+<g transform="translate(196 352) scale(0.42 0.3)" fill="#C1121F"><path d="M158 16 Q172 4 196 6 Q201 9 196 11 Q177 11 165 23 Z"/><path d="M72 22 L12 19 Q3 19 3 25 Q4 30 11 30 L72 32 Z"/><path d="M72 34 L16 40 Q7 42 7 46 Q9 50 15 49 L74 43 Z"/><path d="M166 18 Q150 11 120 14 L82 18 Q68 20 68 30 Q68 41 82 43 L120 46 Q150 49 166 42 Q172 30 166 18 Z"/><path d="M158 43 Q142 57 118 57 Q110 57 111 52 Q114 49 120 50 Q138 50 150 38 Z"/><ellipse cx="182" cy="30" rx="14" ry="12"/></g>
+<text class="fl" x="18" y="200" transform="rotate(-90 18 200)">2F</text>
+<text class="fl" x="18" y="322" transform="rotate(-90 18 322)">1F</text>
+</svg>

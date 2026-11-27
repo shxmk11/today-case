@@ -36,6 +36,7 @@ export interface CharacterRow {
   fallback_story: string | null;
   fallback_clue_ids: string | null;
   fallback_guard: string | null;
+  fallback_admit: string | null;
   image_url: string | null;
   character_type: "피해자" | "용의자" | "목격자";
   is_culprit: boolean;
