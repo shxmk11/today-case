@@ -1,0 +1,104 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450">
+<style>.w{fill:none;stroke:#fff;stroke-width:1.6;stroke-linejoin:round;stroke-linecap:round}.t{fill:none;stroke:#fff;stroke-width:1;stroke-linejoin:round;stroke-linecap:round}.g{fill:none;stroke:#636366;stroke-width:1;stroke-linejoin:round;stroke-linecap:round}.k{fill:#000;stroke:#fff;stroke-width:1.6;stroke-linejoin:round;stroke-linecap:round}.kt{fill:#000;stroke:#fff;stroke-width:1;stroke-linejoin:round;stroke-linecap:round}.b{fill:#000;stroke:#C1121F;stroke-width:1.6;stroke-linejoin:round;stroke-linecap:round}.r{fill:none;stroke:#C1121F;stroke-width:1;stroke-linecap:round;stroke-linejoin:round}.gd{fill:#636366}</style>
+<rect width="800" height="450" fill="#000"/>
+<path class="w" d="M60.0 20.0 L740.0 20.0 L740.0 250.0 L60.0 250.0 Z"/>
+<path class="w" d="M60.0 20.0 L-620.0 -180.0"/>
+<path class="w" d="M740.0 20.0 L1420.0 -180.0"/>
+<path class="w" d="M60.0 250.0 L-620.0 510.0"/>
+<path class="w" d="M740.0 250.0 L1420.0 510.0"/>
+<!-- 무대 (뒷벽 앞, 단) -->
+<path class="k" d="M170.0 215.0 L630.0 215.0 L671.4 232.1 L128.6 232.1 Z"/>
+<path class="k" d="M128.6 232.1 L671.4 232.1 L671.4 273.4 L128.6 273.4 Z"/>
+<!-- 알루미늄 트러스와 조명 -->
+<path class="w" d="M150.0 48.0 L650.0 48.0"/>
+<path class="w" d="M150.0 62.0 L650.0 62.0"/>
+<path class="t" d="M150.0 48.0 L160.0 62.0"/>
+<path class="t" d="M160.0 62.0 L170.0 48.0"/>
+<path class="t" d="M170.0 48.0 L180.0 62.0"/>
+<path class="t" d="M180.0 62.0 L190.0 48.0"/>
+<path class="t" d="M190.0 48.0 L200.0 62.0"/>
+<path class="t" d="M200.0 62.0 L210.0 48.0"/>
+<path class="t" d="M210.0 48.0 L220.0 62.0"/>
+<path class="t" d="M220.0 62.0 L230.0 48.0"/>
+<path class="t" d="M230.0 48.0 L240.0 62.0"/>
+<path class="t" d="M240.0 62.0 L250.0 48.0"/>
+<path class="t" d="M250.0 48.0 L260.0 62.0"/>
+<path class="t" d="M260.0 62.0 L270.0 48.0"/>
+<path class="t" d="M270.0 48.0 L280.0 62.0"/>
+<path class="t" d="M280.0 62.0 L290.0 48.0"/>
+<path class="t" d="M290.0 48.0 L300.0 62.0"/>
+<path class="t" d="M300.0 62.0 L310.0 48.0"/>
+<path class="t" d="M310.0 48.0 L320.0 62.0"/>
+<path class="t" d="M320.0 62.0 L330.0 48.0"/>
+<path class="t" d="M330.0 48.0 L340.0 62.0"/>
+<path class="t" d="M340.0 62.0 L350.0 48.0"/>
+<path class="t" d="M350.0 48.0 L360.0 62.0"/>
+<path class="t" d="M360.0 62.0 L370.0 48.0"/>
+<path class="t" d="M370.0 48.0 L380.0 62.0"/>
+<path class="t" d="M380.0 62.0 L390.0 48.0"/>
+<path class="t" d="M390.0 48.0 L400.0 62.0"/>
+<path class="t" d="M400.0 62.0 L410.0 48.0"/>
+<path class="t" d="M410.0 48.0 L420.0 62.0"/>
+<path class="t" d="M420.0 62.0 L430.0 48.0"/>
+<path class="t" d="M430.0 48.0 L440.0 62.0"/>
+<path class="t" d="M440.0 62.0 L450.0 48.0"/>
+<path class="t" d="M450.0 48.0 L460.0 62.0"/>
+<path class="t" d="M460.0 62.0 L470.0 48.0"/>
+<path class="t" d="M470.0 48.0 L480.0 62.0"/>
+<path class="t" d="M480.0 62.0 L490.0 48.0"/>
+<path class="t" d="M490.0 48.0 L500.0 62.0"/>
+<path class="t" d="M500.0 62.0 L510.0 48.0"/>
+<path class="t" d="M510.0 48.0 L520.0 62.0"/>
+<path class="t" d="M520.0 62.0 L530.0 48.0"/>
+<path class="t" d="M530.0 48.0 L540.0 62.0"/>
+<path class="t" d="M540.0 62.0 L550.0 48.0"/>
+<path class="t" d="M550.0 48.0 L560.0 62.0"/>
+<path class="t" d="M560.0 62.0 L570.0 48.0"/>
+<path class="t" d="M570.0 48.0 L580.0 62.0"/>
+<path class="t" d="M580.0 62.0 L590.0 48.0"/>
+<path class="t" d="M590.0 48.0 L600.0 62.0"/>
+<path class="t" d="M600.0 62.0 L610.0 48.0"/>
+<path class="t" d="M610.0 48.0 L620.0 62.0"/>
+<path class="t" d="M620.0 62.0 L630.0 48.0"/>
+<path class="t" d="M630.0 48.0 L640.0 62.0"/>
+<path class="t" d="M640.0 62.0 L650.0 48.0"/>
+<path class="w" d="M150.0 48.0 L150.0 215.0"/>
+<path class="w" d="M650.0 48.0 L650.0 215.0"/>
+<path class="t" d="M158.0 62.0 L158.0 215.0"/>
+<path class="t" d="M642.0 62.0 L642.0 215.0"/>
+<path class="k" d="M250 62 v6 M242 68 h16 l-3 14 h-10 Z"/>
+<path class="k" d="M330 62 v6 M322 68 h16 l-3 14 h-10 Z"/>
+<path class="k" d="M470 62 v6 M462 68 h16 l-3 14 h-10 Z"/>
+<path class="k" d="M550 62 v6 M542 68 h16 l-3 14 h-10 Z"/>
+<path class="k" d="M400 62 v6 M392 68 h16 l-3 14 h-10 Z"/>
+<path class="g" d="M402 82 L372 200 M398 82 L428 200"/>
+<circle class="w" cx="400" cy="55" r="3"/><path class="t" d="M398 53 l4 4"/>
+<!-- 신랑 인사 자리 마이크 -->
+<path class="w" d="M400 230 v-36 M392 230 h16"/>
+<ellipse class="w" cx="400" cy="191" rx="3" ry="4"/>
+<!-- 뒷벽 장식 커튼 -->
+<path class="g" d="M200 20 q-8 90 0 195"/>
+<path class="g" d="M260 20 q-8 90 0 195"/>
+<path class="g" d="M540 20 q-8 90 0 195"/>
+<path class="g" d="M600 20 q-8 90 0 195"/>
+<!-- 하객 원탁 -->
+<ellipse class="k" cx="43.5" cy="265.3" rx="77.5" ry="17.1"/>
+<path class="w" d="M-34.0 265.3 v6 M121.0 265.3 v6"/>
+<path class="w" d="M-34.0 271.3 Q43.5 305.4 121.0 271.3"/>
+<path class="w" d="M43.5 288.4 V321.5 M29.5 321.5 h28"/>
+<path class="t" d="M39.5 265.3 v-10 q4 -8 8 0 v10"/>
+<ellipse class="k" cx="850.0" cy="260.6" rx="75.0" ry="16.5"/>
+<path class="w" d="M775.0 260.6 v6 M925.0 260.6 v6"/>
+<path class="w" d="M775.0 266.6 Q850.0 299.6 925.0 266.6"/>
+<path class="w" d="M850.0 283.1 V315.0 M836.0 315.0 h28"/>
+<path class="t" d="M846.0 260.6 v-10 q4 -8 8 0 v10"/>
+<ellipse class="k" cx="256.5" cy="312.2" rx="102.5" ry="22.6"/>
+<path class="w" d="M154.0 312.2 v6 M359.0 312.2 v6"/>
+<path class="w" d="M154.0 318.2 Q256.5 363.3 359.0 318.2"/>
+<path class="w" d="M256.5 340.7 V386.5 M242.5 386.5 h28"/>
+<path class="t" d="M252.5 312.2 v-10 q4 -8 8 0 v10"/>
+<!-- 태규의 카메라 (삼각대) -->
+<path class="w" d="M660.0 260.0 L632.0 380.0 M660.0 260.0 L686.0 380.0 M660.0 260.0 L664.0 376.0"/>
+<rect class="k" x="642.0" y="236.0" width="36" height="22" rx="3"/>
+<circle class="kt" cx="638.0" cy="247.0" r="9"/><rect class="kt" x="662.0" y="230.0" width="10" height="6"/>
+</svg>

@@ -1,0 +1,85 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450">
+<style>.w{fill:none;stroke:#fff;stroke-width:1.6;stroke-linejoin:round;stroke-linecap:round}.t{fill:none;stroke:#fff;stroke-width:1;stroke-linejoin:round;stroke-linecap:round}.g{fill:none;stroke:#636366;stroke-width:1;stroke-linejoin:round;stroke-linecap:round}.k{fill:#000;stroke:#fff;stroke-width:1.6;stroke-linejoin:round;stroke-linecap:round}.kt{fill:#000;stroke:#fff;stroke-width:1;stroke-linejoin:round;stroke-linecap:round}.b{fill:#000;stroke:#C1121F;stroke-width:1.6;stroke-linejoin:round;stroke-linecap:round}.r{fill:none;stroke:#C1121F;stroke-width:1;stroke-linecap:round;stroke-linejoin:round}.gd{fill:#636366}</style>
+<rect width="800" height="450" fill="#000"/>
+<path class="w" d="M110.0 35.0 L690.0 35.0 L690.0 300.0 L110.0 300.0 Z"/>
+<path class="w" d="M110.0 35.0 L-470.0 -85.0"/>
+<path class="w" d="M690.0 35.0 L1270.0 -85.0"/>
+<path class="w" d="M110.0 300.0 L-470.0 710.0"/>
+<path class="w" d="M690.0 300.0 L1270.0 710.0"/>
+<path class="g" d="M110.0 292.0 L690.0 292.0"/>
+<!-- 화장대: 전구 거울 + 상판 (뒷벽 왼쪽) -->
+<rect class="w" x="170" y="70" width="180" height="120" rx="4"/>
+<rect class="t" x="180" y="80" width="160" height="100" rx="2"/>
+<circle class="t" cx="182.0" cy="74" r="3"/>
+<circle class="t" cx="208.0" cy="74" r="3"/>
+<circle class="t" cx="234.0" cy="74" r="3"/>
+<circle class="t" cx="260.0" cy="74" r="3"/>
+<circle class="t" cx="286.0" cy="74" r="3"/>
+<circle class="t" cx="312.0" cy="74" r="3"/>
+<circle class="t" cx="338.0" cy="74" r="3"/>
+<circle class="t" cx="174" cy="100" r="3"/><circle class="t" cx="346" cy="100" r="3"/>
+<circle class="t" cx="174" cy="130" r="3"/><circle class="t" cx="346" cy="130" r="3"/>
+<circle class="t" cx="174" cy="160" r="3"/><circle class="t" cx="346" cy="160" r="3"/>
+<path class="k" d="M360.0 200.0 L355.2 212.6 L355.2 223.8 L360.0 210.0 Z"/>
+<path class="k" d="M160.0 200.0 L360.0 200.0 L355.2 212.6 L131.2 212.6 Z"/>
+<path class="k" d="M131.2 212.6 L355.2 212.6 L355.2 223.8 L131.2 223.8 Z"/>
+<path class="k" d="M210.1 211.2 L191.3 222.7 L191.3 322.6 L210.1 302.1 Z"/>
+<path class="k" d="M163.7 211.2 L210.1 211.2 L191.3 222.7 L140.3 222.7 Z"/>
+<path class="k" d="M140.3 222.7 L191.3 222.7 L191.3 322.6 L140.3 322.6 Z"/>
+<path class="k" d="M353.5 211.2 L348.9 222.7 L348.9 322.6 L353.5 302.1 Z"/>
+<path class="k" d="M307.1 211.2 L353.5 211.2 L348.9 222.7 L297.9 222.7 Z"/>
+<path class="k" d="M297.9 222.7 L348.9 222.7 L348.9 322.6 L297.9 322.6 Z"/>
+<path class="t" d="M140.3 256.0 L191.3 256.0"/>
+<path class="t" d="M297.9 256.0 L348.9 256.0"/>
+<!-- 화장대 위 소품 -->
+<path class="t" d="M228 198 v-12 h8 v12 M244 198 v-8 h14 v8"/>
+<!-- 진열대 (오른쪽 벽) -->
+<path class="w" d="M701.6 121.0 L777.0 127.5 L777.0 296.5 L701.6 256.2 Z"/>
+<path class="t" d="M701.6 167.8 L777.0 186.0"/>
+<path class="t" d="M701.6 209.4 L777.0 238.0"/>
+<!-- 다른 트로피들, 가운데는 비어 있음 -->
+<path class="t" d="M707.2 170.6 h12 l-3 -6 h-6 Z M713.2 164.6 v-14 M707.2 144.6 q6 8 12 0"/>
+<path class="t" d="M759.4 183.2 h12 l-3 -6 h-6 Z M765.4 177.2 v-8 M759.4 163.2 q6 8 12 0"/>
+<ellipse class="g" cx="739.3" cy="174.9" rx="9" ry="2.5"/>
+<path class="t" d="M729.3 186.9 h20 v8 h-20 Z"/>
+<!-- 뒷문 (오른쪽 벽 앞쪽) -->
+<path class="w" d="M811.8 95.0 L907.5 95.0 L907.5 453.8 L811.8 386.1 Z"/>
+<path class="w" d="M826.3 249.3 v14"/>
+<!-- 정문 (뒷벽 오른쪽) -->
+<rect class="w" x="560" y="85" width="90" height="215"/><rect class="t" x="566" y="91" width="78" height="209"/><path class="w" d="M572 190 h10"/>
+<!-- 소파 (왼쪽 벽) -->
+<path class="k" d="M46.2 217.0 L-69.8 257.0 L-69.8 427.1 L46.2 345.1 Z"/>
+<path class="k" d="M108.6 287.2 L24.0 343.0 L24.0 423.0 L108.6 349.2 Z"/>
+<path class="k" d="M40.4 287.2 L108.6 287.2 L24.0 343.0 L-64.0 343.0 Z"/>
+<path class="k" d="M-64.0 343.0 L24.0 343.0 L24.0 423.0 L-64.0 423.0 Z"/>
+<path class="t" d="M-11.8 315.1 L66.3 315.1"/>
+<path class="k" d="M122.7 263.7 L108.6 272.3 L108.6 349.2 L122.7 336.9 Z"/>
+<path class="k" d="M57.8 263.7 L122.7 263.7 L108.6 272.3 L40.4 272.3 Z"/>
+<path class="k" d="M40.4 272.3 L108.6 272.3 L108.6 349.2 L40.4 349.2 Z"/>
+<path class="w" d="M80.8 301.1 l16 -3"/>
+<!-- 탁자와 신랑 잔 -->
+<path class="k" d="M610.0 318.5 L632.4 342.3 L632.4 352.3 L610.0 327.5 Z"/>
+<path class="k" d="M610.0 318.5 L715.0 318.5 L748.6 342.3 L632.4 342.3 Z"/>
+<path class="k" d="M632.4 342.3 L748.6 342.3 L748.6 352.3 L632.4 352.3 Z"/>
+<path class="k" d="M663.6 336.8 L670.4 343.0 L670.4 423.0 L663.6 414.8 Z"/>
+<path class="k" d="M663.6 336.8 L682.4 336.8 L689.6 343.0 L670.4 343.0 Z"/>
+<path class="k" d="M670.4 343.0 L689.6 343.0 L689.6 423.0 L670.4 423.0 Z"/>
+<path class="w" d="M671.5 330.4 h10 M676.5 330.4 v-10 M671.5 304.4 h10 l-1.5 16 h-7 Z"/>
+<path class="g" d="M672.0 308.4 h9"/>
+<!-- 개인 서랍장 (뒷벽 오른쪽) -->
+<path class="k" d="M440.0 180.0 L444.0 188.5 L444.0 320.5 L440.0 300.0 Z"/>
+<path class="k" d="M440.0 180.0 L540.0 180.0 L554.0 188.5 L444.0 188.5 Z"/>
+<path class="k" d="M444.0 188.5 L554.0 188.5 L554.0 320.5 L444.0 320.5 Z"/>
+<path class="t" d="M444.0 232.5 L554.0 232.5"/>
+<path class="t" d="M444.0 276.5 L554.0 276.5"/>
+<path class="w" d="M488.0 210.5 L510.0 210.5"/>
+<path class="w" d="M488.0 254.5 L510.0 254.5"/>
+<path class="w" d="M488.0 298.5 L510.0 298.5"/>
+<!-- 시신: 화장대 옆 바닥 -->
+<g transform="translate(240.0 408.5) rotate(-8) scale(0.62) translate(-627 -393)" fill="#000" stroke="#C1121F" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M612 379 Q590 378 572 381 Q552 383 537 383 Q529 381 525 384 Q523 389 530 391 Q536 391 540 389 Q556 390 574 391 Q594 394 612 395 Z" vector-effect="non-scaling-stroke"/>
+<path d="M612 391 Q592 395 574 399 Q556 404 540 407 Q532 409 532 413 Q534 417 541 415 Q558 412 576 409 Q596 407 614 406 Z" vector-effect="non-scaling-stroke"/>
+<path d="M676 380 Q690 372 704 369 L722 366 Q729 365 729 370 Q728 374 722 374 L706 377 Q694 381 684 388 Z" vector-effect="non-scaling-stroke"/>
+<path d="M610 380 Q640 375 664 377 Q682 379 686 391 Q683 404 664 406 Q640 408 610 405 Q602 392 610 380 Z" vector-effect="non-scaling-stroke"/>
+<path d="M674 401 Q664 414 650 418 L636 420 Q630 421 630 417 Q631 413 636 413 L648 411 Q660 407 666 397 Z" vector-effect="non-scaling-stroke"/>
+<ellipse cx="699" cy="391" rx="14" ry="11.5" vector-effect="non-scaling-stroke"/></g>
+</svg>

@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450">
+<style>.w{fill:none;stroke:#fff;stroke-width:1.6;stroke-linejoin:round;stroke-linecap:round}.t{fill:none;stroke:#fff;stroke-width:1;stroke-linejoin:round;stroke-linecap:round}.g{fill:none;stroke:#636366;stroke-width:1;stroke-linejoin:round;stroke-linecap:round}.k{fill:#000;stroke:#fff;stroke-width:1.6;stroke-linejoin:round;stroke-linecap:round}.kt{fill:#000;stroke:#fff;stroke-width:1;stroke-linejoin:round;stroke-linecap:round}.b{fill:#000;stroke:#C1121F;stroke-width:1.6;stroke-linejoin:round;stroke-linecap:round}.r{fill:none;stroke:#C1121F;stroke-width:1;stroke-linecap:round;stroke-linejoin:round}.gd{fill:#636366}</style>
+<rect width="800" height="450" fill="#000"/>
+<path class="w" d="M110.0 35.0 L690.0 35.0 L690.0 300.0 L110.0 300.0 Z"/>
+<path class="w" d="M110.0 35.0 L-470.0 -85.0"/>
+<path class="w" d="M690.0 35.0 L1270.0 -85.0"/>
+<path class="w" d="M110.0 300.0 L-470.0 710.0"/>
+<path class="w" d="M690.0 300.0 L1270.0 710.0"/>
+<path class="g" d="M110.0 292.0 L690.0 292.0"/>
+<!-- 창가 (뒷벽 오른쪽) -->
+<rect class="w" x="500" y="70" width="150" height="120"/>
+<rect class="t" x="506" y="76" width="138" height="108"/>
+<path class="t" d="M575.0 76.0 L575.0 184.0"/>
+<path class="w" d="M492.0 194.0 L658.0 194.0 L668.3 198.0 L495.7 198.0 Z"/>
+<circle class="gd" cx="500" cy="90" r="1"/>
+<circle class="gd" cx="600" cy="110" r="1"/>
+<circle class="gd" cx="540" cy="150" r="1"/>
+<circle class="gd" cx="620" cy="160" r="1"/>
+<!-- 신부 화장대 (뒷벽 왼쪽) -->
+<ellipse class="w" cx="340" cy="125" rx="62" ry="72"/><ellipse class="t" cx="340" cy="125" rx="54" ry="64"/>
+<path class="k" d="M250.0 205.0 L430.0 205.0 L433.6 218.2 L232.0 218.2 Z"/>
+<path class="k" d="M232.0 218.2 L433.6 218.2 L433.6 227.2 L232.0 227.2 Z"/>
+<path class="k" d="M251.0 222.4 L248.2 224.8 L248.2 320.5 L251.0 316.4 Z"/>
+<path class="k" d="M242.3 222.4 L251.0 222.4 L248.2 224.8 L239.4 224.8 Z"/>
+<path class="k" d="M239.4 224.8 L248.2 224.8 L248.2 320.5 L239.4 320.5 Z"/>
+<path class="k" d="M419.4 222.4 L419.8 224.8 L419.8 320.5 L419.4 316.4 Z"/>
+<path class="k" d="M419.4 222.4 L428.1 222.4 L428.6 224.8 L419.8 224.8 Z"/>
+<path class="k" d="M419.8 224.8 L428.6 224.8 L428.6 320.5 L419.8 320.5 Z"/>
+<!-- 파우치 -->
+<path class="k" d="M371.4 211.6 q0 -14 18 -14 q18 0 18 14 Z"/>
+<path class="t" d="M377.4 199.6 h24"/>
+<path class="t" d="M286 205 v-10 h6 v10 M300 205 v-16 h4 v16"/>
+<!-- 의자 -->
+<path class="k" d="M312 250 V192 Q312 180 324 180 H356 Q368 180 368 192 V250"/>
+<!-- 드레스룸: 이동식 행거와 2부 드레스 -->
+<path class="w" d="M36.0 88.5 L36.0 361.5"/>
+<path class="w" d="M205.0 88.5 L205.0 361.5"/>
+<path class="w" d="M36.0 88.5 L205.0 88.5"/>
+<path class="w" d="M22.0 361.5 L50.0 361.5"/>
+<path class="w" d="M191.0 361.5 L219.0 361.5"/>
+<path class="t" d="M86.0 88.5 v8 M74.0 102.5 q12 -10 24 0"/>
+<path class="k" d="M76.0 102.5 l-2 40 l-24 116 h72 l-24 -116 l-2 -40 Z"/>
+<path class="t" d="M74.0 142.5 h24"/>
+<path class="t" d="M156.0 88.5 v8 M144.0 102.5 q12 -10 24 0"/>
+<path class="k" d="M146.0 102.5 l-2 40 l-24 146 h72 l-24 -146 l-2 -40 Z"/>
+<path class="t" d="M144.0 142.5 h24"/>
+<!-- 협탁과 휴대폰 -->
+<path class="k" d="M616.0 284.0 L648.0 312.0 L648.0 321.3 L616.0 292.1 Z"/>
+<path class="k" d="M616.0 284.0 L724.0 284.0 L772.0 312.0 L648.0 312.0 Z"/>
+<path class="k" d="M648.0 312.0 L772.0 312.0 L772.0 321.3 L648.0 321.3 Z"/>
+<path class="k" d="M682.2 305.2 L686.2 308.2 L686.2 394.3 L682.2 390.2 Z"/>
+<path class="k" d="M682.2 305.2 L693.8 305.2 L697.8 308.2 L686.2 308.2 Z"/>
+<path class="k" d="M686.2 308.2 L697.8 308.2 L697.8 394.3 L686.2 394.3 Z"/>
+<path class="kt" d="M671.7 295.2 L689.7 294.2 L693.7 301.2 L674.7 302.2 Z"/>
+</svg>
