@@ -71,7 +71,7 @@ export default function CasePanel(props: Props) {
 
   function togglePick(id: number) {
     setLinkMsg("");
-    setPicked((p) => (p.includes(id) ? p.filter((x) => x !== id) : p.length >= 3 ? p : [...p, id]));
+    setPicked((p) => (p.includes(id) ? p.filter((x) => x !== id) : p.length >= 2 ? [p[1], id] : [...p, id]));
   }
 
   // 조사 횟수를 다 쓰면 나오는 「조사 무제한」 버튼
@@ -271,7 +271,7 @@ export default function CasePanel(props: Props) {
           <>
             <div className="link-head">
               <b>단서 연결하기</b>
-              <p>함께 보면 새 사실이 드러나는 단서를 2~3개 이으세요. 틀려도 괜찮고, 맞히면 조사 1회를 써요.</p>
+              <p>함께 보면 새 사실이 드러나는 단서 2개를 이으세요. 틀려도 괜찮고, 맞히면 조사 1회를 써요.</p>
               {out && unlimitedButton}
             </div>
             {clues.length < 2 ? (

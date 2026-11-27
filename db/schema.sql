@@ -179,7 +179,7 @@ CREATE TABLE clue (
 ALTER TABLE spot ADD CONSTRAINT fk_spot_unlock FOREIGN KEY (unlock_clue_id)
     REFERENCES clue (clue_id) ON DELETE SET NULL;
 
--- 추론 (단서 2~3개를 연결해야 얻는 사실)
+-- 추론 (단서 2개를 연결해야 얻는 사실)
 CREATE TABLE deduction (
     deduction_id INT NOT NULL AUTO_INCREMENT,
     case_id INT NOT NULL,
@@ -480,7 +480,7 @@ UPDATE spot SET unlock_clue_id = 4 WHERE spot_id = 19;   -- 서류가방 ← 빈
 -- 숨은 증언: 관련 증거를 내밀어야만 털어놓는다
 UPDATE clue SET unlock_clue_id = 6 WHERE clue_id = 19;   -- 서재의 언쟁 ← 반쯤 한 설거지
 
--- 추론: 단서 2~3개를 연결해야 얻는 사실. 범인 지목 근거로는 추론만 낼 수 있다.
+-- 추론: 단서 2개를 연결해야 얻는 사실. 범인 지목 근거로는 추론만 낼 수 있다.
 INSERT INTO deduction (deduction_id, case_id, name, description, proof_role, proof_note) VALUES
 (1, 1, '녹은 눈 시한장치', '책장 맨 윗칸 끝은 물에 젖어 부풀었고 그 위엔 아무것도 없다. 머리맡의 청동 흉상은 4kg짜리로 받침이 둥글다. 평소 꺼 두던 서재 난방기는 30도로 맞춰져 있었다.', '알리바이',
  '흉상은 맨 윗칸 끝에 눈덩이로 괴어 둔 것이 난방에 녹으면서 22시 10분에 저절로 떨어졌어요. "쿵" 소리는 범행 시각이 아니에요. 그 시각 부엌에 있었다는 서진의 알리바이는 아무것도 증명하지 못해요.'),
@@ -874,6 +874,26 @@ INSERT INTO deduction_clue (deduction_id, clue_id) VALUES
 (116, 132), (116, 134);
 
 UPDATE case_file SET investigation_limit = 17 WHERE case_id = 2;
+
+-- 단서 연결은 모두 2개로 통일: 재료가 3개였던 추론에서 하나씩 뺀다 (뺀 단서의 내용은 남은 단서나 추론 설명에 녹인다)
+DELETE FROM deduction_clue WHERE (deduction_id, clue_id) IN (
+  (1, 29), (3, 14), (6, 15), (8, 29), (9, 20),
+  (104, 121), (105, 114), (107, 117), (108, 131), (110, 120), (115, 112)
+);
+UPDATE clue SET description = '책장 맨 윗칸 끝의 나무가 물에 젖어 부풀었다. 윗칸 끝에는 아무것도 놓여 있지 않고, 바로 아래 카펫도 축축하다. 그 바로 아래 바닥에 청동 흉상이 떨어져 있다.' WHERE clue_id = 32;
+UPDATE deduction SET description = '책장 맨 윗칸 끝은 물에 젖어 부풀었고 그 위엔 아무것도 없다. 바로 아래에 청동 흉상이 떨어져 있다. 평소 꺼 두던 서재 난방기는 30도로 맞춰져 있었다.' WHERE deduction_id = 1;
+UPDATE deduction SET description = '피해자는 내일 유언장을 고쳐 상속인을 조카에서 재단으로 바꾸려 했다. 21시 35분 서재에서는 "유언장" 얘기로 언쟁이 있었다.' WHERE deduction_id = 3;
+UPDATE deduction SET description = '변호사의 회의 카메라와 마이크는 21시 38분부터 꺼져 있었고, 변호사의 신탁 계좌 장부에는 잉크가 아직 번지는 새 숫자가 덧쓰여 있다.' WHERE deduction_id = 6;
+UPDATE deduction SET description = '뒷머리 상처는 길이 3cm의 곧은 일자로 패어 있고 둥근 자국은 없다. 책장의 직육면체 문진은 모서리가 각졌고, 혼자 닦여 있으며 틈에 붉은 얼룩이 남았다.' WHERE deduction_id = 8;
+UPDATE deduction SET description = '정원사 박정호는 20년 전 한도윤과 회사를 함께 차린 공동대표였다. 오늘 20시 15분 서재에서 "20년 전에 나한테 한 짓"이라며 소리쳤다.' WHERE deduction_id = 9;
+UPDATE deduction SET name = '언니의 돈', description = '시우의 환불 요청자 명단 맨 위는 "한지영 - 1억 2천"이다. 지아의 사진 뒷면에는 "지영 언니"라고 적혀 있다.',
+  proof_note = '시우에게 1억 2천을 떼인 한지영은 지아의 언니예요. 지아에게는 시우를 미워할 이유가 있었어요.' WHERE deduction_id = 104;
+UPDATE deduction SET description = '시우 휴대폰의 대화방 하나가 22시에 지워졌고, 시우 방 침대 밑에서 이채원의 출입증이 나왔다.' WHERE deduction_id = 105;
+UPDATE deduction SET description = '수영장 카메라는 22시 5분 배터리 방전으로 꺼졌다. 장비실 화이트보드에는 배터리 교체를 내일 아침으로 미룬 메모가 있다.' WHERE deduction_id = 107;
+UPDATE deduction SET description = '데크 모서리의 핏자국 높이는 시우의 머리 상처와 맞는다. 그런데 시우의 양 어깨 앞쪽에는 손가락 모양 멍이 네 개씩 있다.',
+  proof_note = '미끄러져 빠진 사고라면 어깨를 움켜쥐고 누른 멍이 생길 수 없어요. 누군가 시우를 물속에 눌렀어요. 누가 했는지는 아직 몰라요.' WHERE deduction_id = 108;
+UPDATE deduction SET description = '21시 30분 거실에서 도현과 시우가 몸싸움을 했고, 거실 바닥에는 세게 부딪혀 깨진 액자가 있다.' WHERE deduction_id = 110;
+UPDATE deduction SET description = '지아의 옷장 속 약 봉투는 "환자: 한지영" 앞으로 처방된 수면제이고 4정이 비었다. 데크의 샴페인 잔 하나에는 하얀 가루 찌꺼기가 가라앉아 있다.' WHERE deduction_id = 115;
 
 -- 인물 관계도: 플레이어 화면에 그리는 선. 단서·추론을 찾을 때마다 선이 생기거나 바뀐다
 -- 짝마다 찾은 단계 중 stage_order가 가장 큰 것을 그린다. clue_id·deduction_id가 둘 다 NULL이면 처음부터 보인다

@@ -49,7 +49,7 @@ export interface Scene {
   map: { x: number; y: number; w: number; h: number } | null;
 }
 
-/** 단서 2~3개를 연결해서 얻은 사실. 범인 지목 근거로는 추론만 낼 수 있다 */
+/** 단서 2개를 연결해서 얻은 사실. 범인 지목 근거로는 추론만 낼 수 있다 */
 export interface Deduction {
   deduction_id: number;
   name: string;

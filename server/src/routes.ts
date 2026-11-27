@@ -334,7 +334,7 @@ router.post(
     const ids = [...new Set(raw.map(Number))]
       .filter((n) => Number.isInteger(n) && n > 0)
       .sort((x, y) => x - y);
-    if (ids.length < 2 || ids.length > 3) throw new HttpError(400, "단서를 2~3개 골라주세요.");
+    if (ids.length !== 2) throw new HttpError(400, "단서를 2개 골라주세요.");
     const found = await query<{ clue_id: number }>(
       `SELECT clue_id FROM clue_discovery WHERE participant_id = ? AND clue_id IN (?)`,
       [play.participant_id, ids],
