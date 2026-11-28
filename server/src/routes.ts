@@ -472,9 +472,10 @@ router.post(
 const FREE_QUESTIONS = 3;
 
 const BASIC_QUESTIONS = {
-  알리바이: "그 시간에 어디 계셨어요?",
+  알리바이: "사망 추정 시간에 뭐 하고 계셨어요?",
   관계: "피해자와는 어떤 사이였죠?",
-  목격: "이상한 걸 보거나 듣지 못했나요?",
+  목격: "수상한 걸 보거나 들은 건 없나요?",
+  마지막: "마지막으로 피해자를 본 게 언제인가요?",
 } as const;
 type Topic = keyof typeof BASIC_QUESTIONS;
 

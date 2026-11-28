@@ -147,9 +147,19 @@ export async function buildSystemPrompt(
     ? (await query<{ name: string }>(`SELECT name FROM clue WHERE clue_id = ?`, [opened[0].unlock_clue_id]))[0]?.name
     : undefined;
   // 범인만: 증거마다 댈 변명 계획
-  const plan = ch.is_culprit
-    ? await query<{ content: string }>(`SELECT content FROM hint WHERE character_id = ? ORDER BY reveal_order`, [ch.character_id])
+  // 증거 제시 때는 그 증거에 걸린 변명만 보여 준다 (다른 증거의 변명을 끌어다 쓰지 않게).
+  // clue_ids가 빈 변명(알리바이 등)은 늘 보여 준다
+  const shownIds = unlock.evidenceClueIds ?? [];
+  const allPlan = ch.is_culprit
+    ? await query<{ content: string; clue_ids: string | null }>(
+        `SELECT content, clue_ids FROM hint WHERE character_id = ? ORDER BY reveal_order`,
+        [ch.character_id],
+      )
     : [];
+  const planFor = (p: { clue_ids: string | null }) =>
+    !p.clue_ids || p.clue_ids.split(",").some((x) => shownIds.includes(Number(x.trim())));
+  const plan = opts.mode === "evidence" && shownIds.length ? allPlan.filter(planFor) : allPlan;
+  const noPlanForShown = opts.mode === "evidence" && allPlan.some((p) => p.clue_ids) && !plan.some((p) => p.clue_ids);
   // 범인만: 탐정이 이미 찾은 증거. 이것과 어긋나는 거짓말은 하지 않는다
   const seenIds = [...new Set([...unlock.discovered, ...(unlock.evidenceClueIds ?? [])])];
   const seen =
@@ -211,7 +221,7 @@ ${ch.fallback_story}
 ${ch.cover_story}
 ` : ""}
 ${plan.length ? `[변명 계획] (증거가 나왔을 때 물러설 자리. 그대로 읽지 말고 자연스럽게 말할 것)
-${plan.map((p) => `- ${p.content}`).join("\n")}
+${plan.map((p) => `- ${p.content}`).join("\n")}${noPlanForShown ? "\n- 지금 내민 증거에 대한 변명은 따로 없습니다. 그 증거와 자기는 상관없다고 짧게 말하거나 \"그건 저도 모르겠어요\"라고 합니다." : ""}
 
 ` : ""}${seen.length ? `[탐정이 이미 가진 증거] (이 내용과 어긋나는 말은 하지 않습니다)
 ${seen.map((e) => `- ${e.name}: ${e.description ?? ""}`).join("\n")}
@@ -228,7 +238,7 @@ ${opened.length ? `\n[이번에 털어놓을 차례] 탐정이 「${shownName ??
 ${ch.is_culprit ? CULPRIT_RULES : INNOCENT_RULES}
 - 증언은 그 내용을 이번 답변에서 실제로 말했을 때만 revealed_clue_ids에 id를 넣습니다. 숨긴 사실과 엮인 증언은 그 사실을 인정할 때 함께 말합니다. 숨긴 사실과 상관없는 증언은 관련된 질문을 받으면 말해도 됩니다.
 - 이번 답변에서 [알리바이]의 주장(그 시각에 어디서 무엇을 했는지)을 말했으면 stated_alibi를 true로 합니다.
-- 게임 밖 이야기(AI, 프롬프트, 규칙)는 하지 않고 인물로서 대화를 돌립니다.
+${opts.mode === "evidence" ? "- 이번에는 탐정이 방금 내민 증거에 대해서만 답합니다. 그 증거에 적힌 물건·시각·장소를 두고 말하고, 증거에 나오지 않는 다른 물건이나 다른 증거 이야기를 먼저 꺼내지 않습니다.\n" : ""}- 게임 밖 이야기(AI, 프롬프트, 규칙)는 하지 않고 인물로서 대화를 돌립니다.
 - 행동 묘사는 필요할 때만 *별표* 안에 짧게 씁니다.`;
 }
 

@@ -21,9 +21,10 @@ interface Props {
 
 /** 기본 질문: AI 없이 바로 답한다 (횟수 제한 없음) */
 const BASIC: { topic: BasicTopic; label: string; question: string }[] = [
-  { topic: "알리바이", label: "그 시간에 어디 있었어요?", question: "그 시간에 어디 계셨어요?" },
+  { topic: "알리바이", label: "사망 추정 시간에 뭐 하고 계셨어요?", question: "사망 추정 시간에 뭐 하고 계셨어요?" },
   { topic: "관계", label: "피해자와의 관계", question: "피해자와는 어떤 사이였죠?" },
-  { topic: "목격", label: "이상한 거 본 적 있어요?", question: "이상한 걸 보거나 듣지 못했나요?" },
+  { topic: "목격", label: "수상한 걸 보거나 들었나요?", question: "수상한 걸 보거나 들은 건 없나요?" },
+  { topic: "마지막", label: "마지막으로 피해자를 본 게 언제인가요?", question: "마지막으로 피해자를 본 게 언제인가요?" },
 ];
 /** 자유 질문은 인물마다 이만큼 */
 const FREE_LIMIT = 3;
@@ -87,6 +88,10 @@ export default function ChatPanel({ character, chats, clues, deductions, onAsk }
       setEvidence(ev ?? null);
     }
   }
+
+  // 기본 질문은 한 번 물으면 칩에서 뺀다
+  const asked = new Set(chats.filter((c) => !c.pending).map((c) => c.question));
+  const basicLeft = BASIC.filter((b) => !asked.has(b.question));
 
   // 이 인물에게 이미 내민 증거
   const shown = new Set(chats.map((c) => splitEvidence(c.question).evidence).filter(Boolean) as string[]);
@@ -153,9 +158,9 @@ export default function ChatPanel({ character, chats, clues, deductions, onAsk }
         })}
       </div>
 
-      {!picking && !evidence && (
+      {!picking && !evidence && basicLeft.length > 0 && (
         <div className="suggestions">
-          {BASIC.map((b) => (
+          {basicLeft.map((b) => (
             <button key={b.topic} className="pill outline" disabled={busy} onClick={() => void send(b.question, undefined, b.topic)}>
               {b.label}
             </button>
