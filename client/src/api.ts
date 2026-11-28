@@ -1,6 +1,6 @@
 import type { AccuseResult, CaseSummary, Clue, Deduction, Me, PlayState, Relation, Scene, TimelineItem } from "./types";
 
-export type BasicTopic = "알리바이" | "관계" | "목격";
+export type BasicTopic = "알리바이" | "관계" | "목격" | "마지막";
 export interface AskReply {
   answer: string;
   question: string;
